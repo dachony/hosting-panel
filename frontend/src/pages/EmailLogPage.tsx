@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
-import { Search, Loader2, Mail, Trash2, RefreshCw, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertTriangle, ChevronDown } from 'lucide-react';
+import { Search, Loader2, Trash2, RefreshCw, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertTriangle, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface EmailLogItem {
