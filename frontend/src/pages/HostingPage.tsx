@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { Hosting, ExpiryStatus, Client, Domain, Package } from '../types';
 import Modal from '../components/common/Modal';
+import DateInput from '../components/common/DateInput';
 import { Search, Filter, Plus, Globe, Loader2, Pencil, LayoutList, LayoutGrid, Power, PowerOff, Server, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -867,11 +868,10 @@ export default function HostingPage() {
           {selectedPackageId && (
             <div className="pt-3 border-t dark:border-gray-700">
               <label className="text-xs text-gray-500">{t('common.expiryDate')} *</label>
-              <input
-                type="date"
+              <DateInput
+                name="expiryDate"
                 value={domainForm.expiryDate}
-                onChange={(e) => setDomainForm(prev => ({ ...prev, expiryDate: e.target.value }))}
-                className="input py-1.5 text-sm"
+                onChange={(value) => setDomainForm(prev => ({ ...prev, expiryDate: value }))}
                 required
               />
               <div className="flex gap-1.5 flex-wrap mt-2">

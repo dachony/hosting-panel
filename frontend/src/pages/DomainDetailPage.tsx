@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { Domain, Hosting, Package, Client, ExpiryStatus, MailServer, MailSecurity } from '../types';
+import DateInput from '../components/common/DateInput';
 import { ArrowLeft, Globe, Package as PackageIcon, ChevronDown, ChevronRight, Pencil, Lock, Unlock, Server, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -666,11 +667,11 @@ export default function DomainDetailPage() {
                     {!isDomainLocked && (
                       <div className="flex items-center gap-1.5 ml-auto bg-primary-50 dark:bg-primary-900/20 rounded px-2 py-1">
                         <span className="text-[11px] font-medium text-primary-700 dark:text-primary-300">{t('common.extendTo')}</span>
-                        <input
-                          type="date"
+                        <DateInput
                           value={hostingForm.expiryDate}
-                          onChange={(e) => setHostingForm({ ...hostingForm, expiryDate: e.target.value })}
-                          className="input !py-0.5 !px-1.5 !text-xs w-28"
+                          onChange={(value) => setHostingForm({ ...hostingForm, expiryDate: value })}
+                          size="sm"
+                          className="w-32"
                         />
                         {periodButtons.map((btn) => (
                           <button

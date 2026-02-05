@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { Client, Domain, Hosting, ExpiryStatus, ExtendPeriod, Package, MailServer, MailSecurity } from '../types';
 import Modal from '../components/common/Modal';
-import { ArrowLeft, Globe, Server, Calendar, ChevronDown, ChevronRight, Lock, Unlock, Plus, CalendarDays, Search, Pencil, Users, Shield } from 'lucide-react';
+import DateInput from '../components/common/DateInput';
+import { ArrowLeft, Globe, Server, Calendar, ChevronDown, ChevronRight, Lock, Unlock, Plus, Search, Pencil, Users, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface HostingWithPackage extends Hosting {
@@ -84,42 +85,6 @@ const periodButtons = [
   { years: 5, label: '+5' },
   { years: 100, label: 'Unlim.' },
 ];
-
-function DateInput({
-  name,
-  value,
-  onChange,
-  required = false,
-}: {
-  name: string;
-  value: string;
-  onChange: (value: string) => void;
-  required?: boolean;
-}) {
-  return (
-    <div className="relative">
-      <input
-        type="date"
-        name={name}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required={required}
-        className="input w-full cursor-pointer pr-12 text-base py-3
-          bg-white dark:bg-gray-800
-          border-gray-300 dark:border-gray-600
-          text-gray-900 dark:text-gray-100
-          [color-scheme:light] dark:[color-scheme:dark]
-          [&::-webkit-calendar-picker-indicator]:opacity-0
-          [&::-webkit-calendar-picker-indicator]:absolute
-          [&::-webkit-calendar-picker-indicator]:inset-0
-          [&::-webkit-calendar-picker-indicator]:w-full
-          [&::-webkit-calendar-picker-indicator]:h-full
-          [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-      />
-      <CalendarDays className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-    </div>
-  );
-}
 
 export default function ClientDetailPage() {
   const { t } = useTranslation();
