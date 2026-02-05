@@ -27,20 +27,46 @@ A comprehensive web application for managing domains, web hosting, and mail host
 
 ## Quick Start
 
-### With Docker (recommended)
+### Production (Docker)
 
 ```bash
-docker-compose up --build
+cp .env.example .env
+# Edit .env and set JWT_SECRET (required) and SMTP settings
+
+docker-compose up -d --build
 ```
 
-Services:
-| Service | URL |
-|---|---|
-| Frontend | http://localhost:3000 |
-| Backend API | http://localhost:8080 |
-| MailHog UI | http://localhost:8025 |
+On first run, seed the default admin user:
 
-The backend automatically runs database migrations on startup.
+```bash
+docker-compose exec backend node dist/db/seed.js
+```
+
+The app is available at **http://localhost:3000**. The nginx container serves the built frontend and proxies `/api` requests to the backend internally - no CORS configuration needed regardless of which domain you use.
+
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `3000` | Published port on the host |
+| `JWT_SECRET` | *(required)* | Secret key for JWT signing |
+| `SMTP_HOST` | `localhost` | SMTP server hostname |
+| `SMTP_PORT` | `587` | SMTP server port |
+| `SMTP_FROM` | `noreply@example.com` | Sender email address |
+| `FRONTEND_URL` | | Frontend URL (used in password reset emails) |
+| `CORS_ORIGINS` | | Comma-separated allowed origins (optional, permissive by default) |
+
+### Development (Docker)
+
+```bash
+docker-compose -f docker-compose.dev.yml up --build
+```
+
+| Service | URL | Description |
+|---|---|---|
+| Frontend | http://localhost:3000 | Vite dev server with hot-reload |
+| Backend API | http://localhost:8080 | tsx watch with hot-reload |
+| MailHog UI | http://localhost:8025 | Captures all outgoing emails |
+
+Source directories are mounted as volumes - changes to code are reflected immediately without rebuilding containers.
 
 ### Without Docker
 
@@ -71,17 +97,18 @@ npm run dev           # Starts dev server on port 3000
 | `PORT` | `8080` | Backend server port |
 | `NODE_ENV` | `development` | Environment mode |
 | `DATABASE_URL` | `file:/app/data/hosting.db` | SQLite database file path |
-| `JWT_SECRET` | `your-super-secret-jwt-key-change-in-production` | Secret key for JWT signing (change in production!) |
+| `JWT_SECRET` | *(required in production)* | Secret key for JWT signing |
 | `SMTP_HOST` | `localhost` | SMTP server hostname |
-| `SMTP_PORT` | `1025` | SMTP server port |
+| `SMTP_PORT` | `1025` (dev) / `587` (prod) | SMTP server port |
 | `SMTP_FROM` | `noreply@hosting-dashboard.local` | Default sender email address |
 | `FRONTEND_URL` | `http://localhost:3000` | Frontend URL (used in password reset emails) |
+| `CORS_ORIGINS` | *(permissive)* | Comma-separated allowed origins. If unset, all origins are allowed (safe behind reverse proxy) |
 
-### Frontend
+### Frontend (development only)
 
 | Variable | Default | Description |
 |---|---|---|
-| `VITE_API_URL` | `http://backend:8080` | Backend API base URL |
+| `VITE_API_URL` | `http://backend:8080` | Backend API base URL (used by Vite proxy in dev) |
 
 > SMTP settings can also be configured through the admin UI under Settings > Mail Configuration, which are stored in the database and override the environment variables.
 
@@ -638,6 +665,65 @@ Templates support placeholder variables wrapped in `{{` and `}}`:
 | `{{hostingList}}` | Auto-generated hosting status table (for report templates) |
 | `{{systemInfo}}` | Auto-generated system health info (for system templates) |
 
+## Deployment
+
+### Production vs Development
+
+The project uses multi-stage Docker builds. Both configurations use the same Dockerfiles but target different stages.
+
+| | Production (`docker-compose.yml`) | Development (`docker-compose.dev.yml`) |
+|---|---|---|
+| **Frontend** | nginx serving static build | Vite dev server with hot-reload |
+| **Backend** | Compiled JS (`node dist/`) | TypeScript watch (`tsx watch`) |
+| **Port** | 3000 (configurable via `PORT`) | 3000 (frontend) + 8080 (backend) |
+| **API routing** | nginx proxies `/api` to backend | Vite proxies `/api` to backend |
+| **Email** | Real SMTP server | MailHog (captures all emails) |
+| **Source volumes** | No (built into image) | Yes (hot-reload) |
+| **Restart policy** | `unless-stopped` | None |
+
+### Production
+
+```bash
+cp .env.example .env    # Configure JWT_SECRET and SMTP
+docker-compose up -d --build
+
+# First run only - seed default admin user:
+docker-compose exec backend node dist/db/seed.js
+```
+
+The nginx container serves the built frontend on port **3000** (override with `PORT` env var) and reverse-proxies all `/api` requests to the backend internally. This means:
+
+- No CORS configuration needed regardless of domain
+- Works behind Cloudflare Tunnel, reverse proxies, or any custom domain
+- Backend port (8080) is never exposed to the host
+
+### Development
+
+```bash
+docker-compose -f docker-compose.dev.yml up --build
+```
+
+Services:
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8080 |
+| MailHog UI | http://localhost:8025 |
+
+Source directories are mounted as volumes for hot-reload:
+- `./backend/src` → backend container
+- `./frontend/src` and `./frontend/public` → frontend container
+
+### Without Docker
+
+```bash
+# Terminal 1 - Backend
+cd backend && npm install && npm run db:migrate && npm run db:seed && npm run dev
+
+# Terminal 2 - Frontend
+cd frontend && npm install && npm run dev
+```
+
 ## Development
 
 ### NPM Scripts
@@ -660,15 +746,6 @@ Templates support placeholder variables wrapped in `{{` and `}}`:
 | `npm run dev` | Start Vite dev server (port 3000) |
 | `npm run build` | TypeScript check + Vite production build |
 | `npm run preview` | Preview production build locally |
-
-### Docker Development
-
-The Docker setup mounts source directories as volumes for hot-reload:
-
-- `./backend/src` is mounted into the backend container
-- `./frontend/src` and `./frontend/public` are mounted into the frontend container
-
-Changes to source files are reflected immediately without rebuilding containers.
 
 ### Runtime
 
