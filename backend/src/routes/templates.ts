@@ -44,7 +44,7 @@ templates.get('/type/:type', async (c) => {
 
 const reportConfigSchema = z.object({
   filters: z.object({
-    statuses: z.array(z.enum(['green', 'yellow', 'orange', 'red', 'deleted'])),
+    statuses: z.array(z.enum(['green', 'yellow', 'orange', 'red', 'forDeletion', 'deleted'])),
   }),
   sorting: z.object({
     field: z.enum(['domainName', 'clientName', 'expiryDate']),

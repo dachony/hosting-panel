@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
     try {
       await api.post('/api/auth/forgot-password', { email });
       setSubmitted(true);
-      toast.success('Email sa linkom za reset je poslat');
+      toast.success('Password reset link has been sent');
     } catch {
       // Always show success to prevent email enumeration
       setSubmitted(true);
@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
             />
           )}
           <h1 className="text-3xl font-bold text-primary-600">{branding.systemName}</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Reset lozinke</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Password Reset</p>
         </div>
 
         <div className="card">

@@ -1145,7 +1145,7 @@ export default function SettingsPage() {
     onSuccess: (data: { inviteSent?: boolean }) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       if (data?.inviteSent) {
-        toast.success('User created i pozivnica poslata');
+        toast.success('User created and invitation sent');
       } else {
         toast.success(selectedUser ? 'User updated' : 'User created');
       }
@@ -1175,7 +1175,7 @@ export default function SettingsPage() {
   const resendInviteMutation = useMutation({
     mutationFn: (userId: number) => api.post(`/api/users/${userId}/resend-invite`, {}),
     onSuccess: () => {
-      toast.success('Pozivnica ponovo poslata');
+      toast.success('Invitation resent');
     },
     onError: () => toast.error('Error sending invitation'),
   });
@@ -1903,7 +1903,7 @@ export default function SettingsPage() {
                       className="input !py-1.5 !text-sm"
                       placeholder="https://dashboard.example.com"
                     />
-                    <p className="text-[10px] text-gray-400 mt-1">Javna adresa aplikacije za linkove u email pozivnicama</p>
+                    <p className="text-[10px] text-gray-400 mt-1">Public application URL for links in email invitations</p>
                   </div>
                   <div className="col-span-6 flex justify-end pt-2">
                     <button
