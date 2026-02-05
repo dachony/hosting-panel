@@ -18,7 +18,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=file:/app/data/hosting.db
-      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env file}
+      - JWT_SECRET=${JWT_SECRET:-supersecretkey-change-me}
       - SMTP_HOST=${SMTP_HOST:-localhost}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_FROM=${SMTP_FROM:-noreply@example.com}
