@@ -684,12 +684,15 @@ The project uses multi-stage Docker builds. Both configurations use the same Doc
 ### Production
 
 ```bash
-cp .env.example .env    # Configure JWT_SECRET and SMTP
-docker-compose up -d --build
-
-# First run only - seed default admin user:
-docker-compose exec backend node dist/db/seed.js
+./setup.sh
 ```
+
+On first run, the setup script will:
+1. Generate `.env` with a secure random `JWT_SECRET`
+2. Build and start all containers
+3. Seed the default admin user
+
+For subsequent runs, use `docker compose up -d` (or re-run `./setup.sh` - it skips `.env` generation if the file already exists).
 
 The nginx container serves the built frontend on port **3000** (override with `PORT` env var) and reverse-proxies all `/api` requests to the backend internally. This means:
 
