@@ -34,10 +34,12 @@ for (const file of migrationFiles) {
     // If whole-file fails on "duplicate column", retry statement-by-statement
     // so other new columns in the same file can still be added
     if (errorMessage.includes('duplicate column name')) {
-      const statements = migrationSql
+      // Remove comment lines before splitting so comments don't swallow statements
+      const withoutComments = migrationSql.split('\n').filter(l => !l.trimStart().startsWith('--')).join('\n');
+      const statements = withoutComments
         .split(';')
         .map(s => s.trim())
-        .filter(s => s.length > 0 && !s.startsWith('--'));
+        .filter(s => s.length > 0);
 
       for (const stmt of statements) {
         try {
