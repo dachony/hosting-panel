@@ -20,9 +20,9 @@ async function checkExpiringItems() {
 
       // For client-type notifications, check all service types
       if (setting.type === 'client') {
-        await checkExpiringDomains(targetDate, days);
-        await checkExpiringHosting(targetDate, days);
-        await checkExpiringMailHosting(targetDate, days);
+        await checkExpiringDomains(targetDate, days, setting);
+        await checkExpiringHosting(targetDate, days, setting);
+        await checkExpiringMailHosting(targetDate, days, setting);
       }
     }
   }
@@ -30,7 +30,7 @@ async function checkExpiringItems() {
   console.log('[Scheduler] Finished checking expiring items');
 }
 
-async function checkExpiringDomains(targetDate: string, daysRemaining: number) {
+async function checkExpiringDomains(targetDate: string, daysRemaining: number, setting: typeof schema.notificationSettings.$inferSelect) {
   const domains = await db
     .select({
       id: schema.domains.id,
@@ -38,6 +38,12 @@ async function checkExpiringDomains(targetDate: string, daysRemaining: number) {
       expiryDate: schema.domains.expiryDate,
       clientName: schema.clients.name,
       clientEmail: schema.clients.email1,
+      primaryContactName: schema.domains.primaryContactName,
+      primaryContactPhone: schema.domains.primaryContactPhone,
+      primaryContactEmail: schema.domains.primaryContactEmail,
+      techContactName: schema.clients.techContact,
+      techContactPhone: schema.clients.techPhone,
+      techContactEmail: schema.clients.techEmail,
     })
     .from(schema.domains)
     .leftJoin(schema.clients, eq(schema.domains.clientId, schema.clients.id))
@@ -58,15 +64,48 @@ async function checkExpiringDomains(targetDate: string, daysRemaining: number) {
     if (alreadySent) continue;
 
     try {
-      const emailOptions = getExpiryNotificationEmail(
-        'domain',
-        domain.domainName,
-        domain.clientName || 'Nepoznat',
-        domain.expiryDate || '',
-        daysRemaining
-      );
+      let emailSubject: string;
+      let emailHtml: string;
 
-      await sendEmail({ ...emailOptions, to: domain.clientEmail });
+      if (setting.templateId) {
+        const template = await db.select()
+          .from(schema.emailTemplates)
+          .where(eq(schema.emailTemplates.id, setting.templateId))
+          .get();
+
+        if (template) {
+          const variables: Record<string, string> = {
+            clientName: domain.clientName || 'Nepoznat',
+            domainName: domain.domainName,
+            expiryDate: domain.expiryDate || '',
+            daysUntilExpiry: String(daysRemaining),
+            primaryContactName: domain.primaryContactName || '',
+            primaryContactPhone: domain.primaryContactPhone || '',
+            primaryContactEmail: domain.primaryContactEmail || '',
+            techContactName: domain.techContactName || '',
+            techContactPhone: domain.techContactPhone || '',
+            techContactEmail: domain.techContactEmail || '',
+          };
+
+          emailSubject = template.subject;
+          emailHtml = template.htmlContent;
+          for (const [key, value] of Object.entries(variables)) {
+            const regex = new RegExp(`{{${key}}}`, 'g');
+            emailSubject = emailSubject.replace(regex, value);
+            emailHtml = emailHtml.replace(regex, value);
+          }
+        } else {
+          const emailOptions = getExpiryNotificationEmail('domain', domain.domainName, domain.clientName || 'Nepoznat', domain.expiryDate || '', daysRemaining);
+          emailSubject = emailOptions.subject;
+          emailHtml = emailOptions.html;
+        }
+      } else {
+        const emailOptions = getExpiryNotificationEmail('domain', domain.domainName, domain.clientName || 'Nepoznat', domain.expiryDate || '', daysRemaining);
+        emailSubject = emailOptions.subject;
+        emailHtml = emailOptions.html;
+      }
+
+      await sendEmail({ to: domain.clientEmail, subject: emailSubject, html: emailHtml });
 
       await db.insert(schema.notificationLog).values({
         type: 'domain',
@@ -90,7 +129,7 @@ async function checkExpiringDomains(targetDate: string, daysRemaining: number) {
   }
 }
 
-async function checkExpiringHosting(targetDate: string, daysRemaining: number) {
+async function checkExpiringHosting(targetDate: string, daysRemaining: number, setting: typeof schema.notificationSettings.$inferSelect) {
   const hosting = await db
     .select({
       id: schema.webHosting.id,
@@ -99,6 +138,12 @@ async function checkExpiringHosting(targetDate: string, daysRemaining: number) {
       clientName: schema.clients.name,
       clientEmail: schema.clients.email1,
       domainName: schema.domains.domainName,
+      primaryContactName: schema.domains.primaryContactName,
+      primaryContactPhone: schema.domains.primaryContactPhone,
+      primaryContactEmail: schema.domains.primaryContactEmail,
+      techContactName: schema.clients.techContact,
+      techContactPhone: schema.clients.techPhone,
+      techContactEmail: schema.clients.techEmail,
     })
     .from(schema.webHosting)
     .leftJoin(schema.clients, eq(schema.webHosting.clientId, schema.clients.id))
@@ -121,15 +166,49 @@ async function checkExpiringHosting(targetDate: string, daysRemaining: number) {
 
     try {
       const itemName = item.domainName || item.packageName;
-      const emailOptions = getExpiryNotificationEmail(
-        'hosting',
-        itemName,
-        item.clientName || 'Nepoznat',
-        item.expiryDate,
-        daysRemaining
-      );
+      let emailSubject: string;
+      let emailHtml: string;
 
-      await sendEmail({ ...emailOptions, to: item.clientEmail });
+      if (setting.templateId) {
+        const template = await db.select()
+          .from(schema.emailTemplates)
+          .where(eq(schema.emailTemplates.id, setting.templateId))
+          .get();
+
+        if (template) {
+          const variables: Record<string, string> = {
+            clientName: item.clientName || 'Nepoznat',
+            domainName: item.domainName || '',
+            expiryDate: item.expiryDate,
+            daysUntilExpiry: String(daysRemaining),
+            packageName: item.packageName,
+            primaryContactName: item.primaryContactName || '',
+            primaryContactPhone: item.primaryContactPhone || '',
+            primaryContactEmail: item.primaryContactEmail || '',
+            techContactName: item.techContactName || '',
+            techContactPhone: item.techContactPhone || '',
+            techContactEmail: item.techContactEmail || '',
+          };
+
+          emailSubject = template.subject;
+          emailHtml = template.htmlContent;
+          for (const [key, value] of Object.entries(variables)) {
+            const regex = new RegExp(`{{${key}}}`, 'g');
+            emailSubject = emailSubject.replace(regex, value);
+            emailHtml = emailHtml.replace(regex, value);
+          }
+        } else {
+          const emailOptions = getExpiryNotificationEmail('hosting', itemName, item.clientName || 'Nepoznat', item.expiryDate, daysRemaining);
+          emailSubject = emailOptions.subject;
+          emailHtml = emailOptions.html;
+        }
+      } else {
+        const emailOptions = getExpiryNotificationEmail('hosting', itemName, item.clientName || 'Nepoznat', item.expiryDate, daysRemaining);
+        emailSubject = emailOptions.subject;
+        emailHtml = emailOptions.html;
+      }
+
+      await sendEmail({ to: item.clientEmail, subject: emailSubject, html: emailHtml });
 
       await db.insert(schema.notificationLog).values({
         type: 'hosting',
@@ -153,7 +232,7 @@ async function checkExpiringHosting(targetDate: string, daysRemaining: number) {
   }
 }
 
-async function checkExpiringMailHosting(targetDate: string, daysRemaining: number) {
+async function checkExpiringMailHosting(targetDate: string, daysRemaining: number, setting: typeof schema.notificationSettings.$inferSelect) {
   const mailHosting = await db
     .select({
       id: schema.mailHosting.id,
@@ -162,6 +241,15 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
       clientEmail: schema.clients.email1,
       domainName: schema.domains.domainName,
       packageName: schema.mailPackages.name,
+      packageDescription: schema.mailPackages.description,
+      maxMailboxes: schema.mailPackages.maxMailboxes,
+      storageGb: schema.mailPackages.storageGb,
+      primaryContactName: schema.domains.primaryContactName,
+      primaryContactPhone: schema.domains.primaryContactPhone,
+      primaryContactEmail: schema.domains.primaryContactEmail,
+      techContactName: schema.clients.techContact,
+      techContactPhone: schema.clients.techPhone,
+      techContactEmail: schema.clients.techEmail,
     })
     .from(schema.mailHosting)
     .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
@@ -185,15 +273,52 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
 
     try {
       const itemName = item.domainName || item.packageName || 'Mail hosting';
-      const emailOptions = getExpiryNotificationEmail(
-        'mail',
-        itemName,
-        item.clientName || 'Nepoznat',
-        item.expiryDate,
-        daysRemaining
-      );
+      let emailSubject: string;
+      let emailHtml: string;
 
-      await sendEmail({ ...emailOptions, to: item.clientEmail });
+      if (setting.templateId) {
+        const template = await db.select()
+          .from(schema.emailTemplates)
+          .where(eq(schema.emailTemplates.id, setting.templateId))
+          .get();
+
+        if (template) {
+          const variables: Record<string, string> = {
+            clientName: item.clientName || 'Nepoznat',
+            domainName: item.domainName || '',
+            expiryDate: item.expiryDate,
+            daysUntilExpiry: String(daysRemaining),
+            packageName: item.packageName || '',
+            packageDescription: item.packageDescription || '',
+            maxMailboxes: String(item.maxMailboxes ?? ''),
+            storageGb: String(item.storageGb ?? ''),
+            primaryContactName: item.primaryContactName || '',
+            primaryContactPhone: item.primaryContactPhone || '',
+            primaryContactEmail: item.primaryContactEmail || '',
+            techContactName: item.techContactName || '',
+            techContactPhone: item.techContactPhone || '',
+            techContactEmail: item.techContactEmail || '',
+          };
+
+          emailSubject = template.subject;
+          emailHtml = template.htmlContent;
+          for (const [key, value] of Object.entries(variables)) {
+            const regex = new RegExp(`{{${key}}}`, 'g');
+            emailSubject = emailSubject.replace(regex, value);
+            emailHtml = emailHtml.replace(regex, value);
+          }
+        } else {
+          const emailOptions = getExpiryNotificationEmail('mail', itemName, item.clientName || 'Nepoznat', item.expiryDate, daysRemaining);
+          emailSubject = emailOptions.subject;
+          emailHtml = emailOptions.html;
+        }
+      } else {
+        const emailOptions = getExpiryNotificationEmail('mail', itemName, item.clientName || 'Nepoznat', item.expiryDate, daysRemaining);
+        emailSubject = emailOptions.subject;
+        emailHtml = emailOptions.html;
+      }
+
+      await sendEmail({ to: item.clientEmail, subject: emailSubject, html: emailHtml });
 
       await db.insert(schema.notificationLog).values({
         type: 'mail',

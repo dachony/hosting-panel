@@ -328,19 +328,30 @@ notifications.post('/settings/:id/test', adminMiddleware, async (c) => {
         .get();
 
       if (template) {
-        subject = template.subject
-          .replace(/\{\{clientName\}\}/g, 'Test Client')
-          .replace(/\{\{domainName\}\}/g, 'test-domain.rs')
-          .replace(/\{\{expiryDate\}\}/g, new Date().toLocaleDateString('sr-RS'))
-          .replace(/\{\{daysUntilExpiry\}\}/g, '7')
-          .replace(/\{\{packageName\}\}/g, 'Test Package');
+        const testVars: Record<string, string> = {
+          clientName: 'Test Client',
+          domainName: 'test-domain.rs',
+          expiryDate: new Date().toLocaleDateString('sr-RS'),
+          daysUntilExpiry: '7',
+          packageName: 'Test Package',
+          packageDescription: 'Test package description',
+          maxMailboxes: '10',
+          storageGb: '50',
+          primaryContactName: 'Petar Petrović',
+          primaryContactPhone: '+381 11 1234567',
+          primaryContactEmail: 'petar@test-domain.rs',
+          techContactName: 'Marko Marković',
+          techContactPhone: '+381 11 7654321',
+          techContactEmail: 'marko@test-domain.rs',
+        };
 
-        htmlContent = template.htmlContent
-          .replace(/\{\{clientName\}\}/g, 'Test Client')
-          .replace(/\{\{domainName\}\}/g, 'test-domain.rs')
-          .replace(/\{\{expiryDate\}\}/g, new Date().toLocaleDateString('sr-RS'))
-          .replace(/\{\{daysUntilExpiry\}\}/g, '7')
-          .replace(/\{\{packageName\}\}/g, 'Test Package');
+        subject = template.subject;
+        htmlContent = template.htmlContent;
+        for (const [key, value] of Object.entries(testVars)) {
+          const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+          subject = subject.replace(regex, value);
+          htmlContent = htmlContent.replace(regex, value);
+        }
       }
     }
 
