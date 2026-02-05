@@ -1494,7 +1494,7 @@ export default function SettingsPage() {
     }));
   };
 
-  const toggleItem = (section: string, index: number, selections: Record<string, boolean[]>, setSelections: React.Dispatch<React.SetStateAction<Record<string, boolean[]>>>) => {
+  const toggleItem = (section: string, index: number, _selections: Record<string, boolean[]>, setSelections: React.Dispatch<React.SetStateAction<Record<string, boolean[]>>>) => {
     setSelections(prev => ({
       ...prev,
       [section]: prev[section].map((v, i) => i === index ? !v : v),
