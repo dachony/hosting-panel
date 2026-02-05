@@ -22,20 +22,29 @@ const migrationFiles = readdirSync(migrationsDir)
 
 for (const file of migrationFiles) {
   console.log(`  Running ${file}...`);
-  try {
-    const migrationSql = readFileSync(join(migrationsDir, file), 'utf-8');
-    sqlite.exec(migrationSql);
-  } catch (error: unknown) {
-    // Ignore common idempotent migration errors
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes('duplicate column name')) {
-      console.log(`    Skipping (column already exists)`);
-    } else if (errorMessage.includes('no such column: days_before')) {
-      console.log(`    Skipping (already migrated)`);
-    } else if (errorMessage.includes('table') && errorMessage.includes('already exists')) {
-      console.log(`    Skipping (table already exists)`);
-    } else {
-      throw error;
+  const migrationSql = readFileSync(join(migrationsDir, file), 'utf-8');
+
+  // Split into individual statements to handle partial failures
+  const statements = migrationSql
+    .split(';')
+    .map(s => s.trim())
+    .filter(s => s.length > 0 && !s.startsWith('--'));
+
+  for (const stmt of statements) {
+    try {
+      sqlite.exec(stmt + ';');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('duplicate column name')) {
+        // Column already exists - safe to skip
+      } else if (errorMessage.includes('no such column: days_before')) {
+        // Already migrated
+      } else if (errorMessage.includes('table') && errorMessage.includes('already exists')) {
+        // Table already exists - safe to skip
+      } else {
+        console.error(`    Error in ${file}: ${errorMessage}`);
+        throw error;
+      }
     }
   }
 }
