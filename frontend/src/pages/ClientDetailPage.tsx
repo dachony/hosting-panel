@@ -205,12 +205,12 @@ export default function ClientDetailPage() {
     queryFn: () => api.get<{ clients: Client[] }>('/api/clients'),
   });
 
-  const { data: mailServersData } = useQuery({
+  useQuery({
     queryKey: ['mail-servers'],
     queryFn: () => api.get<{ mailServers: MailServer[] }>('/api/mail-servers'),
   });
 
-  const { data: mailSecurityData } = useQuery({
+  useQuery({
     queryKey: ['mail-security'],
     queryFn: () => api.get<{ mailSecurity: MailSecurity[] }>('/api/mail-security'),
   });
@@ -379,12 +379,6 @@ export default function ClientDetailPage() {
   const handleExtend = (hostingId: number, name: string) => {
     setExtendItem({ id: hostingId, name });
     setExtendModalOpen(true);
-  };
-
-  const handleExtendSubmit = (period: ExtendPeriod) => {
-    if (extendItem) {
-      extendMutation.mutate({ hostingId: extendItem.id, period });
-    }
   };
 
   const handleClientSave = () => {

@@ -17,13 +17,6 @@ interface HostingWithDetails extends Hosting {
   packageName?: string | null;
 }
 
-const statusColors: Record<ExpiryStatus, { border: string; bg: string; text: string }> = {
-  green: { border: 'border-green-500', bg: 'bg-green-500/20', text: 'text-green-600 dark:text-green-400' },
-  yellow: { border: 'border-yellow-500', bg: 'bg-yellow-500/20', text: 'text-yellow-600 dark:text-yellow-400' },
-  orange: { border: 'border-orange-500', bg: 'bg-orange-500/20', text: 'text-orange-600 dark:text-orange-400' },
-  red: { border: 'border-red-500', bg: 'bg-red-500/20', text: 'text-red-600 dark:text-red-400' },
-};
-
 const periodButtons = [
   { years: 1, label: '+1' },
   { years: 2, label: '+2' },
@@ -136,13 +129,13 @@ export default function DomainDetailPage() {
   });
 
   // Fetch mail servers
-  const { data: mailServersData } = useQuery({
+  useQuery({
     queryKey: ['mail-servers'],
     queryFn: () => api.get<{ mailServers: MailServer[] }>('/api/mail-servers'),
   });
 
   // Fetch mail security
-  const { data: mailSecurityData } = useQuery({
+  useQuery({
     queryKey: ['mail-security'],
     queryFn: () => api.get<{ mailSecurity: MailSecurity[] }>('/api/mail-security'),
   });

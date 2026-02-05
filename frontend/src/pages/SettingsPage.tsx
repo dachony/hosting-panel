@@ -98,9 +98,8 @@ interface MailSettings {
 }
 
 export default function SettingsPage() {
-  const { isSuperAdmin, isAdmin, isSalesAdmin, canManageSystem, canManageContent, canEditPackages } = useAuth();
+  const { isAdmin, isSalesAdmin, canManageSystem, canManageContent, canEditPackages } = useAuth();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<TabType>('system');
   const [testEmail, setTestEmail] = useState('');
@@ -743,7 +742,7 @@ export default function SettingsPage() {
     pib: '',
     mib: '',
   });
-  const [showPhone2, setShowPhone2] = useState(false);
+  const [_showPhone2, _setShowPhone2] = useState(false);
 
   // Queries
   const { data: notificationSettings } = useQuery({
@@ -889,7 +888,7 @@ export default function SettingsPage() {
 
   // Mutations
   const updateNotificationMutation = useMutation({
-    mutationFn: ({ id, data, closeModal }: { id: number; data: Partial<NotificationSetting>; closeModal?: boolean }) =>
+    mutationFn: ({ id, data }: { id: number; data: Partial<NotificationSetting>; closeModal?: boolean }) =>
       api.put(`/api/notifications/settings/${id}`, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
@@ -1106,15 +1105,6 @@ export default function SettingsPage() {
     onError: () => toast.error('Error sending test template'),
   });
 
-  const importMutation = useMutation({
-    mutationFn: (file: File) => api.upload('/api/backup/import', file),
-    onSuccess: () => {
-      queryClient.invalidateQueries();
-      toast.success('Data imported');
-    },
-    onError: () => toast.error('Error importing'),
-  });
-
   const deleteUserMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/api/users/${id}`),
     onSuccess: () => {
@@ -1136,11 +1126,11 @@ export default function SettingsPage() {
       password?: string;
       sendInvite?: boolean;
       isActive?: boolean;
-    }) => {
+    }): Promise<{ inviteSent?: boolean }> => {
       if (selectedUser) {
-        return api.put(`/api/users/${selectedUser.id}`, data);
+        return api.put<{ inviteSent?: boolean }>(`/api/users/${selectedUser.id}`, data);
       }
-      return api.post('/api/users', data);
+      return api.post<{ inviteSent?: boolean }>('/api/users', data);
     },
     onSuccess: (data: { inviteSent?: boolean }) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -1497,13 +1487,6 @@ export default function SettingsPage() {
       setImportValidation(null);
     } catch {
       toast.error('Error importing');
-    }
-  };
-
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      importMutation.mutate(file);
     }
   };
 
