@@ -205,6 +205,9 @@ export default function SettingsPage() {
     customEmail: '',
     includeTechnical: false,
     enabled: true,
+    frequency: 'daily' as 'daily' | 'weekly' | 'monthly',
+    dayOfWeek: 1 as number | null,
+    dayOfMonth: 1 as number | null,
   });
 
   // Template modal state
@@ -934,6 +937,9 @@ export default function SettingsPage() {
       customEmail: notification.customEmail,
       includeTechnical: notification.includeTechnical,
       enabled: false, // Start as disabled
+      frequency: notification.frequency,
+      dayOfWeek: notification.dayOfWeek,
+      dayOfMonth: notification.dayOfMonth,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
@@ -1656,6 +1662,9 @@ export default function SettingsPage() {
       customEmail: '',
       includeTechnical: false,
       enabled: true,
+      frequency: 'daily',
+      dayOfWeek: 1,
+      dayOfMonth: 1,
     });
     setSelectedNotification(null);
   };
@@ -1673,6 +1682,9 @@ export default function SettingsPage() {
         customEmail: notification.customEmail || '',
         includeTechnical: notification.includeTechnical || false,
         enabled: notification.enabled,
+        frequency: notification.frequency || 'daily',
+        dayOfWeek: notification.dayOfWeek ?? 1,
+        dayOfMonth: notification.dayOfMonth ?? 1,
       });
     } else {
       resetNotificationForm();
@@ -3503,7 +3515,24 @@ export default function SettingsPage() {
                   </span>
                   <span className="text-gray-400">|</span>
                   <span className="text-gray-500">
-                    Schedule: {setting.schedule.length > 0 ? formatSchedule(setting.schedule) : 'None'} @ {setting.runAtTime || '09:00'}
+                    {(setting.type === 'reports' || setting.type === 'system') ? (
+                      <>
+                        {(() => {
+                          const freq = setting.frequency || 'daily';
+                          const time = setting.runAtTime || '09:00';
+                          const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                          if (freq === 'weekly') return `Weekly (${dayNames[setting.dayOfWeek ?? 1]}) @ ${time}`;
+                          if (freq === 'monthly') {
+                            const d = setting.dayOfMonth ?? 1;
+                            const suffix = (d >= 11 && d <= 13) ? 'th' : ['th','st','nd','rd'][d % 10] || 'th';
+                            return `Monthly (${d}${suffix}) @ ${time}`;
+                          }
+                          return `Daily @ ${time}`;
+                        })()}
+                      </>
+                    ) : (
+                      <>Schedule: {setting.schedule.length > 0 ? formatSchedule(setting.schedule) : 'None'} @ {setting.runAtTime || '09:00'}</>
+                    )}
                   </span>
                   <span className="text-gray-400">|</span>
                   {setting.enabled ? (
@@ -4253,111 +4282,201 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* Schedule */}
-          <div className="space-y-3">
-            <label className="text-[11px] text-gray-500 dark:text-gray-400 uppercase">Schedule (days)</label>
+          {/* Schedule - different UI for reports/system vs expiry-based types */}
+          {(notificationForm.type === 'reports' || notificationForm.type === 'system') ? (
+            <div className="space-y-3">
+              <label className="text-[11px] text-gray-500 dark:text-gray-400 uppercase">Frequency</label>
 
-            {/* Before expiry */}
-            <div className="space-y-1">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Before expiry:</span>
-              <div className="flex flex-wrap gap-2">
-                {[60, 30, 21, 14, 7, 1].map((day) => (
-                  <label
-                    key={day}
-                    className={`px-3 py-1.5 rounded border cursor-pointer text-sm font-medium transition-colors ${
-                      notificationForm.schedule.includes(day)
+              {/* Frequency pills */}
+              <div className="flex gap-2">
+                {(['daily', 'weekly', 'monthly'] as const).map((freq) => (
+                  <button
+                    key={freq}
+                    type="button"
+                    onClick={() => setNotificationForm({ ...notificationForm, frequency: freq })}
+                    className={`px-4 py-1.5 rounded border text-sm font-medium transition-colors ${
+                      notificationForm.frequency === freq
                         ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:border-primary-500 dark:text-primary-300'
                         : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
                     }`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={notificationForm.schedule.includes(day)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setNotificationForm({ ...notificationForm, schedule: [...notificationForm.schedule, day].sort((a, b) => b - a) });
-                        } else {
-                          setNotificationForm({ ...notificationForm, schedule: notificationForm.schedule.filter(d => d !== day) });
-                        }
-                      }}
-                      className="sr-only"
-                    />
-                    {day}
-                  </label>
+                    {freq === 'daily' ? 'Daily' : freq === 'weekly' ? 'Weekly' : 'Monthly'}
+                  </button>
                 ))}
               </div>
-            </div>
 
-            {/* Expiry date */}
-            <div className="space-y-1">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Expiry date:</span>
-              <div className="flex flex-wrap gap-2">
-                <label
-                  className={`px-3 py-1.5 rounded border cursor-pointer text-sm font-medium transition-colors ${
-                    notificationForm.schedule.includes(0)
-                      ? 'bg-orange-100 border-orange-500 text-orange-700 dark:bg-orange-900 dark:border-orange-500 dark:text-orange-300'
-                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={notificationForm.schedule.includes(0)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setNotificationForm({ ...notificationForm, schedule: [...notificationForm.schedule, 0].sort((a, b) => b - a) });
-                      } else {
-                        setNotificationForm({ ...notificationForm, schedule: notificationForm.schedule.filter(d => d !== 0) });
-                      }
-                    }}
-                    className="sr-only"
-                  />
-                  0 (day of expiry)
-                </label>
+              {/* Day of week for weekly */}
+              {notificationForm.frequency === 'weekly' && (
+                <div className="space-y-1">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Day of week:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 1, label: 'Mon' },
+                      { value: 2, label: 'Tue' },
+                      { value: 3, label: 'Wed' },
+                      { value: 4, label: 'Thu' },
+                      { value: 5, label: 'Fri' },
+                      { value: 6, label: 'Sat' },
+                      { value: 0, label: 'Sun' },
+                    ].map((day) => (
+                      <button
+                        key={day.value}
+                        type="button"
+                        onClick={() => setNotificationForm({ ...notificationForm, dayOfWeek: day.value })}
+                        className={`px-3 py-1.5 rounded border text-sm font-medium transition-colors ${
+                          notificationForm.dayOfWeek === day.value
+                            ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:border-primary-500 dark:text-primary-300'
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
+                        }`}
+                      >
+                        {day.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Day of month for monthly */}
+              {notificationForm.frequency === 'monthly' && (
+                <div className="space-y-1">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Day of month:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => setNotificationForm({ ...notificationForm, dayOfMonth: day })}
+                        className={`w-8 h-8 rounded border text-xs font-medium transition-colors ${
+                          notificationForm.dayOfMonth === day
+                            ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:border-primary-500 dark:text-primary-300'
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">If the selected day doesn't exist in a month, the last day of that month will be used.</p>
+                </div>
+              )}
+
+              {/* Run time */}
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Run at:</span>
+                <input
+                  type="time"
+                  value={notificationForm.runAtTime}
+                  onChange={(e) => setNotificationForm({ ...notificationForm, runAtTime: e.target.value })}
+                  className="input !py-1 !px-2 !text-sm w-28"
+                />
               </div>
             </div>
+          ) : (
+            <div className="space-y-3">
+              <label className="text-[11px] text-gray-500 dark:text-gray-400 uppercase">Schedule (days)</label>
 
-            {/* After expiry */}
-            <div className="space-y-1">
-              <span className="text-xs text-gray-500 dark:text-gray-400">After expiry:</span>
-              <div className="flex flex-wrap gap-2">
-                {[7, 30, 60].map((day) => (
+              {/* Before expiry */}
+              <div className="space-y-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Before expiry:</span>
+                <div className="flex flex-wrap gap-2">
+                  {[60, 30, 21, 14, 7, 1].map((day) => (
+                    <label
+                      key={day}
+                      className={`px-3 py-1.5 rounded border cursor-pointer text-sm font-medium transition-colors ${
+                        notificationForm.schedule.includes(day)
+                          ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:border-primary-500 dark:text-primary-300'
+                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={notificationForm.schedule.includes(day)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setNotificationForm({ ...notificationForm, schedule: [...notificationForm.schedule, day].sort((a, b) => b - a) });
+                          } else {
+                            setNotificationForm({ ...notificationForm, schedule: notificationForm.schedule.filter(d => d !== day) });
+                          }
+                        }}
+                        className="sr-only"
+                      />
+                      {day}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Expiry date */}
+              <div className="space-y-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Expiry date:</span>
+                <div className="flex flex-wrap gap-2">
                   <label
-                    key={-day}
                     className={`px-3 py-1.5 rounded border cursor-pointer text-sm font-medium transition-colors ${
-                      notificationForm.schedule.includes(-day)
-                        ? 'bg-red-100 border-red-500 text-red-700 dark:bg-red-900 dark:border-red-500 dark:text-red-300'
+                      notificationForm.schedule.includes(0)
+                        ? 'bg-orange-100 border-orange-500 text-orange-700 dark:bg-orange-900 dark:border-orange-500 dark:text-orange-300'
                         : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
                     }`}
                   >
                     <input
                       type="checkbox"
-                      checked={notificationForm.schedule.includes(-day)}
+                      checked={notificationForm.schedule.includes(0)}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setNotificationForm({ ...notificationForm, schedule: [...notificationForm.schedule, -day].sort((a, b) => b - a) });
+                          setNotificationForm({ ...notificationForm, schedule: [...notificationForm.schedule, 0].sort((a, b) => b - a) });
                         } else {
-                          setNotificationForm({ ...notificationForm, schedule: notificationForm.schedule.filter(d => d !== -day) });
+                          setNotificationForm({ ...notificationForm, schedule: notificationForm.schedule.filter(d => d !== 0) });
                         }
                       }}
                       className="sr-only"
                     />
-                    +{day}
+                    0 (day of expiry)
                   </label>
-                ))}
+                </div>
+              </div>
+
+              {/* After expiry */}
+              <div className="space-y-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">After expiry:</span>
+                <div className="flex flex-wrap gap-2">
+                  {[7, 30, 60].map((day) => (
+                    <label
+                      key={-day}
+                      className={`px-3 py-1.5 rounded border cursor-pointer text-sm font-medium transition-colors ${
+                        notificationForm.schedule.includes(-day)
+                          ? 'bg-red-100 border-red-500 text-red-700 dark:bg-red-900 dark:border-red-500 dark:text-red-300'
+                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={notificationForm.schedule.includes(-day)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setNotificationForm({ ...notificationForm, schedule: [...notificationForm.schedule, -day].sort((a, b) => b - a) });
+                          } else {
+                            setNotificationForm({ ...notificationForm, schedule: notificationForm.schedule.filter(d => d !== -day) });
+                          }
+                        }}
+                        className="sr-only"
+                      />
+                      +{day}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Run time */}
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Run at:</span>
+                <input
+                  type="time"
+                  value={notificationForm.runAtTime}
+                  onChange={(e) => setNotificationForm({ ...notificationForm, runAtTime: e.target.value })}
+                  className="input !py-1 !px-2 !text-sm w-28"
+                />
               </div>
             </div>
-
-            {/* Run time */}
-            <div className="flex items-center gap-2 pt-1">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Run at:</span>
-              <input
-                type="time"
-                value={notificationForm.runAtTime}
-                onChange={(e) => setNotificationForm({ ...notificationForm, runAtTime: e.target.value })}
-                className="input !py-1 !px-2 !text-sm w-28"
-              />
-            </div>
-          </div>
+          )}
 
           {/* Recipients */}
           <div className="border-t pt-4 dark:border-gray-700">

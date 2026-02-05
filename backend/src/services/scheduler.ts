@@ -319,10 +319,49 @@ async function sendDailyReport() {
   console.log('[Scheduler] Finished sending daily reports');
 }
 
+// Check if a scheduled notification should run now based on frequency settings
+function shouldRunNow(setting: { frequency: string | null; dayOfWeek: number | null; dayOfMonth: number | null; runAtTime: string; lastSent: string | null }): boolean {
+  const now = new Date();
+  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  // Check if current time matches runAtTime
+  if (currentTime !== setting.runAtTime) return false;
+
+  // Check if already sent today
+  if (setting.lastSent) {
+    const lastSentDate = setting.lastSent.substring(0, 10); // YYYY-MM-DD
+    const todayStr = now.toISOString().substring(0, 10);
+    if (lastSentDate === todayStr) return false;
+  }
+
+  const frequency = setting.frequency || 'daily';
+
+  if (frequency === 'daily') {
+    return true;
+  }
+
+  if (frequency === 'weekly') {
+    // dayOfWeek: 0=Sunday, 1=Monday, ... 6=Saturday
+    const targetDay = setting.dayOfWeek ?? 1; // default Monday
+    return now.getDay() === targetDay;
+  }
+
+  if (frequency === 'monthly') {
+    const targetDay = setting.dayOfMonth ?? 1;
+    const today = now.getDate();
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    // If target day > last day of month, send on the last day
+    if (targetDay > lastDayOfMonth) {
+      return today === lastDayOfMonth;
+    }
+    return today === targetDay;
+  }
+
+  return false;
+}
+
 // Send report notifications using templates with reportConfig
 async function sendReportNotifications() {
-  console.log('[Scheduler] Checking report notifications...');
-
   // Get all enabled notification settings of type 'reports' with a template
   const reportSettings = await db.select()
     .from(schema.notificationSettings)
@@ -333,6 +372,7 @@ async function sendReportNotifications() {
 
   for (const setting of reportSettings) {
     if (!setting.templateId) continue;
+    if (!shouldRunNow(setting)) continue;
 
     // Load the template
     const template = await db.select()
@@ -383,18 +423,19 @@ async function sendReportNotifications() {
         html,
       });
       console.log(`[Scheduler] Sent report notification "${setting.name}" to ${recipient}`);
+
+      // Update lastSent
+      await db.update(schema.notificationSettings)
+        .set({ lastSent: new Date().toISOString() })
+        .where(eq(schema.notificationSettings.id, setting.id));
     } catch (error) {
       console.error(`[Scheduler] Failed to send report notification "${setting.name}" to ${recipient}:`, error);
     }
   }
-
-  console.log('[Scheduler] Finished sending report notifications');
 }
 
 // Send system notifications using templates with systemConfig
 async function sendSystemNotifications() {
-  console.log('[Scheduler] Checking system notifications...');
-
   // Get all enabled notification settings of type 'system' with a template
   const systemSettings = await db.select()
     .from(schema.notificationSettings)
@@ -405,6 +446,7 @@ async function sendSystemNotifications() {
 
   for (const setting of systemSettings) {
     if (!setting.templateId) continue;
+    if (!shouldRunNow(setting)) continue;
 
     // Load the template
     const template = await db.select()
@@ -455,12 +497,15 @@ async function sendSystemNotifications() {
         html,
       });
       console.log(`[Scheduler] Sent system notification "${setting.name}" to ${recipient}`);
+
+      // Update lastSent
+      await db.update(schema.notificationSettings)
+        .set({ lastSent: new Date().toISOString() })
+        .where(eq(schema.notificationSettings.id, setting.id));
     } catch (error) {
       console.error(`[Scheduler] Failed to send system notification "${setting.name}" to ${recipient}:`, error);
     }
   }
-
-  console.log('[Scheduler] Finished sending system notifications');
 }
 
 export function startScheduler() {
@@ -470,11 +515,11 @@ export function startScheduler() {
   // Send daily report at 9:00 AM
   cron.schedule('0 9 * * *', sendDailyReport);
 
-  // Send report notifications at 9:30 AM
-  cron.schedule('30 9 * * *', sendReportNotifications);
+  // Check report notifications every minute (shouldRunNow handles timing)
+  cron.schedule('* * * * *', sendReportNotifications);
 
-  // Send system notifications at 10:00 AM
-  cron.schedule('0 10 * * *', sendSystemNotifications);
+  // Check system notifications every minute (shouldRunNow handles timing)
+  cron.schedule('* * * * *', sendSystemNotifications);
 
   console.log('[Scheduler] Started notification scheduler');
 

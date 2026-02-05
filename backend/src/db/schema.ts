@@ -114,6 +114,10 @@ export const notificationSettings = sqliteTable('notification_settings', {
   customEmail: text('custom_email'),
   includeTechnical: integer('include_technical', { mode: 'boolean' }).default(false),
   enabled: integer('enabled', { mode: 'boolean' }).default(true),
+  frequency: text('frequency', { enum: ['daily', 'weekly', 'monthly'] }),
+  dayOfWeek: integer('day_of_week'),
+  dayOfMonth: integer('day_of_month'),
+  lastSent: text('last_sent'),
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });

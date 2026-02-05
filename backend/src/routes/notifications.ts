@@ -29,9 +29,12 @@ const notificationSettingsSchema = z.object({
   runAtTime: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/).default('09:00'), // HH:MM format
   templateId: z.number().int().nullable().optional(),
   recipientType: z.enum(['custom', 'primary']).default('primary'),
-  customEmail: z.string().email().nullable().optional(),
+  customEmail: z.preprocess((val) => (val === '' ? null : val), z.string().email().nullable().optional()),
   includeTechnical: z.boolean().default(false),
   enabled: z.boolean().default(true),
+  frequency: z.enum(['daily', 'weekly', 'monthly']).nullable().optional(),
+  dayOfWeek: z.number().int().min(0).max(6).nullable().optional(),
+  dayOfMonth: z.number().int().min(1).max(31).nullable().optional(),
 });
 
 const reportSettingsSchema = z.object({
@@ -55,6 +58,10 @@ notifications.get('/settings', async (c) => {
     customEmail: schema.notificationSettings.customEmail,
     includeTechnical: schema.notificationSettings.includeTechnical,
     enabled: schema.notificationSettings.enabled,
+    frequency: schema.notificationSettings.frequency,
+    dayOfWeek: schema.notificationSettings.dayOfWeek,
+    dayOfMonth: schema.notificationSettings.dayOfMonth,
+    lastSent: schema.notificationSettings.lastSent,
     createdAt: schema.notificationSettings.createdAt,
     updatedAt: schema.notificationSettings.updatedAt,
   })
