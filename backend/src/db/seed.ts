@@ -5,18 +5,31 @@ import { eq } from 'drizzle-orm';
 async function seed() {
   console.log('Seeding database...');
 
-  // Create default admin user
-  const existingAdmin = await db.select().from(schema.users).where(eq(schema.users.email, 'admin@example.com')).get();
+  // Superadmin user from environment or defaults
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+  const adminFirstName = process.env.ADMIN_FIRST_NAME || 'Admin';
+  const adminLastName = process.env.ADMIN_LAST_NAME || 'User';
+  const adminPhone = process.env.ADMIN_PHONE || '';
+  const adminName = `${adminFirstName} ${adminLastName}`.trim();
+
+  const existingAdmin = await db.select().from(schema.users).where(eq(schema.users.email, adminEmail)).get();
 
   if (!existingAdmin) {
-    const passwordHash = await bcrypt.hash('admin123', 10);
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
     await db.insert(schema.users).values({
-      email: 'admin@example.com',
+      email: adminEmail,
       passwordHash,
-      name: 'Administrator',
-      role: 'admin',
+      name: adminName,
+      firstName: adminFirstName,
+      lastName: adminLastName,
+      phone: adminPhone,
+      role: 'superadmin',
+      mustChangePassword: false,
     });
-    console.log('Created admin user: admin@example.com / admin123');
+    console.log(`Created superadmin user: ${adminEmail}`);
+  } else {
+    console.log(`Superadmin user already exists: ${adminEmail}`);
   }
 
   // Create default notification settings
@@ -29,65 +42,6 @@ async function seed() {
       { type: 'mail', daysBefore: [30, 14, 7, 3, 1], enabled: true },
     ]);
     console.log('Created default notification settings');
-  }
-
-  // Create sample mail packages
-  const existingPackages = await db.select().from(schema.mailPackages).all();
-
-  if (existingPackages.length === 0) {
-    await db.insert(schema.mailPackages).values([
-      {
-        name: 'Basic',
-        description: 'Basic mail hosting package',
-        maxMailboxes: 5,
-        storageGb: 5,
-        price: 500,
-        features: ['Webmail', 'IMAP/POP3', 'Spam filter'],
-      },
-      {
-        name: 'Business',
-        description: 'Business mail hosting package',
-        maxMailboxes: 25,
-        storageGb: 25,
-        price: 1500,
-        features: ['Webmail', 'IMAP/POP3', 'Spam filter', 'Custom domain', 'Priority support'],
-      },
-      {
-        name: 'Enterprise',
-        description: 'Enterprise mail hosting package',
-        maxMailboxes: 100,
-        storageGb: 100,
-        price: 5000,
-        features: ['Webmail', 'IMAP/POP3', 'Spam filter', 'Custom domain', 'Priority support', 'Dedicated IP', 'Advanced security'],
-      },
-    ]);
-    console.log('Created sample mail packages');
-  }
-
-  // Create sample client and domain for testing
-  const existingClients = await db.select().from(schema.clients).all();
-
-  if (existingClients.length === 0) {
-    const [client] = await db.insert(schema.clients).values({
-      name: 'Test Company d.o.o.',
-      email: 'info@testcompany.rs',
-      phone: '+381 11 123 4567',
-      address: 'Beograd, Srbija',
-      notes: 'Test client for development',
-    }).returning();
-
-    // Add sample domain
-    await db.insert(schema.domains).values({
-      clientId: client.id,
-      domainName: 'testcompany.rs',
-      registrar: 'RNIDS',
-      registrationDate: '2024-01-01',
-      expiryDate: '2025-01-01',
-      autoRenew: true,
-      notes: 'Main client domain',
-    });
-
-    console.log('Created sample client and domain');
   }
 
   // Create default email templates
