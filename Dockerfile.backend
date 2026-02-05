@@ -1,25 +1,24 @@
-FROM node:20-alpine
-
+# === Development ===
+FROM node:20-alpine AS dev
 WORKDIR /app
-
-# Install dependencies
 COPY backend/package*.json ./
-RUN npm install
-
-# Copy source
+RUN npm ci
 COPY backend/ .
-
-# Create data directory
 RUN mkdir -p /app/data
-
-# Create startup script that runs migrations then starts the app
-RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'echo "Running database migrations..."' >> /app/start.sh && \
-    echo 'npm run db:migrate' >> /app/start.sh && \
-    echo 'echo "Starting application..."' >> /app/start.sh && \
-    echo 'exec npm run dev' >> /app/start.sh && \
-    chmod +x /app/start.sh
-
 EXPOSE 8080
+CMD ["sh", "-c", "npm run db:migrate && npm run dev"]
 
-CMD ["/app/start.sh"]
+# === Build ===
+FROM dev AS build
+RUN npm run build
+
+# === Production ===
+FROM node:20-alpine AS production
+WORKDIR /app
+COPY --from=build /app/package*.json ./
+RUN npm ci --omit=dev
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/src/db/migrations ./src/db/migrations
+RUN mkdir -p /app/data
+EXPOSE 8080
+CMD ["sh", "-c", "node dist/db/migrate.js && node dist/index.js"]

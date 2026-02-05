@@ -29,7 +29,14 @@ const app = new Hono();
 // Middleware
 app.use('*', logger());
 app.use('*', cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'https://hpanel.japicom.support'],
+  origin: (origin) => {
+    if (process.env.CORS_ORIGINS) {
+      const allowed = process.env.CORS_ORIGINS.split(',').map(o => o.trim());
+      return allowed.includes(origin) ? origin : null;
+    }
+    // When no CORS_ORIGINS is set, allow all origins (safe behind reverse proxy)
+    return origin;
+  },
   credentials: true,
 }));
 
