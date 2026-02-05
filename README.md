@@ -124,7 +124,7 @@ npm run dev           # Starts dev server on port 3000
 
 ### Service Management
 - **Clients** - Companies/individuals with contact details, tax IDs (PIB/MIB), technical contacts
-- **Domains** - Registered domains with expiry tracking, registrar info, auto-renew flags, and per-domain contacts
+- **Domains** - Registered domains with expiry tracking, registrar info, auto-renew flags, and per-domain contacts. Domains without hosting packages are visible in the listing with a "No Package" badge
 - **Web Hosting** - Web hosting services linked to clients, domains, and mail servers with expiry dates
 - **Mail Packages** - Configurable mail hosting package types (mailbox limits, storage, pricing, features)
 - **Mail Hosting** - Mail hosting service instances linked to clients, domains, and packages
@@ -256,6 +256,18 @@ hosting-dashboard/
         ├── i18n.ts                  # i18next configuration
         ├── api/
         │   └── client.ts            # API client (axios/fetch wrapper)
+        ├── components/
+        │   ├── common/
+        │   │   ├── Modal.tsx            # Dialog/modal component
+        │   │   ├── DataTable.tsx        # Reusable table with sort/pagination
+        │   │   ├── DateInput.tsx        # Styled date picker with calendar icon
+        │   │   ├── ExpiryBadge.tsx      # Color-coded expiry status badge
+        │   │   ├── ConfirmDialog.tsx    # Confirmation dialog
+        │   │   └── ColorPicker.tsx      # Color selection widget
+        │   └── Layout/
+        │       ├── Layout.tsx           # Main layout wrapper
+        │       ├── Header.tsx           # Top navigation bar
+        │       └── Sidebar.tsx          # Side navigation
         ├── locales/
         │   ├── sr.json              # Serbian translations
         │   └── en.json              # English translations
@@ -661,6 +673,17 @@ Templates support placeholder variables wrapped in `{{` and `}}`:
 | `{{domainName}}` | Domain name |
 | `{{clientName}}` | Client name |
 | `{{expiryDate}}` | Service expiry date |
+| `{{daysUntilExpiry}}` | Days remaining until expiry |
+| `{{packageName}}` | Mail/hosting package name |
+| `{{packageDescription}}` | Package description |
+| `{{maxMailboxes}}` | Maximum mailboxes in package |
+| `{{storageGb}}` | Storage in GB |
+| `{{primaryContactName}}` | Domain primary contact name |
+| `{{primaryContactPhone}}` | Domain primary contact phone |
+| `{{primaryContactEmail}}` | Domain primary contact email |
+| `{{techContactName}}` | Technical contact name |
+| `{{techContactPhone}}` | Technical contact phone |
+| `{{techContactEmail}}` | Technical contact email |
 | `{{companyName}}` | Company name from settings |
 | `{{companyLogo}}` | Company logo (base64) |
 | `{{hostingList}}` | Auto-generated hosting status table (for report templates) |
