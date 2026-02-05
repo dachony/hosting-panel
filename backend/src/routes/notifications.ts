@@ -4,7 +4,10 @@ import { eq } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware, superAdminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
-import { sendTestEmail, testSmtpConnection } from '../services/email.js';
+import { sendEmail, sendTestEmail, testSmtpConnection } from '../services/email.js';
+import { generateHostingListHtml } from '../services/reports.js';
+import { generateSystemInfoHtml } from '../services/system.js';
+import type { ReportConfig, SystemConfig } from '../db/schema.js';
 
 const mailSettingsSchema = z.object({
   host: z.string().min(1),
@@ -373,6 +376,85 @@ notifications.post('/settings/:id/test', adminMiddleware, async (c) => {
       return c.json({ error: 'Invalid input', details: error.errors }, 400);
     }
     return c.json({ error: 'Failed to send test notification', details: String(error) }, 500);
+  }
+});
+
+// Trigger notification now (send as configured)
+notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'));
+
+    const setting = await db.select()
+      .from(schema.notificationSettings)
+      .where(eq(schema.notificationSettings.id, id))
+      .get();
+
+    if (!setting) {
+      return c.json({ error: 'Notification setting not found' }, 404);
+    }
+
+    if (!setting.templateId) {
+      return c.json({ error: 'No template assigned to this notification' }, 400);
+    }
+
+    const template = await db.select()
+      .from(schema.emailTemplates)
+      .where(eq(schema.emailTemplates.id, setting.templateId))
+      .get();
+
+    if (!template || !template.isActive) {
+      return c.json({ error: 'Template not found or inactive' }, 400);
+    }
+
+    // Determine recipient
+    let recipient: string | null = null;
+    if (setting.recipientType === 'custom' && setting.customEmail) {
+      recipient = setting.customEmail;
+    }
+
+    if (!recipient) {
+      return c.json({ error: 'No recipient configured (set recipient type to Custom and enter an email)' }, 400);
+    }
+
+    // Get company info for variables
+    const companyInfo = await db.select().from(schema.companyInfo).get();
+
+    const variables: Record<string, string> = {
+      companyName: companyInfo?.name || 'Hosting Panel',
+      companyLogo: companyInfo?.logo || '',
+    };
+
+    // Generate content based on type
+    if (setting.type === 'reports' && template.reportConfig) {
+      const reportConfig = template.reportConfig as ReportConfig;
+      variables.hostingList = await generateHostingListHtml(reportConfig);
+    }
+
+    if (setting.type === 'system' && template.systemConfig) {
+      const systemConfig = template.systemConfig as SystemConfig;
+      variables.systemInfo = await generateSystemInfoHtml(systemConfig);
+    }
+
+    // Replace variables in template
+    let html = template.htmlContent;
+    let subject = template.subject;
+
+    for (const [key, value] of Object.entries(variables)) {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      html = html.replace(regex, value);
+      subject = subject.replace(regex, value);
+    }
+
+    await sendEmail({ to: recipient, subject, html });
+
+    // Update lastSent
+    await db.update(schema.notificationSettings)
+      .set({ lastSent: new Date().toISOString(), updatedAt: getCurrentTimestamp() })
+      .where(eq(schema.notificationSettings.id, id));
+
+    return c.json({ message: `Notification sent to ${recipient}` });
+  } catch (error) {
+    return c.json({ error: 'Failed to trigger notification', details: String(error) }, 500);
   }
 });
 

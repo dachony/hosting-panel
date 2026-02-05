@@ -36,6 +36,7 @@ import {
   Save,
   Lock,
   KeyRound,
+  Play,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -1103,6 +1104,15 @@ export default function SettingsPage() {
     mutationFn: ({ id, email }: { id: number; email: string }) => api.post(`/api/notifications/settings/${id}/test`, { email }),
     onSuccess: () => toast.success('Test notification sent'),
     onError: () => toast.error('Error sending test notification'),
+  });
+
+  const triggerNotificationMutation = useMutation({
+    mutationFn: (id: number) => api.post<{ message: string }>(`/api/notifications/settings/${id}/trigger`),
+    onSuccess: (data) => {
+      toast.success(data.message || 'Notification triggered');
+      queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
+    },
+    onError: (error: any) => toast.error(error?.response?.data?.error || 'Error triggering notification'),
   });
 
   const testTemplateMutation = useMutation({
@@ -4546,7 +4556,7 @@ export default function SettingsPage() {
 
           {/* Buttons */}
           <div className="flex justify-between pt-2">
-            <div>
+            <div className="flex gap-2">
               {selectedNotification && (
                 <button
                   type="button"
@@ -4559,6 +4569,17 @@ export default function SettingsPage() {
                 >
                   <Copy className="w-3.5 h-3.5" />
                   Make a Copy
+                </button>
+              )}
+              {selectedNotification && (
+                <button
+                  type="button"
+                  onClick={() => triggerNotificationMutation.mutate(selectedNotification.id)}
+                  className="!py-1.5 !px-3 !text-sm flex items-center gap-1 rounded bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-200 hover:border-amber-400 active:bg-amber-300 active:scale-[0.97] dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/50 dark:hover:bg-amber-500/40 dark:hover:border-amber-400/70 dark:active:bg-amber-500/50 transition-all duration-150"
+                  disabled={triggerNotificationMutation.isPending}
+                >
+                  <Play className="w-3.5 h-3.5" />
+                  {triggerNotificationMutation.isPending ? 'Sending...' : 'Trigger Now'}
                 </button>
               )}
             </div>
