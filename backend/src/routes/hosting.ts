@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db, schema } from '../db/index.js';
-import { eq, and, lte, gte } from 'drizzle-orm';
+import { eq, and, lte, gte, isNull } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp, formatDate, addDaysToDate, daysUntilExpiry } from '../utils/dates.js';
@@ -61,7 +61,62 @@ hosting.get('/', async (c) => {
     daysUntilExpiry: daysUntilExpiry(h.expiryDate),
   }));
 
-  return c.json({ hosting: hostingWithDays });
+  // Domains without any hosting record
+  const unhostedDomains = await db
+    .select({
+      domainId: schema.domains.id,
+      domainName: schema.domains.domainName,
+      clientId: schema.domains.clientId,
+      clientName: schema.clients.name,
+      clientContactPerson: schema.clients.contactPerson,
+      clientPhone: schema.clients.phone,
+      clientEmail: schema.clients.email1,
+      clientTechContact: schema.clients.techContact,
+      clientTechPhone: schema.clients.techPhone,
+      clientTechEmail: schema.clients.techEmail,
+      domainTechName: schema.domains.contactEmail1,
+      domainTechPhone: schema.domains.contactEmail2,
+      domainTechEmail: schema.domains.contactEmail3,
+      notes: schema.domains.notes,
+      createdAt: schema.domains.createdAt,
+    })
+    .from(schema.domains)
+    .leftJoin(schema.mailHosting, eq(schema.domains.id, schema.mailHosting.domainId))
+    .leftJoin(schema.clients, eq(schema.domains.clientId, schema.clients.id))
+    .where(isNull(schema.mailHosting.id));
+
+  const unhostedMapped = unhostedDomains.map(d => ({
+    id: null as unknown as number,
+    clientId: d.clientId,
+    domainId: d.domainId,
+    packageId: null,
+    startDate: null,
+    expiryDate: null as unknown as string,
+    isActive: null as unknown as boolean,
+    notes: d.notes,
+    createdAt: d.createdAt,
+    clientName: d.clientName,
+    clientContactPerson: d.clientContactPerson,
+    clientPhone: d.clientPhone,
+    clientEmail: d.clientEmail,
+    clientTechContact: d.clientTechContact,
+    clientTechPhone: d.clientTechPhone,
+    clientTechEmail: d.clientTechEmail,
+    domainName: d.domainName,
+    domainTechName: d.domainTechName,
+    domainTechPhone: d.domainTechPhone,
+    domainTechEmail: d.domainTechEmail,
+    packageName: null,
+    packageDescription: null,
+    packageMaxMailboxes: null,
+    packageStorageGb: null,
+    packagePrice: null,
+    mailServerName: null,
+    mailSecurityName: null,
+    daysUntilExpiry: null as unknown as number,
+  }));
+
+  return c.json({ hosting: [...hostingWithDays, ...unhostedMapped] });
 });
 
 hosting.get('/expiring', async (c) => {

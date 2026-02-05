@@ -94,20 +94,20 @@ export interface Package {
 }
 
 export interface Hosting {
-  id: number;
+  id: number | null;
   clientId?: number | null;
   domainId?: number | null;
   packageId?: number | null;
   startDate?: string | null;
-  expiryDate: string;
-  isActive?: boolean;
+  expiryDate: string | null;
+  isActive?: boolean | null;
   isEnabled?: boolean;
   notes?: string | null;
   createdAt: string;
   clientName?: string | null;
   domainName?: string | null;
   packageName?: string | null;
-  daysUntilExpiry?: number;
+  daysUntilExpiry?: number | null;
   expiryStatus?: ExpiryStatus;
 }
 

@@ -13,7 +13,7 @@ const ALL_STATUSES: ExpiryStatus[] = ['green', 'yellow', 'orange', 'red', 'forDe
 type EnabledStatus = 'enabled' | 'disabled';
 
 interface HostingWithDetails extends Hosting {
-  daysUntilExpiry: number;
+  daysUntilExpiry: number | null;
   expiryStatus?: ExpiryStatus;
   isActive?: boolean;
   isEnabled?: boolean;
@@ -328,14 +328,18 @@ export default function HostingPage() {
   };
 
   const filteredHosting = (hostingData?.hosting || []).filter((h) => {
+    const isUnhosted = h.daysUntilExpiry === null;
+
     // Status filter (if any filters are selected)
     if (statusFilters.size > 0) {
-      const status = getExpiryStatus(h.daysUntilExpiry);
+      if (isUnhosted) return false; // unhosted only visible when "All"
+      const status = getExpiryStatus(h.daysUntilExpiry!);
       if (!statusFilters.has(status)) return false;
     }
 
     // Enabled/disabled filter
     if (enabledFilter !== 'all') {
+      if (isUnhosted) return false; // unhosted only visible when "all" enabled filter
       const isEnabled = h.isActive !== false;
       if (enabledFilter === 'enabled' && !isEnabled) return false;
       if (enabledFilter === 'disabled' && isEnabled) return false;
@@ -481,12 +485,13 @@ export default function HostingPage() {
           /* Cards View */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
             {filteredHosting.map((hosting) => {
-              const status = getExpiryStatus(hosting.daysUntilExpiry);
+              const isUnhosted = hosting.daysUntilExpiry === null;
+              const status = isUnhosted ? 'deleted' as ExpiryStatus : getExpiryStatus(hosting.daysUntilExpiry!);
               return (
                 <div
-                  key={hosting.id}
+                  key={hosting.id ?? `d-${hosting.domainId}`}
                   onClick={() => navigate(`/domains/${hosting.domainId}`)}
-                  className={`border-l-4 ${statusColors[status].border} bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md cursor-pointer transition-all p-4`}
+                  className={`border-l-4 ${isUnhosted ? 'border-gray-400' : statusColors[status].border} bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md cursor-pointer transition-all p-4`}
                 >
                   {/* Header */}
                   <div className="flex items-start justify-between mb-3">
@@ -497,7 +502,13 @@ export default function HostingPage() {
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{hosting.clientName || '-'}</div>
                     </div>
-                    <StatusBadge status={status} days={hosting.daysUntilExpiry} />
+                    {isUnhosted ? (
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                        {t('common.noPackage')}
+                      </span>
+                    ) : (
+                      <StatusBadge status={status} days={hosting.daysUntilExpiry!} />
+                    )}
                   </div>
 
                   {/* Info Grid */}
@@ -516,27 +527,35 @@ export default function HostingPage() {
                       <div className="text-gray-500 dark:text-gray-400 truncate">{hosting.domainTechEmail || hosting.clientTechEmail || '-'}</div>
                     </div>
 
-                    <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
-                      <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">{t('common.package')}</div>
-                      <div className="text-gray-700 dark:text-gray-300">{hosting.packageName || '-'}</div>
-                      <div className="flex gap-2 text-gray-500 dark:text-gray-400">
-                        <span>{hosting.packageMaxMailboxes || 0} {t('common.mailboxes')}</span>
-                        <span>•</span>
-                        <span>{hosting.packageStorageGb || 0} GB</span>
+                    {!isUnhosted && (
+                      <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
+                        <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">{t('common.package')}</div>
+                        <div className="text-gray-700 dark:text-gray-300">{hosting.packageName || '-'}</div>
+                        <div className="flex gap-2 text-gray-500 dark:text-gray-400">
+                          <span>{hosting.packageMaxMailboxes || 0} {t('common.mailboxes')}</span>
+                          <span>•</span>
+                          <span>{hosting.packageStorageGb || 0} GB</span>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Footer */}
                   <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">
-                    <div className={`px-2 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 ${
-                      hosting.isActive !== false
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                        : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
-                    }`}>
-                      {hosting.isActive !== false ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
-                      {hosting.isActive !== false ? t('common.enabled') : t('common.disabled')}
-                    </div>
+                    {isUnhosted ? (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                        {t('common.noPackage')}
+                      </span>
+                    ) : (
+                      <div className={`px-2 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 ${
+                        hosting.isActive !== false
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                          : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                      }`}>
+                        {hosting.isActive !== false ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
+                        {hosting.isActive !== false ? t('common.enabled') : t('common.disabled')}
+                      </div>
+                    )}
                     <button
                       onClick={(e) => { e.stopPropagation(); navigate(`/domains/${hosting.domainId}`); }}
                       className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
@@ -552,11 +571,12 @@ export default function HostingPage() {
           /* List View */
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {filteredHosting.map((hosting) => {
-              const status = getExpiryStatus(hosting.daysUntilExpiry);
+              const isUnhosted = hosting.daysUntilExpiry === null;
+              const status = isUnhosted ? 'deleted' as ExpiryStatus : getExpiryStatus(hosting.daysUntilExpiry!);
 
               return (
                 <div
-                  key={hosting.id}
+                  key={hosting.id ?? `d-${hosting.domainId}`}
                   onClick={() => navigate(`/domains/${hosting.domainId}`)}
                   className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors"
                 >
@@ -594,35 +614,55 @@ export default function HostingPage() {
                   </div>
 
                   {/* Package Info */}
-                  <div className="flex items-center gap-4 flex-shrink-0 text-xs ml-auto">
-                    <div>
-                      <div className="text-gray-700 dark:text-gray-300">
-                        <span className="text-gray-500 font-medium">{t('common.package')}</span> {hosting.packageName || '-'}
+                  {isUnhosted ? (
+                    <div className="flex-shrink-0 text-xs ml-auto">
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                        {t('common.noPackage')}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-4 flex-shrink-0 text-xs ml-auto">
+                      <div>
+                        <div className="text-gray-700 dark:text-gray-300">
+                          <span className="text-gray-500 font-medium">{t('common.package')}</span> {hosting.packageName || '-'}
+                        </div>
+                        {hosting.packageDescription && (
+                          <div className="text-gray-500">{hosting.packageDescription}</div>
+                        )}
                       </div>
-                      {hosting.packageDescription && (
-                        <div className="text-gray-500">{hosting.packageDescription}</div>
-                      )}
+                      <div className="text-gray-600 dark:text-gray-400">
+                        <div>{hosting.packageMaxMailboxes || 0} {t('common.mailboxes')}</div>
+                        <div>{hosting.packageStorageGb || 0} GB</div>
+                      </div>
+                      <div className="text-gray-600 dark:text-gray-400">
+                        <div><span className="text-gray-500 font-medium">{t('common.mailServer')}</span> {hosting.mailServerName || '-'}</div>
+                        <div><span className="text-gray-500 font-medium">{t('common.mailSecurity')}</span> {hosting.mailSecurityName || '-'}</div>
+                      </div>
                     </div>
-                    <div className="text-gray-600 dark:text-gray-400">
-                      <div>{hosting.packageMaxMailboxes || 0} {t('common.mailboxes')}</div>
-                      <div>{hosting.packageStorageGb || 0} GB</div>
-                    </div>
-                    <div className="text-gray-600 dark:text-gray-400">
-                      <div><span className="text-gray-500 font-medium">{t('common.mailServer')}</span> {hosting.mailServerName || '-'}</div>
-                      <div><span className="text-gray-500 font-medium">{t('common.mailSecurity')}</span> {hosting.mailSecurityName || '-'}</div>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Enabled/Disabled & Status & Edit */}
-                  <div className={`px-2 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 ${
-                    hosting.isActive !== false
-                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                      : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
-                  }`}>
-                    {hosting.isActive !== false ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
-                    {hosting.isActive !== false ? t('common.on') : t('common.off')}
-                  </div>
-                  <StatusBadge status={status} days={hosting.daysUntilExpiry} />
+                  {isUnhosted ? (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                      —
+                    </span>
+                  ) : (
+                    <div className={`px-2 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 ${
+                      hosting.isActive !== false
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                    }`}>
+                      {hosting.isActive !== false ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
+                      {hosting.isActive !== false ? t('common.on') : t('common.off')}
+                    </div>
+                  )}
+                  {isUnhosted ? (
+                    <span className="px-2 py-1 rounded text-xs font-medium bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                      {t('common.noPackage')}
+                    </span>
+                  ) : (
+                    <StatusBadge status={status} days={hosting.daysUntilExpiry!} />
+                  )}
                   <button
                     onClick={(e) => { e.stopPropagation(); navigate(`/domains/${hosting.domainId}`); }}
                     className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150 flex-shrink-0"

@@ -110,7 +110,7 @@ export default function DomainDetailPage() {
     queryKey: ['domain-hosting', id],
     queryFn: async () => {
       const response = await api.get<{ hosting: HostingWithDetails[] }>('/api/hosting');
-      const domainHosting = response.hosting.find(h => h.domainId === Number(id));
+      const domainHosting = response.hosting.find(h => h.domainId === Number(id) && h.id !== null);
       return domainHosting || null;
     },
     enabled: !!id,
