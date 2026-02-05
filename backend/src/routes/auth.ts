@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { db, schema } from '../db/index.js';
 import { eq, and, gt } from 'drizzle-orm';
-import { generateToken, authMiddleware } from '../middleware/auth.js';
+import { generateToken, authMiddleware, AppEnv } from '../middleware/auth.js';
 import { z } from 'zod';
 import { sendEmail } from '../services/email.js';
 import { getCurrentTimestamp } from '../utils/dates.js';
@@ -21,7 +21,7 @@ import {
 } from '../services/security.js';
 import { authenticator } from 'otplib';
 
-const auth = new Hono();
+const auth = new Hono<AppEnv>();
 
 const loginSchema = z.object({
   email: z.string().email(),

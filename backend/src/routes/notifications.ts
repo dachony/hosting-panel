@@ -335,15 +335,15 @@ notifications.post('/settings/:id/test', adminMiddleware, async (c) => {
     }
 
     if (!htmlContent) {
-      const typeLabels = { domain: 'Domain', hosting: 'Web Hosting', mail: 'Mail Hosting' };
-      subject = `[TEST] ${setting.name || typeLabels[setting.type]} - Expiry notification`;
+      const typeLabels: Record<string, string> = { client: 'Client', service_request: 'Service Request', sales_request: 'Sales Request', reports: 'Reports', system: 'System' };
+      subject = `[TEST] ${setting.name || typeLabels[setting.type] || setting.type} - Expiry notification`;
       htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2563eb;">Test Notification</h2>
-          <p>This is a test notification for setting: <strong>${setting.name || typeLabels[setting.type]}</strong></p>
+          <p>This is a test notification for setting: <strong>${setting.name || typeLabels[setting.type] || setting.type}</strong></p>
           <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Type:</strong></td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${typeLabels[setting.type]}</td></tr>
-            <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Days before expiry:</strong></td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${setting.daysBefore.join(', ')}</td></tr>
+            <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Type:</strong></td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${typeLabels[setting.type] || setting.type}</td></tr>
+            <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Schedule:</strong></td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${(setting.schedule || []).join(', ')}</td></tr>
           </table>
           <p style="color: #6b7280; font-size: 14px;">This is a test email. In production, you will receive real notifications with client and domain data.</p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
@@ -396,21 +396,21 @@ notifications.post('/imap/verify', superAdminMiddleware, async (c) => {
       tlsOptions: { rejectUnauthorized: false },
     });
 
-    return new Promise((resolve) => {
+    return new Promise<Response>((resolve) => {
       const timeout = setTimeout(() => {
         imap.end();
-        resolve(c.json({ error: 'IMAP connection timeout' }, 400));
+        resolve(c.json({ error: 'IMAP connection timeout' }, 400) as unknown as Response);
       }, 10000);
 
       imap.once('ready', () => {
         clearTimeout(timeout);
         imap.end();
-        resolve(c.json({ message: 'IMAP connection successful' }));
+        resolve(c.json({ message: 'IMAP connection successful' }) as unknown as Response);
       });
 
       imap.once('error', (err: Error) => {
         clearTimeout(timeout);
-        resolve(c.json({ error: 'IMAP connection failed', details: err.message }, 400));
+        resolve(c.json({ error: 'IMAP connection failed', details: err.message }, 400) as unknown as Response);
       });
 
       imap.connect();

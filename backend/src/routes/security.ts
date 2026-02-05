@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db, schema } from '../db/index.js';
 import { eq, gt, or, isNotNull } from 'drizzle-orm';
-import { authMiddleware, superAdminMiddleware } from '../middleware/auth.js';
+import { authMiddleware, superAdminMiddleware, AppEnv } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { authenticator } from 'otplib';
@@ -19,7 +19,7 @@ import {
 } from '../services/security.js';
 import { sendEmail } from '../services/email.js';
 
-const security = new Hono();
+const security = new Hono<AppEnv>();
 
 security.use('*', authMiddleware);
 

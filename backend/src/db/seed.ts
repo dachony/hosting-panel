@@ -37,9 +37,9 @@ async function seed() {
 
   if (existingSettings.length === 0) {
     await db.insert(schema.notificationSettings).values([
-      { type: 'domain', daysBefore: [30, 14, 7, 3, 1], enabled: true },
-      { type: 'hosting', daysBefore: [30, 14, 7, 3, 1], enabled: true },
-      { type: 'mail', daysBefore: [30, 14, 7, 3, 1], enabled: true },
+      { name: 'Domain expiry', type: 'client' as const, schedule: [30, 14, 7, 3, 1], enabled: true },
+      { name: 'Hosting expiry', type: 'client' as const, schedule: [30, 14, 7, 3, 1], enabled: true },
+      { name: 'Mail expiry', type: 'client' as const, schedule: [30, 14, 7, 3, 1], enabled: true },
     ]);
     console.log('Created default notification settings');
   }

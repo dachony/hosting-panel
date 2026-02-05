@@ -64,37 +64,27 @@ async function getLockedUsers() {
 async function getFailedLogins(period: SystemConfig['period']) {
   const dateFilter = getDateFilter(period);
 
-  let query = db.select().from(schema.loginAttempts).where(eq(schema.loginAttempts.success, false));
+  const conditions = [eq(schema.loginAttempts.success, false)];
   if (dateFilter) {
-    query = query.where(and(
-      eq(schema.loginAttempts.success, false),
-      gte(schema.loginAttempts.createdAt, dateFilter)
-    )) as typeof query;
+    conditions.push(gte(schema.loginAttempts.createdAt, dateFilter));
   }
 
-  return query.orderBy(desc(schema.loginAttempts.createdAt)).limit(100);
+  return db.select().from(schema.loginAttempts).where(and(...conditions)).orderBy(desc(schema.loginAttempts.createdAt)).limit(100);
 }
 
 // Get password changes from audit log
 async function getPasswordChanges(period: SystemConfig['period']) {
   const dateFilter = getDateFilter(period);
 
-  let query = db.select().from(schema.auditLogs).where(
-    and(
-      eq(schema.auditLogs.entityType, 'user'),
-      eq(schema.auditLogs.action, 'password_change')
-    )
-  );
-
+  const conditions = [
+    eq(schema.auditLogs.entityType, 'user'),
+    eq(schema.auditLogs.action, 'password_change'),
+  ];
   if (dateFilter) {
-    query = query.where(and(
-      eq(schema.auditLogs.entityType, 'user'),
-      eq(schema.auditLogs.action, 'password_change'),
-      gte(schema.auditLogs.createdAt, dateFilter)
-    )) as typeof query;
+    conditions.push(gte(schema.auditLogs.createdAt, dateFilter));
   }
 
-  return query.orderBy(desc(schema.auditLogs.createdAt)).limit(50);
+  return db.select().from(schema.auditLogs).where(and(...conditions)).orderBy(desc(schema.auditLogs.createdAt)).limit(50);
 }
 
 // Get resource usage (disk space)

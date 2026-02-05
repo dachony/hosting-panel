@@ -33,7 +33,7 @@ templates.get('/:id', async (c) => {
 // Get template by type
 templates.get('/type/:type', async (c) => {
   const type = c.req.param('type');
-  const template = await db.select().from(schema.emailTemplates).where(eq(schema.emailTemplates.type, type)).get();
+  const template = await db.select().from(schema.emailTemplates).where(eq(schema.emailTemplates.type, type as typeof schema.emailTemplates.$inferSelect.type)).get();
 
   if (!template) {
     return c.json({ error: 'Template not found' }, 404);

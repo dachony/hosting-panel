@@ -12,17 +12,16 @@ async function checkExpiringItems() {
   const notificationSettings = await db.select().from(schema.notificationSettings).where(eq(schema.notificationSettings.enabled, true));
 
   for (const setting of notificationSettings) {
-    const daysBefore = setting.daysBefore as number[];
+    const schedule = setting.schedule || [];
     const today = new Date();
 
-    for (const days of daysBefore) {
+    for (const days of schedule) {
       const targetDate = formatDate(addDaysToDate(today, days));
 
-      if (setting.type === 'domain') {
+      // For client-type notifications, check all service types
+      if (setting.type === 'client') {
         await checkExpiringDomains(targetDate, days);
-      } else if (setting.type === 'hosting') {
         await checkExpiringHosting(targetDate, days);
-      } else if (setting.type === 'mail') {
         await checkExpiringMailHosting(targetDate, days);
       }
     }
@@ -63,7 +62,7 @@ async function checkExpiringDomains(targetDate: string, daysRemaining: number) {
         'domain',
         domain.domainName,
         domain.clientName || 'Nepoznat',
-        domain.expiryDate,
+        domain.expiryDate || '',
         daysRemaining
       );
 
@@ -284,8 +283,8 @@ async function sendDailyReport() {
     expiringDomains.map(d => ({
       name: d.domainName,
       clientName: d.clientName || 'Nepoznat',
-      expiryDate: d.expiryDate,
-      daysUntilExpiry: daysUntilExpiry(d.expiryDate),
+      expiryDate: d.expiryDate || '',
+      daysUntilExpiry: daysUntilExpiry(d.expiryDate || ''),
     })),
     expiringHosting.map(h => ({
       name: h.domainName || h.packageName,

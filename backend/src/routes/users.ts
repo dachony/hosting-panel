@@ -2,14 +2,14 @@ import { Hono } from 'hono';
 import bcrypt from 'bcryptjs';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
-import { authMiddleware, superAdminMiddleware } from '../middleware/auth.js';
+import { authMiddleware, superAdminMiddleware, AppEnv } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { notifySuperadminPasswordChange, notifyAdminPasswordChange } from '../services/systemNotifications.js';
 import { validatePassword, generateTemporaryPassword } from '../services/security.js';
 import { sendEmail } from '../services/email.js';
 
-const users = new Hono();
+const users = new Hono<AppEnv>();
 
 // Only superadmin can manage users
 users.use('*', authMiddleware, superAdminMiddleware);

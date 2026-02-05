@@ -59,7 +59,7 @@ mailHosting.get('/expiring', async (c) => {
       clientId: schema.mailHosting.clientId,
       expiryDate: schema.mailHosting.expiryDate,
       clientName: schema.clients.name,
-      clientEmail: schema.clients.email,
+      clientEmail: schema.clients.email1,
       domainName: schema.domains.domainName,
       packageName: schema.mailPackages.name,
     })

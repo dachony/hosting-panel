@@ -134,8 +134,8 @@ export async function getExpiringItems(days: number = 30): Promise<ExpiringItem[
       type: 'domain' as const,
       name: d.domainName,
       clientName: d.clientName,
-      expiryDate: d.expiryDate,
-      daysUntilExpiry: daysUntilExpiry(d.expiryDate),
+      expiryDate: d.expiryDate || '',
+      daysUntilExpiry: daysUntilExpiry(d.expiryDate || ''),
     })),
     ...hosting.map(h => ({
       id: h.id,
