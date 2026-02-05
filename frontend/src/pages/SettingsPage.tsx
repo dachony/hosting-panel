@@ -37,6 +37,8 @@ import {
   Lock,
   KeyRound,
   Play,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -172,6 +174,20 @@ export default function SettingsPage() {
   const [importFormat, setImportFormat] = useState<'json' | 'csv'>('json');
   const csvInputRef = useRef<HTMLInputElement>(null);
 
+  // Import preview modal state
+  const [importPreviewOpen, setImportPreviewOpen] = useState(false);
+  const [importPreviewData, setImportPreviewData] = useState<Record<string, unknown[]> | null>(null);
+  const [importPreviewMeta, setImportPreviewMeta] = useState<{ version?: string; exportedAt?: string; fileName?: string } | null>(null);
+  const [importSelections, setImportSelections] = useState<Record<string, boolean[]>>({});
+  const [importExpandedSections, setImportExpandedSections] = useState<Set<string>>(new Set());
+
+  // Export preview modal state
+  const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
+  const [exportPreviewData, setExportPreviewData] = useState<Record<string, unknown[]> | null>(null);
+  const [exportSelections, setExportSelections] = useState<Record<string, boolean[]>>({});
+  const [exportExpandedSections, setExportExpandedSections] = useState<Set<string>>(new Set());
+  const [exportLoading, setExportLoading] = useState(false);
+
   // User modal state
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
@@ -290,6 +306,15 @@ export default function SettingsPage() {
     { key: 'packageName', label: 'Package', description: 'Package name' },
     { key: 'companyName', label: 'Company', description: 'Company name' },
     { key: 'hostingStatus', label: 'Hosting Status', description: 'Hosting status (Enabled/Disabled)' },
+    { key: 'packageDescription', label: 'Pkg Description', description: 'Package description' },
+    { key: 'maxMailboxes', label: 'Mailboxes', description: 'Number of mailboxes' },
+    { key: 'storageGb', label: 'Storage GB', description: 'Storage capacity in GB' },
+    { key: 'primaryContactName', label: 'Primary Contact', description: 'Primary contact name' },
+    { key: 'primaryContactPhone', label: 'Primary Phone', description: 'Primary contact phone' },
+    { key: 'primaryContactEmail', label: 'Primary Email', description: 'Primary contact email' },
+    { key: 'techContactName', label: 'Tech Contact', description: 'Technical contact name' },
+    { key: 'techContactPhone', label: 'Tech Phone', description: 'Technical contact phone' },
+    { key: 'techContactEmail', label: 'Tech Email', description: 'Technical contact email' },
   ];
 
   // Report-specific variable
@@ -1400,16 +1425,207 @@ export default function SettingsPage() {
   });
 
   // Handlers
-  const handleExport = async (format: 'json' | 'csv' = 'json') => {
+  // Helper maps for preview modals
+  const typeLabelsMap: Record<string, string> = {
+    clients: 'Clients',
+    domains: 'Domains',
+    webHosting: 'Web Hosting',
+    mailHosting: 'Mail Hosting',
+    packages: 'Packages',
+    templates: 'Email Templates',
+    notificationSettings: 'Notification Settings',
+    reportSettings: 'Report Settings',
+    appSettings: 'App Settings',
+    companyInfo: 'Company Info',
+    bankAccounts: 'Bank Accounts',
+    mailServers: 'Mail Servers',
+    mailSecurity: 'Mail Security',
+  };
+
+  const getItemDisplayName = (type: string, item: Record<string, unknown>): string => {
+    switch (type) {
+      case 'clients': return (item.name as string) || `Client #${item.id || '?'}`;
+      case 'domains': return (item.domainName as string) || `Domain #${item.id || '?'}`;
+      case 'webHosting': return (item.domainName as string) || `Hosting #${item.id || '?'}`;
+      case 'mailHosting': return (item.domainName as string) || `Mail #${item.id || '?'}`;
+      case 'packages': return (item.name as string) || `Package #${item.id || '?'}`;
+      case 'templates': return (item.name as string) || `Template #${item.id || '?'}`;
+      case 'notificationSettings': return (item.name as string) || `Notification #${item.id || '?'}`;
+      case 'reportSettings': return (item.name as string) || `Report #${item.id || '?'}`;
+      case 'appSettings': return (item.key as string) || `Setting #${item.id || '?'}`;
+      case 'companyInfo': return (item.name as string) || 'Company Info';
+      case 'bankAccounts': return (item.bankName as string) || `Account #${item.id || '?'}`;
+      case 'mailServers': return (item.name as string) || `Server #${item.id || '?'}`;
+      case 'mailSecurity': return (item.name as string) || `Security #${item.id || '?'}`;
+      default: return `Item #${item.id || '?'}`;
+    }
+  };
+
+  const initializeSelections = (data: Record<string, unknown[]>): Record<string, boolean[]> => {
+    const selections: Record<string, boolean[]> = {};
+    for (const [key, items] of Object.entries(data)) {
+      if (Array.isArray(items) && items.length > 0) {
+        selections[key] = items.map(() => true);
+      }
+    }
+    return selections;
+  };
+
+  const getSelectedCount = (selections: Record<string, boolean[]>): number => {
+    return Object.values(selections).reduce((sum, arr) => sum + arr.filter(Boolean).length, 0);
+  };
+
+  const toggleSectionExpand = (section: string, expandedSet: Set<string>, setExpanded: React.Dispatch<React.SetStateAction<Set<string>>>) => {
+    const next = new Set(expandedSet);
+    if (next.has(section)) {
+      next.delete(section);
+    } else {
+      next.add(section);
+    }
+    setExpanded(next);
+  };
+
+  const toggleAllInSection = (section: string, selections: Record<string, boolean[]>, setSelections: React.Dispatch<React.SetStateAction<Record<string, boolean[]>>>) => {
+    const current = selections[section] || [];
+    const allSelected = current.every(Boolean);
+    setSelections(prev => ({
+      ...prev,
+      [section]: current.map(() => !allSelected),
+    }));
+  };
+
+  const toggleItem = (section: string, index: number, selections: Record<string, boolean[]>, setSelections: React.Dispatch<React.SetStateAction<Record<string, boolean[]>>>) => {
+    setSelections(prev => ({
+      ...prev,
+      [section]: prev[section].map((v, i) => i === index ? !v : v),
+    }));
+  };
+
+  const isSectionPartiallySelected = (section: string, selections: Record<string, boolean[]>): boolean => {
+    const current = selections[section] || [];
+    const selectedCount = current.filter(Boolean).length;
+    return selectedCount > 0 && selectedCount < current.length;
+  };
+
+  const isSectionFullySelected = (section: string, selections: Record<string, boolean[]>): boolean => {
+    const current = selections[section] || [];
+    return current.length > 0 && current.every(Boolean);
+  };
+
+  // Handle confirmed import of selected items
+  const handleImportConfirmSelected = async () => {
+    if (!importPreviewData) return;
+
+    const filteredData: Record<string, unknown[]> = {};
+    for (const [key, items] of Object.entries(importPreviewData)) {
+      const selected = importSelections[key];
+      if (selected) {
+        const filteredItems = items.filter((_, i) => selected[i]);
+        if (filteredItems.length > 0) {
+          filteredData[key] = filteredItems;
+        }
+      }
+    }
+
+    if (Object.keys(filteredData).length === 0) {
+      toast.error('No items selected');
+      return;
+    }
+
     try {
-      const types = exportTypes.join(',');
-      const filename = exportTypes.includes('all')
-        ? `hosting-dashboard-backup-${new Date().toISOString().split('T')[0]}.${format}`
-        : `${exportTypes[0]}-export-${new Date().toISOString().split('T')[0]}.${format}`;
-      await api.download(`/api/backup/export?types=${types}&format=${format}`, filename);
-      toast.success('Data exported');
+      const payload = {
+        version: importPreviewMeta?.version || '2.0',
+        exportedAt: importPreviewMeta?.exportedAt,
+        data: filteredData,
+      };
+
+      const result = await api.post('/api/backup/import', payload) as { results: Record<string, { imported: number; skipped: number; errors: string[] }> };
+      const totalImported = Object.values(result.results).reduce((sum, r) => sum + r.imported, 0);
+      const totalSkipped = Object.values(result.results).reduce((sum, r) => sum + r.skipped, 0);
+
+      toast.success(`Imported: ${totalImported}, Skipped: ${totalSkipped}`);
+      queryClient.invalidateQueries();
+      setImportPreviewOpen(false);
+      setImportPreviewData(null);
+      setImportPreviewMeta(null);
+      setImportSelections({});
+      setImportExpandedSections(new Set());
     } catch {
-      toast.error('Error exporting');
+      toast.error('Error importing');
+    }
+  };
+
+  // Handle export download with filtered items
+  const handleExportDownload = () => {
+    if (!exportPreviewData) return;
+
+    const filteredData: Record<string, unknown[]> = {};
+    for (const [key, items] of Object.entries(exportPreviewData)) {
+      const selected = exportSelections[key];
+      if (selected) {
+        const filteredItems = items.filter((_, i) => selected[i]);
+        if (filteredItems.length > 0) {
+          filteredData[key] = filteredItems;
+        }
+      }
+    }
+
+    if (Object.keys(filteredData).length === 0) {
+      toast.error('No items selected');
+      return;
+    }
+
+    const exportPayload = {
+      version: '2.0',
+      exportedAt: new Date().toISOString(),
+      data: filteredData,
+    };
+
+    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hosting-dashboard-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    toast.success('Export downloaded');
+    setExportPreviewOpen(false);
+    setExportPreviewData(null);
+    setExportSelections({});
+    setExportExpandedSections(new Set());
+  };
+
+  const handleExport = async (format: 'json' | 'csv' = 'json') => {
+    if (format === 'json') {
+      // For JSON: fetch data into memory and open preview modal
+      try {
+        setExportLoading(true);
+        const types = exportTypes.join(',');
+        const data = await api.get<{ version: string; exportedAt: string; data: Record<string, unknown[]> }>(`/api/backup/export?types=${types}&format=json`);
+        if (data?.data) {
+          setExportPreviewData(data.data);
+          setExportSelections(initializeSelections(data.data));
+          setExportExpandedSections(new Set());
+          setExportPreviewOpen(true);
+        }
+      } catch {
+        toast.error('Error loading export data');
+      } finally {
+        setExportLoading(false);
+      }
+    } else {
+      // For CSV: direct download (no preview)
+      try {
+        const types = exportTypes.join(',');
+        const filename = `${exportTypes[0]}-export-${new Date().toISOString().split('T')[0]}.csv`;
+        await api.download(`/api/backup/export?types=${types}&format=csv`, filename);
+        toast.success('Data exported');
+      } catch {
+        toast.error('Error exporting');
+      }
     }
   };
 
@@ -1446,14 +1662,25 @@ export default function SettingsPage() {
         // For JSON, check if it's a full backup or single type
         const parsed = JSON.parse(content);
         if (parsed.version && parsed.data) {
-          // Full backup - no validation needed, just show preview
-          setImportValidation({
-            valid: true,
-            totalRows: Object.values(parsed.data).reduce((sum: number, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0),
-            validRows: Object.values(parsed.data).reduce((sum: number, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0),
-            errors: [],
-            preview: Object.keys(parsed.data).slice(0, 5),
+          // Full backup - open preview modal instead of inline validation
+          const dataEntries: Record<string, unknown[]> = {};
+          for (const [key, value] of Object.entries(parsed.data)) {
+            if (Array.isArray(value) && value.length > 0) {
+              dataEntries[key] = value;
+            }
+          }
+          setImportPreviewData(dataEntries);
+          setImportPreviewMeta({
+            version: parsed.version,
+            exportedAt: parsed.exportedAt,
+            fileName: file.name,
           });
+          setImportSelections(initializeSelections(dataEntries));
+          setImportExpandedSections(new Set());
+          setImportPreviewOpen(true);
+          // Reset file input and return early - no inline validation
+          e.target.value = '';
+          return;
         } else if (Array.isArray(parsed)) {
           const response = await api.post('/api/backup/validate', {
             type: importType,
@@ -3880,11 +4107,11 @@ export default function SettingsPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => handleExport('json')}
-                  disabled={exportTypes.length === 0}
+                  disabled={exportTypes.length === 0 || exportLoading}
                   className="btn btn-primary flex-1 !py-2 !text-sm flex items-center justify-center"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export JSON
+                  {exportLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                  {exportLoading ? 'Loading...' : 'Export JSON'}
                 </button>
                 {!exportTypes.includes('all') && exportTypes.length === 1 && (
                   <button
@@ -5591,6 +5818,164 @@ Your team"
         message={`Are you sure you want to delete "${selectedPackage?.name}"?`}
         isLoading={deletePackageMutation.isPending}
       />
+
+      {/* Import Preview Modal */}
+      <Modal isOpen={importPreviewOpen} onClose={() => setImportPreviewOpen(false)} title="Import Preview" size="lg">
+        <div className="space-y-3">
+          {/* File info */}
+          {importPreviewMeta && (
+            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-xs text-gray-600 dark:text-gray-400">
+              <div><span className="font-medium">File:</span> {importPreviewMeta.fileName}</div>
+              <div>
+                <span className="font-medium">Version:</span> {importPreviewMeta.version}
+                {importPreviewMeta.exportedAt && (
+                  <> | <span className="font-medium">Exported:</span> {new Date(importPreviewMeta.exportedAt).toLocaleDateString('sr-RS')}</>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Category list */}
+          {importPreviewData && Object.entries(importPreviewData).map(([type, items]) => {
+            const isExpanded = importExpandedSections.has(type);
+            const sectionSelected = isSectionFullySelected(type, importSelections);
+            const sectionPartial = isSectionPartiallySelected(type, importSelections);
+            const selectedInSection = (importSelections[type] || []).filter(Boolean).length;
+            return (
+              <div key={type} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700/30 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                  onClick={() => toggleSectionExpand(type, importExpandedSections, setImportExpandedSections)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={sectionSelected}
+                    ref={(el) => { if (el) el.indeterminate = sectionPartial; }}
+                    onChange={(e) => { e.stopPropagation(); toggleAllInSection(type, importSelections, setImportSelections); }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100 flex-1">
+                    {typeLabelsMap[type] || type} ({selectedInSection}/{items.length})
+                  </span>
+                  {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                </div>
+                {isExpanded && (
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700/50 max-h-48 overflow-y-auto">
+                    {items.map((item, idx) => (
+                      <label key={idx} className="flex items-center gap-2 px-3 py-1.5 pl-8 hover:bg-gray-50 dark:hover:bg-gray-700/20 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={importSelections[type]?.[idx] ?? true}
+                          onChange={() => toggleItem(type, idx, importSelections, setImportSelections)}
+                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                        />
+                        <span className="text-xs text-gray-700 dark:text-gray-300">
+                          {getItemDisplayName(type, item as Record<string, unknown>)}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Footer */}
+          <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Selected: {getSelectedCount(importSelections)} items
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setImportPreviewOpen(false)}
+                className="btn btn-secondary !py-1.5 !px-3 !text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleImportConfirmSelected}
+                disabled={getSelectedCount(importSelections) === 0}
+                className="btn btn-primary !py-1.5 !px-4 !text-sm"
+              >
+                Import Selected ({getSelectedCount(importSelections)})
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Export Preview Modal */}
+      <Modal isOpen={exportPreviewOpen} onClose={() => setExportPreviewOpen(false)} title="Export Preview" size="lg">
+        <div className="space-y-3">
+          {/* Category list */}
+          {exportPreviewData && Object.entries(exportPreviewData).map(([type, items]) => {
+            if (!Array.isArray(items) || items.length === 0) return null;
+            const isExpanded = exportExpandedSections.has(type);
+            const sectionSelected = isSectionFullySelected(type, exportSelections);
+            const sectionPartial = isSectionPartiallySelected(type, exportSelections);
+            const selectedInSection = (exportSelections[type] || []).filter(Boolean).length;
+            return (
+              <div key={type} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700/30 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                  onClick={() => toggleSectionExpand(type, exportExpandedSections, setExportExpandedSections)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={sectionSelected}
+                    ref={(el) => { if (el) el.indeterminate = sectionPartial; }}
+                    onChange={(e) => { e.stopPropagation(); toggleAllInSection(type, exportSelections, setExportSelections); }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100 flex-1">
+                    {typeLabelsMap[type] || type} ({selectedInSection}/{items.length})
+                  </span>
+                  {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                </div>
+                {isExpanded && (
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700/50 max-h-48 overflow-y-auto">
+                    {items.map((item, idx) => (
+                      <label key={idx} className="flex items-center gap-2 px-3 py-1.5 pl-8 hover:bg-gray-50 dark:hover:bg-gray-700/20 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={exportSelections[type]?.[idx] ?? true}
+                          onChange={() => toggleItem(type, idx, exportSelections, setExportSelections)}
+                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                        />
+                        <span className="text-xs text-gray-700 dark:text-gray-300">
+                          {getItemDisplayName(type, item as Record<string, unknown>)}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Footer */}
+          <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Selected: {getSelectedCount(exportSelections)} items
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setExportPreviewOpen(false)}
+                className="btn btn-secondary !py-1.5 !px-3 !text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExportDownload}
+                disabled={getSelectedCount(exportSelections) === 0}
+                className="btn btn-primary !py-1.5 !px-4 !text-sm"
+              >
+                Download ({getSelectedCount(exportSelections)})
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
