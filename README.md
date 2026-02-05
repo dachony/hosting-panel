@@ -64,7 +64,6 @@ docker-compose -f docker-compose.dev.yml up --build
 |---|---|---|
 | Frontend | http://localhost:3000 | Vite dev server with hot-reload |
 | Backend API | http://localhost:8080 | tsx watch with hot-reload |
-| MailHog UI | http://localhost:8025 | Captures all outgoing emails |
 
 Source directories are mounted as volumes - changes to code are reflected immediately without rebuilding containers.
 
@@ -188,7 +187,7 @@ npm run dev           # Starts dev server on port 3000
 
 ### System Monitoring
 - System status: CPU, memory, disk usage, database stats
-- Email log viewer (MailHog integration)
+- Email log viewer (all sent/failed emails stored in database)
 - Email statistics
 
 ### UI
@@ -484,9 +483,10 @@ All endpoints are prefixed with `/api` unless noted otherwise.
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | `GET` | `/status` | Auth | System status (CPU, memory, disk, DB) |
-| `GET` | `/emails` | Auth | Get email logs from MailHog |
-| `DELETE` | `/emails` | Auth | Delete emails from MailHog |
-| `GET` | `/emails/stats` | Auth | Get email statistics |
+| `GET` | `/emails` | Auth | Get email logs (paginated, searchable) |
+| `GET` | `/emails/stats` | Auth | Get email statistics (total, sent, failed) |
+| `GET` | `/emails/:id` | Auth | Get single email with full content |
+| `DELETE` | `/emails` | Auth | Delete email logs (all or older than X days) |
 
 ## Authentication & Roles
 
@@ -583,6 +583,7 @@ Default location: `./data/hosting.db` (Docker) or project root (local).
 | `login_attempts` | Login attempt tracking per IP |
 | `blocked_ips` | Blocked IP addresses (temp or permanent) |
 | `password_reset_tokens` | Time-limited password reset tokens |
+| `email_logs` | Log of all sent/failed emails with full content |
 
 ### Migrations
 
@@ -639,7 +640,7 @@ SMTP can be configured via:
 1. Environment variables (`SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`)
 2. Admin UI under Settings > Mail Configuration (stored in DB, takes priority)
 
-In development, [MailHog](https://github.com/mailhog/MailHog) captures all outgoing emails at http://localhost:8025.
+All outgoing emails are logged in the `email_logs` database table with full content, status (sent/failed), and error details. View them in the admin UI under Email Log.
 
 ### Notification Types
 
@@ -677,7 +678,7 @@ The project uses multi-stage Docker builds. Both configurations use the same Doc
 | **Backend** | Compiled JS (`node dist/`) | TypeScript watch (`tsx watch`) |
 | **Port** | 3000 (configurable via `PORT`) | 3000 (frontend) + 8080 (backend) |
 | **API routing** | nginx proxies `/api` to backend | Vite proxies `/api` to backend |
-| **Email** | Real SMTP server | MailHog (captures all emails) |
+| **Email** | Real SMTP server | Local SMTP (all emails logged in DB) |
 | **Source volumes** | No (built into image) | Yes (hot-reload) |
 | **Restart policy** | `unless-stopped` | None |
 
@@ -711,7 +712,6 @@ Services:
 |---|---|
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:8080 |
-| MailHog UI | http://localhost:8025 |
 
 Source directories are mounted as volumes for hot-reload:
 - `./backend/src` → backend container
