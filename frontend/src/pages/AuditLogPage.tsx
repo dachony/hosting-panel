@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { Search, Loader2, Filter, ChevronLeft, ChevronRight, X, User, Globe, Clock, MapPin, Monitor } from 'lucide-react';
@@ -40,7 +41,7 @@ interface PaginatedResponse {
 }
 
 const actionLabels: Record<string, string> = {
-  create: 'Kreiranje',
+  create: 'Create',
   update: 'Update',
   delete: 'Delete',
   login: 'Login',
@@ -56,14 +57,14 @@ const actionColors: Record<string, string> = {
 };
 
 const entityLabels: Record<string, string> = {
-  client: 'Klijent',
-  domain: 'Domen',
+  client: 'Client',
+  domain: 'Domain',
   hosting: 'Hosting',
   mail: 'Mail',
   user: 'User',
   template: 'Template',
-  package: 'Paket',
-  notification: 'Notifikacija',
+  package: 'Package',
+  notification: 'Notification',
   auth: 'Auth',
   settings: 'Settings',
 };
@@ -75,11 +76,11 @@ function generateDescription(log: AuditLog): string {
 
   switch (log.action) {
     case 'create':
-      return `Kreiran ${entity.toLowerCase()} ${name}`.trim();
+      return `Created ${entity.toLowerCase()} ${name}`.trim();
     case 'update':
-      return `Izmenjen ${entity.toLowerCase()} ${name}`.trim();
+      return `Updated ${entity.toLowerCase()} ${name}`.trim();
     case 'delete':
-      return `Obrisan ${entity.toLowerCase()} ${name}`.trim();
+      return `Deleted ${entity.toLowerCase()} ${name}`.trim();
     case 'login':
       return 'Successful system login';
     case 'logout':
@@ -99,15 +100,15 @@ function generateDetailedDescription(log: AuditLog): string {
 
   switch (log.action) {
     case 'create':
-      description = `Kreiran novi ${entity.toLowerCase()} ${name}`;
+      description = `Created new ${entity.toLowerCase()} ${name}`;
       if (details) {
-        if (details.clientName) description += ` za klijenta "${details.clientName}"`;
-        if (details.domainName) description += `, domen: ${details.domainName}`;
-        if (details.packageName) description += `, paket: ${details.packageName}`;
+        if (details.clientName) description += ` for client "${details.clientName}"`;
+        if (details.domainName) description += `, domain: ${details.domainName}`;
+        if (details.packageName) description += `, package: ${details.packageName}`;
       }
       break;
     case 'update':
-      description = `Izmenjen ${entity.toLowerCase()} ${name}`;
+      description = `Updated ${entity.toLowerCase()} ${name}`;
       if (details) {
         const changes: string[] = [];
         if (details.changes && typeof details.changes === 'object') {
@@ -121,16 +122,16 @@ function generateDetailedDescription(log: AuditLog): string {
           changes.push(`status: ${details.oldStatus} → ${details.newStatus}`);
         }
         if (details.oldExpiry && details.newExpiry) {
-          changes.push(`istek: ${details.oldExpiry} → ${details.newExpiry}`);
+          changes.push(`expiry: ${details.oldExpiry} → ${details.newExpiry}`);
         }
         if (changes.length > 0) {
-          description += `. Izmenjeno: ${changes.join(', ')}`;
+          description += `. Changed: ${changes.join(', ')}`;
         }
       }
       break;
     case 'delete':
-      description = `Obrisan ${entity.toLowerCase()} ${name}`;
-      if (details?.clientName) description += ` (klijent: ${details.clientName})`;
+      description = `Deleted ${entity.toLowerCase()} ${name}`;
+      if (details?.clientName) description += ` (client: ${details.clientName})`;
       break;
     case 'login':
       description = `User ${log.userName} successfully logged in`;
@@ -174,6 +175,7 @@ function extractClientDomain(log: AuditLog): { client: string | null; domain: st
 }
 
 export default function AuditLogPage() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [entityTypeFilter, setEntityTypeFilter] = useState('');
@@ -254,7 +256,7 @@ export default function AuditLogPage() {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleString('sr-RS', {
+    return date.toLocaleString('en-GB', {
       day: '2-digit',
       month: '2-digit',
       year: '2-digit',
@@ -265,7 +267,7 @@ export default function AuditLogPage() {
 
   const formatFullDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleString('sr-RS', {
+    return date.toLocaleString('en-GB', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -292,7 +294,7 @@ export default function AuditLogPage() {
   return (
     <div className="space-y-3">
       <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-        Audit Log
+        {t('nav.auditLog')}
       </h1>
 
       <div className="card !p-0 overflow-hidden">
@@ -303,7 +305,7 @@ export default function AuditLogPage() {
               type="text"
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-              placeholder="Search..."
+              placeholder={t('common.searchPlaceholder')}
               className="input !py-1 !text-xs w-full pl-7"
             />
           </div>
@@ -312,7 +314,7 @@ export default function AuditLogPage() {
             className={`btn btn-secondary !py-1 !px-2 !text-xs flex items-center gap-1 ${showFilters ? 'bg-primary-100 dark:bg-primary-900' : ''}`}
           >
             <Filter className="w-3 h-3" />
-            Filteri
+            Filters
           </button>
         </div>
 
@@ -323,7 +325,7 @@ export default function AuditLogPage() {
               onChange={(e) => { setEntityTypeFilter(e.target.value); setPage(1); }}
               className="input !py-1 !text-xs !w-auto"
             >
-              <option value="">Svi tipovi</option>
+              <option value="">All types</option>
               {entityTypesData?.entityTypes.map((type) => (
                 <option key={type} value={type}>
                   {entityLabels[type] || type}
@@ -335,7 +337,7 @@ export default function AuditLogPage() {
               onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
               className="input !py-1 !text-xs !w-auto"
             >
-              <option value="">Sve akcije</option>
+              <option value="">All actions</option>
               {actionsData?.actions.map((action) => (
                 <option key={action} value={action}>
                   {actionLabels[action] || action}
@@ -359,7 +361,7 @@ export default function AuditLogPage() {
           </div>
         ) : data?.logs.length === 0 ? (
           <div className="text-center py-8 text-xs text-gray-500">
-            Nema zapisa
+            {t('common.noResults')}
           </div>
         ) : (
           <>
@@ -368,7 +370,7 @@ export default function AuditLogPage() {
                 <thead className="bg-gray-50 dark:bg-gray-800/50">
                   <tr>
                     <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400 relative" style={{ width: columnWidths.time }}>
-                      Vreme
+                      Time
                       <div
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary-400 group"
                         onMouseDown={(e) => handleResizeStart('time', e)}
@@ -395,7 +397,7 @@ export default function AuditLogPage() {
                       </div>
                     </th>
                     <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400 relative" style={{ width: columnWidths.action }}>
-                      Akcija
+                      Action
                       <div
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary-400 group"
                         onMouseDown={(e) => handleResizeStart('action', e)}
@@ -404,7 +406,7 @@ export default function AuditLogPage() {
                       </div>
                     </th>
                     <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400 relative" style={{ width: columnWidths.client }}>
-                      Klijent
+                      Client
                       <div
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary-400 group"
                         onMouseDown={(e) => handleResizeStart('client', e)}
@@ -413,7 +415,7 @@ export default function AuditLogPage() {
                       </div>
                     </th>
                     <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400 relative" style={{ width: columnWidths.domain }}>
-                      Domen
+                      Domain
                       <div
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary-400 group"
                         onMouseDown={(e) => handleResizeStart('domain', e)}
@@ -422,7 +424,7 @@ export default function AuditLogPage() {
                       </div>
                     </th>
                     <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400" style={{ width: columnWidths.description }}>
-                      Opis
+                      Description
                     </th>
                   </tr>
                 </thead>
@@ -526,7 +528,7 @@ export default function AuditLogPage() {
 
               {/* Description */}
               <div>
-                <div className="text-gray-500 text-xs mb-1">Opis</div>
+                <div className="text-gray-500 text-xs mb-1">Description</div>
                 <p className="text-gray-900 dark:text-gray-100 text-sm">
                   {generateDetailedDescription(selectedLog)}
                 </p>
@@ -546,7 +548,7 @@ export default function AuditLogPage() {
                 <div className="flex items-start gap-2">
                   <Clock className="w-4 h-4 text-gray-400 mt-0.5" />
                   <div>
-                    <div className="text-gray-500 text-xs">Vreme</div>
+                    <div className="text-gray-500 text-xs">Time</div>
                     <div className="text-gray-900 dark:text-gray-100">{formatFullDate(selectedLog.createdAt)}</div>
                   </div>
                 </div>
@@ -555,7 +557,7 @@ export default function AuditLogPage() {
                   <div className="flex items-start gap-2">
                     <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
-                      <div className="text-gray-500 text-xs">IP Adresa</div>
+                      <div className="text-gray-500 text-xs">IP Address</div>
                       <div className="text-gray-900 dark:text-gray-100 font-mono text-xs">{selectedLog.ipAddress}</div>
                     </div>
                   </div>
@@ -565,7 +567,7 @@ export default function AuditLogPage() {
                   <div className="flex items-start gap-2">
                     <Globe className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
-                      <div className="text-gray-500 text-xs">Entitet</div>
+                      <div className="text-gray-500 text-xs">Entity</div>
                       <div className="text-gray-900 dark:text-gray-100">{selectedLog.entityName}</div>
                     </div>
                   </div>
@@ -586,7 +588,7 @@ export default function AuditLogPage() {
               {/* Details JSON */}
               {selectedLog.details && Object.keys(selectedLog.details).length > 0 && (
                 <div>
-                  <div className="text-gray-500 text-xs mb-1">Dodatni detalji</div>
+                  <div className="text-gray-500 text-xs mb-1">Additional details</div>
                   <pre className="bg-gray-50 dark:bg-gray-900 p-3 rounded text-xs overflow-x-auto text-gray-700 dark:text-gray-300">
                     {JSON.stringify(selectedLog.details, null, 2)}
                   </pre>
@@ -600,7 +602,7 @@ export default function AuditLogPage() {
                 onClick={() => setSelectedLog(null)}
                 className="btn btn-secondary"
               >
-                Zatvori
+                Close
               </button>
             </div>
           </div>

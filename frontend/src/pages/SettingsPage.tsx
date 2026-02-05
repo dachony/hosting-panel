@@ -280,20 +280,20 @@ export default function SettingsPage() {
 
   // Available variables for templates
   const templateVariables = [
-    { key: 'clientName', label: 'Client Name', description: 'Ime klijenta' },
-    { key: 'domainName', label: 'Domain', description: 'Naziv domena' },
-    { key: 'expiryDate', label: 'Expiry Date', description: 'Expiry Date' },
+    { key: 'clientName', label: 'Client Name', description: 'Client name' },
+    { key: 'domainName', label: 'Domain', description: 'Domain name' },
+    { key: 'expiryDate', label: 'Expiry Date', description: 'Expiry date' },
     { key: 'daysUntilExpiry', label: 'Days Left', description: 'Days until expiry' },
-    { key: 'packageName', label: 'Package', description: 'Naziv paketa' },
-    { key: 'companyName', label: 'Company', description: 'Naziv firme' },
-    { key: 'hostingStatus', label: 'Hosting Status', description: 'Status hostinga (Enabled/Disabled)' },
+    { key: 'packageName', label: 'Package', description: 'Package name' },
+    { key: 'companyName', label: 'Company', description: 'Company name' },
+    { key: 'hostingStatus', label: 'Hosting Status', description: 'Hosting status (Enabled/Disabled)' },
   ];
 
   // Report-specific variable
-  const reportVariable = { key: 'hostingList', label: 'Hosting List', description: 'Tabela sa listom hostinga prema filterima' };
+  const reportVariable = { key: 'hostingList', label: 'Hosting List', description: 'Table with hosting list by filters' };
 
   // System-specific variable
-  const systemVariable = { key: 'systemInfo', label: 'System Info', description: 'Sistemske informacije prema konfiguraciji' };
+  const systemVariable = { key: 'systemInfo', label: 'System Info', description: 'System information by configuration' };
 
   // Insert variable at cursor position
   const insertVariable = (variable: string, field: 'body' | 'subject') => {
@@ -1401,7 +1401,7 @@ export default function SettingsPage() {
         ? `hosting-dashboard-backup-${new Date().toISOString().split('T')[0]}.${format}`
         : `${exportTypes[0]}-export-${new Date().toISOString().split('T')[0]}.${format}`;
       await api.download(`/api/backup/export?types=${types}&format=${format}`, filename);
-      toast.success('Podaci eksportovani');
+      toast.success('Data exported');
     } catch {
       toast.error('Error exporting');
     }
@@ -1410,7 +1410,7 @@ export default function SettingsPage() {
   const handleDownloadTemplate = async (type: string) => {
     try {
       await api.download(`/api/backup/template/${type}`, `${type}-template.csv`);
-      toast.success('Template preuzet');
+      toast.success('Template downloaded');
     } catch {
       toast.error('Error downloading');
     }
@@ -3717,17 +3717,17 @@ export default function SettingsPage() {
             <div className="space-y-4">
               {/* Import Type Selection */}
               <div>
-                <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">Tip podataka</label>
+                <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">Data type</label>
                 <select
                   value={importType}
                   onChange={(e) => { setImportType(e.target.value); setImportValidation(null); setImportData(null); }}
                   className="input !py-1.5 !text-sm w-full"
                 >
-                  <option value="all">Kompletan backup (JSON)</option>
-                  <option value="clients">Klijenti</option>
-                  <option value="domains">Domeni</option>
+                  <option value="all">Complete backup (JSON)</option>
+                  <option value="clients">Clients</option>
+                  <option value="domains">Domains</option>
                   <option value="hosting">Hosting</option>
-                  <option value="packages">Paketi</option>
+                  <option value="packages">Packages</option>
                 </select>
               </div>
 
@@ -3740,7 +3740,7 @@ export default function SettingsPage() {
                     className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
                   >
                     <Download className="w-3 h-3" />
-                    Preuzmi {importType}-template.csv
+                    Download {importType}-template.csv
                   </button>
                   <p className="text-[10px] text-blue-500 mt-1">Fill the template with your data and import</p>
                 </div>
@@ -3753,7 +3753,7 @@ export default function SettingsPage() {
                   className="btn btn-primary w-full !py-2 !text-sm flex items-center justify-center"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Izaberi fajl ({importType === 'all' ? '.json' : '.csv, .json'})
+                  Select file ({importType === 'all' ? '.json' : '.csv, .json'})
                 </button>
                 <input
                   ref={csvInputRef}
@@ -3778,7 +3778,7 @@ export default function SettingsPage() {
                     <div className="mt-2 max-h-32 overflow-y-auto">
                       {importValidation.errors.slice(0, 10).map((err, i) => (
                         <div key={i} className="text-xs text-red-600 dark:text-red-400">
-                          Red {err.row}: {err.field && `[${err.field}]`} {err.message}
+                          Row {err.row}: {err.field && `[${err.field}]`} {err.message}
                         </div>
                       ))}
                       {importValidation.errors.length > 10 && (
@@ -3819,17 +3819,17 @@ export default function SettingsPage() {
                       onChange={(e) => setExportTypes(e.target.checked ? ['all'] : [])}
                       className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                     />
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">Sve (kompletan backup)</span>
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">All (complete backup)</span>
                   </label>
 
                   {!exportTypes.includes('all') && (
                     <div className="ml-4 space-y-1.5 border-l-2 border-gray-200 dark:border-gray-700 pl-3">
                       {[
-                        { id: 'clients', label: 'Klijenti' },
-                        { id: 'domains', label: 'Domeni' },
+                        { id: 'clients', label: 'Clients' },
+                        { id: 'domains', label: 'Domains' },
                         { id: 'hosting', label: 'Hosting' },
-                        { id: 'packages', label: 'Paketi' },
-                        { id: 'templates', label: 'Email templejti' },
+                        { id: 'packages', label: 'Packages' },
+                        { id: 'templates', label: 'Email templates' },
                         { id: 'scheduler', label: 'Scheduler' },
                         { id: 'settings', label: 'Settings' },
                       ].map((item) => (
@@ -3953,7 +3953,7 @@ export default function SettingsPage() {
                       )}
                       {user.mustChangePassword && (
                         <span className="px-1.5 py-0.5 text-xs rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
-                          Mora promeniti lozinku
+                          Must change password
                         </span>
                       )}
                     </div>
@@ -3999,11 +3999,11 @@ export default function SettingsPage() {
         <form onSubmit={handleUserSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] text-gray-500 dark:text-gray-400">Ime *</label>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400">First Name *</label>
               <input name="firstName" defaultValue={selectedUser?.firstName || ''} className="input !py-1.5 !text-sm" required />
             </div>
             <div>
-              <label className="text-[11px] text-gray-500 dark:text-gray-400">Prezime *</label>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400">Last Name *</label>
               <input name="lastName" defaultValue={selectedUser?.lastName || ''} className="input !py-1.5 !text-sm" required />
             </div>
           </div>
@@ -4013,13 +4013,13 @@ export default function SettingsPage() {
               <input name="email" type="email" defaultValue={selectedUser?.email} className="input !py-1.5 !text-sm" required />
             </div>
             <div>
-              <label className="text-[11px] text-gray-500 dark:text-gray-400">Telefon</label>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400">Phone</label>
               <input name="phone" type="tel" defaultValue={selectedUser?.phone || ''} className="input !py-1.5 !text-sm" placeholder="+381..." />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] text-gray-500 dark:text-gray-400">Rola *</label>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400">Role *</label>
               <select name="role" defaultValue={selectedUser?.role || 'sales'} className="input !py-1.5 !text-sm" required>
                 <option value="sales">Sales</option>
                 <option value="salesadmin">Sales Admin</option>
@@ -4036,7 +4036,7 @@ export default function SettingsPage() {
                     defaultChecked={selectedUser?.isActive !== false}
                     className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                   />
-                  <span className="text-gray-700 dark:text-gray-300">Aktivan</span>
+                  <span className="text-gray-700 dark:text-gray-300">Active</span>
                 </label>
                 <button
                   type="button"

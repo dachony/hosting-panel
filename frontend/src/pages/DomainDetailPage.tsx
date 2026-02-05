@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { Domain, Hosting, Package, Client, ExpiryStatus, MailServer, MailSecurity } from '../types';
 import { ArrowLeft, Globe, Package as PackageIcon, ChevronDown, ChevronRight, Pencil, Lock, Unlock, Server, Shield } from 'lucide-react';
@@ -51,6 +52,7 @@ function calculateExpiryDate(fromDate: string, yearsToAdd: number): string {
 }
 
 function StatusBadge({ status, days }: { status: ExpiryStatus; days: number }) {
+  const { t } = useTranslation();
   const dotColor = status === 'green' ? 'bg-green-500' : status === 'yellow' ? 'bg-yellow-500' : status === 'orange' ? 'bg-orange-500' : 'bg-red-500';
   const textColor = status === 'green' ? 'text-green-600' : status === 'yellow' ? 'text-yellow-600' : status === 'orange' ? 'text-orange-600' : 'text-red-600';
 
@@ -58,7 +60,7 @@ function StatusBadge({ status, days }: { status: ExpiryStatus; days: number }) {
     return (
       <div className="flex items-center gap-2">
         <div className={`w-3 h-3 rounded-full ${dotColor}`}></div>
-        <span className={`text-sm font-bold ${textColor}`}>EXPIRED</span>
+        <span className={`text-sm font-bold ${textColor}`}>{t('common.expired')}</span>
       </div>
     );
   }
@@ -67,7 +69,7 @@ function StatusBadge({ status, days }: { status: ExpiryStatus; days: number }) {
     <div className="flex items-center gap-2">
       <div className={`w-3 h-3 rounded-full ${dotColor}`}></div>
       <div className="text-center">
-        <div className={`text-xs ${textColor}`}>days left</div>
+        <div className={`text-xs ${textColor}`}>{t('common.daysLeft')}</div>
         <div className={`text-lg font-bold ${textColor} leading-tight`}>{days > 36000 ? '∞' : days}</div>
       </div>
     </div>
@@ -75,6 +77,7 @@ function StatusBadge({ status, days }: { status: ExpiryStatus; days: number }) {
 }
 
 export default function DomainDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -162,10 +165,10 @@ export default function DomainDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['domain', id] });
       queryClient.invalidateQueries({ queryKey: ['domains'] });
       queryClient.invalidateQueries({ queryKey: ['hosting'] });
-      toast.success('Domain updated');
+      toast.success(t('domains.domainUpdated'));
       setIsDomainLocked(true);
     },
-    onError: () => toast.error('Error updating domain'),
+    onError: () => toast.error(t('domains.errorUpdatingDomain')),
   });
 
   // Update hosting mutation
@@ -185,9 +188,9 @@ export default function DomainDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['domain-hosting', id] });
       queryClient.invalidateQueries({ queryKey: ['hosting'] });
-      toast.success(hosting ? 'Hosting updated' : 'Hosting created');
+      toast.success(hosting ? t('domains.hostingUpdated') : t('domains.hostingCreated'));
     },
-    onError: () => toast.error('Error updating hosting'),
+    onError: () => toast.error(t('domains.errorUpdatingHosting')),
   });
 
   // Toggle hosting status mutation
@@ -196,9 +199,9 @@ export default function DomainDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['domain-hosting', id] });
       queryClient.invalidateQueries({ queryKey: ['hosting'] });
-      toast.success('Status updated');
+      toast.success(t('domains.statusUpdated'));
     },
-    onError: () => toast.error('Error updating status'),
+    onError: () => toast.error(t('domains.errorUpdatingStatus')),
   });
 
   const handleUnlock = () => {
@@ -331,9 +334,9 @@ export default function DomainDetailPage() {
   if (!domain) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500 dark:text-gray-400">Domain not found</p>
+        <p className="text-gray-500 dark:text-gray-400">{t('domains.domainNotFound')}</p>
         <button onClick={() => navigate('/domains')} className="btn btn-primary mt-4">
-          Back to Domains
+          {t('domains.backToDomains')}
         </button>
       </div>
     );
@@ -366,7 +369,7 @@ export default function DomainDetailPage() {
         <div className="flex items-center justify-between px-3 py-2">
           <div className="flex items-center">
             <Globe className="w-4 h-4 mr-2 text-primary-600" />
-            <h2 className="text-base font-semibold">Domain</h2>
+            <h2 className="text-base font-semibold">{t('common.domain')}</h2>
           </div>
         </div>
 
@@ -387,11 +390,11 @@ export default function DomainDetailPage() {
               <span className="font-medium text-sm flex-shrink-0">{domain.domainName}</span>
               <span className="text-gray-400 mx-1 flex-shrink-0">|</span>
               <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                <span className="text-gray-500 font-medium">Primary</span> {primaryName}, {primaryPhone}, {primaryEmail}
+                <span className="text-gray-500 font-medium">{t('common.primary')}</span> {primaryName}, {primaryPhone}, {primaryEmail}
               </span>
               <span className="text-gray-400 mx-1 flex-shrink-0">|</span>
               <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                <span className="text-gray-500 font-medium">Technical</span> {techName}, {techPhone}, {techEmail}
+                <span className="text-gray-500 font-medium">{t('common.technical')}</span> {techName}, {techPhone}, {techEmail}
               </span>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -413,12 +416,12 @@ export default function DomainDetailPage() {
                 {isDomainLocked ? (
                   <>
                     <Pencil className="w-3 h-3" />
-                    Edit
+                    {t('common.edit')}
                   </>
                 ) : (
                   <>
                     <Lock className="w-3 h-3" />
-                    Save
+                    {t('common.save')}
                   </>
                 )}
               </button>
@@ -431,7 +434,7 @@ export default function DomainDetailPage() {
                   className="btn btn-secondary !text-xs !py-1 !px-2 flex items-center gap-1"
                 >
                   <Unlock className="w-3 h-3" />
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               )}
             </div>
@@ -443,7 +446,7 @@ export default function DomainDetailPage() {
               {/* Domain Name & Client */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
-                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">Domain Name</span>
+                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('domains.domainName')}</span>
                   {isDomainLocked ? (
                     <div className="mt-1 font-medium text-sm">{domain.domainName}</div>
                   ) : (
@@ -456,16 +459,16 @@ export default function DomainDetailPage() {
                   )}
                 </div>
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
-                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">Client</span>
+                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('domains.client')}</span>
                   {isDomainLocked ? (
-                    <div className="mt-1 font-medium text-sm">{domain.clientName || 'No client assigned'}</div>
+                    <div className="mt-1 font-medium text-sm">{domain.clientName || t('domains.noClientAssigned')}</div>
                   ) : (
                     <select
                       value={domainForm.clientId}
                       onChange={(e) => handleClientChange(e.target.value ? Number(e.target.value) : '')}
                       className="input !py-1 !text-sm mt-1"
                     >
-                      <option value="">-- No client --</option>
+                      <option value="">{t('common.noClient')}</option>
                       {clients.map((client) => (
                         <option key={client.id} value={client.id}>
                           {client.name}
@@ -479,7 +482,7 @@ export default function DomainDetailPage() {
               {/* Primary Contact */}
               <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">Primary Contact</span>
+                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.primaryContact')}</span>
                   {!isDomainLocked && (
                     <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                       <input
@@ -488,13 +491,13 @@ export default function DomainDetailPage() {
                         onChange={(e) => handleSameAsPrimaryToggle(e.target.checked)}
                         className="w-3 h-3 rounded border-gray-300 text-primary-600"
                       />
-                      <span className="text-gray-500">Same as company primary contact</span>
+                      <span className="text-gray-500">{t('common.sameAsCompanyPrimary')}</span>
                     </label>
                   )}
                 </div>
                 <div className="mt-1.5 grid grid-cols-3 gap-2 text-xs">
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Name</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.name')}</label>
                     {isDomainLocked ? (
                       <div className="text-sm">{primaryName}</div>
                     ) : (
@@ -509,7 +512,7 @@ export default function DomainDetailPage() {
                     )}
                   </div>
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Phone</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.phone')}</label>
                     {isDomainLocked ? (
                       <div className="text-sm">{primaryPhone}</div>
                     ) : (
@@ -524,7 +527,7 @@ export default function DomainDetailPage() {
                     )}
                   </div>
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Email</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.email')}</label>
                     {isDomainLocked ? (
                       <div className="text-sm">{primaryEmail}</div>
                     ) : (
@@ -544,7 +547,7 @@ export default function DomainDetailPage() {
               {/* Technical Contact */}
               <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">Technical Contact</span>
+                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.technicalContact')}</span>
                   {!isDomainLocked && (
                     <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                       <input
@@ -553,13 +556,13 @@ export default function DomainDetailPage() {
                         onChange={(e) => handleSameAsTechToggle(e.target.checked)}
                         className="w-3 h-3 rounded border-gray-300 text-primary-600"
                       />
-                      <span className="text-gray-500">Same as company technical contact</span>
+                      <span className="text-gray-500">{t('common.sameAsCompanyTechnical')}</span>
                     </label>
                   )}
                 </div>
                 <div className="mt-1.5 grid grid-cols-3 gap-2 text-xs">
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Name</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.name')}</label>
                     {isDomainLocked ? (
                       <div className="text-sm">{techName}</div>
                     ) : (
@@ -574,7 +577,7 @@ export default function DomainDetailPage() {
                     )}
                   </div>
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Phone</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.phone')}</label>
                     {isDomainLocked ? (
                       <div className="text-sm">{techPhone}</div>
                     ) : (
@@ -589,7 +592,7 @@ export default function DomainDetailPage() {
                     )}
                   </div>
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Email</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.email')}</label>
                     {isDomainLocked ? (
                       <div className="text-sm">{techEmail}</div>
                     ) : (
@@ -612,16 +615,16 @@ export default function DomainDetailPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 flex-wrap">
                     <PackageIcon className="w-3.5 h-3.5 text-primary-600" />
-                    <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">Package</span>
+                    <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.package')}</span>
                     {isDomainLocked ? (
-                      <span className="font-medium text-sm">{hosting?.packageName || 'No package'}</span>
+                      <span className="font-medium text-sm">{hosting?.packageName || t('common.noPackage')}</span>
                     ) : (
                       <select
                         value={hostingForm.packageId}
                         onChange={(e) => setHostingForm({ ...hostingForm, packageId: e.target.value ? Number(e.target.value) : '' })}
                         className="input !py-1 !text-sm"
                       >
-                        <option value="">-- No package --</option>
+                        <option value="">{t('common.noPackage')}</option>
                         {packages.map((pkg) => (
                           <option key={pkg.id} value={pkg.id}>
                             {pkg.name} {pkg.mailServerName ? `(${pkg.mailServerName})` : ''}
@@ -641,16 +644,16 @@ export default function DomainDetailPage() {
                     {selectedPackage.description && (
                       <span className="text-gray-500">{selectedPackage.description}</span>
                     )}
-                    <span className="text-gray-600 dark:text-gray-400">{selectedPackage.maxMailboxes} mailboxes</span>
+                    <span className="text-gray-600 dark:text-gray-400">{selectedPackage.maxMailboxes} {t('common.mailboxes')}</span>
                     <span className="text-gray-600 dark:text-gray-400">{selectedPackage.storageGb} GB</span>
                     <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                       <Server className="w-3 h-3" />
-                      <span className="text-gray-500 font-medium">Mail Server</span>
+                      <span className="text-gray-500 font-medium">{t('common.mailServer')}</span>
                       <span>{selectedPackage.mailServerName || '-'}</span>
                     </div>
                     <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                       <Shield className="w-3 h-3" />
-                      <span className="text-gray-500 font-medium">Mail Security</span>
+                      <span className="text-gray-500 font-medium">{t('common.mailSecurity')}</span>
                       <span>{selectedPackage.mailSecurityName || '-'}</span>
                     </div>
                   </div>
@@ -660,16 +663,16 @@ export default function DomainDetailPage() {
                 {(hosting || !isDomainLocked) && (
                   <div className="flex items-center gap-3 mt-1.5 pt-1.5 border-t dark:border-gray-700 text-xs flex-wrap">
                     <div className="flex items-center gap-1">
-                      <span className="text-gray-500">Added:</span>
+                      <span className="text-gray-500">{t('common.added')}</span>
                       <span className="font-medium">{formatDateDisplay(hosting?.startDate || getTodayDate())}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-gray-500">Expiry:</span>
+                      <span className="text-gray-500">{t('common.expiry')}</span>
                       <span className="font-medium">{formatDateDisplay(originalExpiryDate || hosting?.expiryDate || '')}</span>
                     </div>
                     {!isDomainLocked && (
                       <div className="flex items-center gap-1.5 ml-auto bg-primary-50 dark:bg-primary-900/20 rounded px-2 py-1">
-                        <span className="text-[11px] font-medium text-primary-700 dark:text-primary-300">Extend to:</span>
+                        <span className="text-[11px] font-medium text-primary-700 dark:text-primary-300">{t('common.extendTo')}</span>
                         <input
                           type="date"
                           value={hostingForm.expiryDate}
@@ -700,13 +703,13 @@ export default function DomainDetailPage() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">Status</span>
+                      <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.status')}</span>
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                         hosting.isActive !== false
                           ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                           : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                       }`}>
-                        {hosting.isActive !== false ? 'Enabled' : 'Disabled'}
+                        {hosting.isActive !== false ? t('common.enabled') : t('common.disabled')}
                       </span>
                     </div>
                     <button
@@ -717,7 +720,7 @@ export default function DomainDetailPage() {
                           : 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400'
                       }`}
                     >
-                      {hosting.isActive !== false ? 'Disable' : 'Enable'}
+                      {hosting.isActive !== false ? t('common.disable') : t('common.enable')}
                     </button>
                   </div>
                 </div>
@@ -725,7 +728,7 @@ export default function DomainDetailPage() {
 
               {/* Notes */}
               <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
-                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">Notes</span>
+                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.notes')}</span>
                 {isDomainLocked ? (
                   <div className="mt-1 text-sm">{domain.notes || '-'}</div>
                 ) : (

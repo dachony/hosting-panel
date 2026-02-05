@@ -169,10 +169,10 @@ function generateSection(title: string, content: string, color: string = '#1e40a
 export async function generateSystemInfoHtml(config: SystemConfig): Promise<string> {
   const sections: string[] = [];
   const periodLabels: Record<SystemConfig['period'], string> = {
-    today: 'Danas',
-    last7days: 'Poslednjih 7 dana',
-    last30days: 'Poslednjih 30 dana',
-    all: 'Sve vreme',
+    today: 'Today',
+    last7days: 'Last 7 days',
+    last30days: 'Last 30 days',
+    all: 'All time',
   };
 
   // Blocked IPs section
@@ -181,8 +181,8 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
 
     if (blockedIps.length === 0) {
       sections.push(generateSection(
-        '🛡️ Blokirane IP adrese',
-        '<p style="color:#6b7280; margin:0;">Nema blokiranih IP addresses.</p>',
+        '🛡️ Blocked IP Addresses',
+        '<p style="color:#6b7280; margin:0;">No blocked IP addresses.</p>',
         '#dc2626'
       ));
     } else {
@@ -190,20 +190,20 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
         <tr>
           <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb; font-family:monospace;">${ip.ipAddress}</td>
           <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">${ip.reason || '-'}</td>
-          <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">${ip.permanent ? 'Trajno' : (ip.blockedUntil ? formatDate(ip.blockedUntil) : '-')}</td>
+          <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">${ip.permanent ? 'Permanent' : (ip.blockedUntil ? formatDate(ip.blockedUntil) : '-')}</td>
           <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">${formatDate(ip.createdAt)}</td>
         </tr>
       `).join('');
 
       sections.push(generateSection(
-        `🛡️ Blokirane IP adrese (${blockedIps.length})`,
+        `🛡️ Blocked IP Addresses (${blockedIps.length})`,
         `<table style="width:100%; border-collapse:collapse; font-size:13px;">
           <thead>
             <tr style="background:#f3f4f6;">
-              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">IP Adresa</th>
-              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Razlog</th>
-              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Blokiran do</th>
-              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Kreirano</th>
+              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">IP Address</th>
+              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Reason</th>
+              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Blocked Until</th>
+              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Created</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -238,7 +238,7 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
         `<table style="width:100%; border-collapse:collapse; font-size:13px;">
           <thead>
             <tr style="background:#f3f4f6;">
-              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Ime</th>
+              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Name</th>
               <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Email</th>
               <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Failed attempts</th>
               <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Locked until</th>
@@ -293,9 +293,9 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
         `<table style="width:100%; border-collapse:collapse; font-size:13px;">
           <thead>
             <tr style="background:#f3f4f6;">
-              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">IP Adresa</th>
+              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">IP Address</th>
               <th style="padding:6px 8px; text-align:center; border-bottom:2px solid #e5e7eb;">Attempts</th>
-              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Probani emailovi</th>
+              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Attempted emails</th>
               <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Last attempt</th>
             </tr>
           </thead>
@@ -333,8 +333,8 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
             <tr style="background:#f3f4f6;">
               <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">User</th>
               <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Email</th>
-              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">IP Adresa</th>
-              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Vreme</th>
+              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">IP Address</th>
+              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Time</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -364,7 +364,7 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
       <table style="width:100%; border-collapse:collapse; font-size:13px;">
         <thead>
           <tr style="background:#f3f4f6;">
-            <th style="padding:4px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Fajl</th>
+            <th style="padding:4px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">File</th>
             <th style="padding:4px 8px; text-align:right; border-bottom:2px solid #e5e7eb;">Size</th>
           </tr>
         </thead>
@@ -388,18 +388,18 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
     ]);
 
     sections.push(generateSection(
-      '🗄️ Informacije o bazi',
+      '🗄️ Database Information',
       `<table style="width:100%; border-collapse:collapse; font-size:13px;">
         <tr>
-          <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;"><strong>Size baze:</strong></td>
+          <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;"><strong>Database size:</strong></td>
           <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb; text-align:right;">${formatBytes(dbSize)}</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">Broj klijenata:</td>
+          <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">Clients:</td>
           <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb; text-align:right;">${clientsCount[0].count}</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">Broj domena:</td>
+          <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">Domains:</td>
           <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb; text-align:right;">${domainsCount[0].count}</td>
         </tr>
         <tr>
@@ -411,7 +411,7 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
           <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb; text-align:right;">${mailHostingCount[0].count}</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;">Audit log zapisa:</td>
+          <td style="padding:6px 8px;">Audit log entries:</td>
           <td style="padding:6px 8px; text-align:right;">${auditLogsCount[0].count}</td>
         </tr>
       </table>`,
@@ -420,7 +420,7 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
   }
 
   if (sections.length === 0) {
-    return '<p style="color:#6b7280;">Nijedna sekcija nije odabrana za prikaz.</p>';
+    return '<p style="color:#6b7280;">No sections selected for display.</p>';
   }
 
   return sections.join('');

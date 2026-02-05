@@ -62,7 +62,7 @@ export default function LoginPage() {
         setTwoFactorMethod(result.requires2FA.method);
         setStep('verify2fa');
         if (result.requires2FA.method === 'email') {
-          toast.success('Verification code sent to your email');
+          toast.success(t('auth.verificationCodeSentToEmail'));
         }
       } else if (result.requires2FASetup) {
         setSetupToken(result.requires2FASetup.setupToken);
@@ -84,7 +84,7 @@ export default function LoginPage() {
       await verify2FA(sessionToken, verificationCode, useBackupCode);
       navigate('/');
     } catch {
-      toast.error('Invalid verification code');
+      toast.error(t('auth.invalidVerificationCode'));
     } finally {
       setIsLoading(false);
     }
@@ -94,9 +94,9 @@ export default function LoginPage() {
     setIsResending(true);
     try {
       await resend2FACode(sessionToken);
-      toast.success('New code sent');
+      toast.success(t('auth.newCodeSent'));
     } catch {
-      toast.error('Failed to resend code');
+      toast.error(t('auth.failedToResendCode'));
     } finally {
       setIsResending(false);
     }
@@ -113,12 +113,12 @@ export default function LoginPage() {
         setTotpSecret(result.secret);
         setTotpQrCode(result.qrCode);
       } else if (method === 'email') {
-        toast.success('Verification code sent to your email');
+        toast.success(t('auth.verificationCodeSentToEmail'));
       }
 
       setStep('verify-setup');
     } catch {
-      toast.error('Failed to setup 2FA');
+      toast.error(t('auth.failedToSetup2fa'));
     } finally {
       setIsLoading(false);
     }
@@ -138,7 +138,7 @@ export default function LoginPage() {
         navigate('/');
       }
     } catch {
-      toast.error('Invalid verification code');
+      toast.error(t('auth.invalidVerificationCode'));
     } finally {
       setIsLoading(false);
     }
@@ -148,7 +148,7 @@ export default function LoginPage() {
     const codesText = backupCodes.join('\n');
     navigator.clipboard.writeText(codesText);
     setCopiedCodes(true);
-    toast.success('Backup codes copied');
+    toast.success(t('auth.backupCodesCopied'));
     setTimeout(() => setCopiedCodes(false), 2000);
   };
 
@@ -180,10 +180,10 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-primary-600">{branding.systemName}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             {step === 'credentials' && t('auth.login')}
-            {step === 'verify2fa' && 'Two-Factor Authentication'}
-            {step === 'setup2fa' && 'Setup Two-Factor Authentication'}
-            {step === 'verify-setup' && 'Verify 2FA Setup'}
-            {step === 'backup-codes' && 'Save Your Backup Codes'}
+            {step === 'verify2fa' && t('auth.twoFactorAuth')}
+            {step === 'setup2fa' && t('auth.setup2fa')}
+            {step === 'verify-setup' && t('auth.verify2faSetup')}
+            {step === 'backup-codes' && t('auth.saveBackupCodes')}
           </p>
         </div>
 
@@ -218,7 +218,7 @@ export default function LoginPage() {
                   to="/forgot-password"
                   className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
                 >
-                  {t('auth.forgotPassword', 'Forgot Password?')}
+                  {t('auth.forgotPassword')}
                 </Link>
               </div>
 
@@ -240,21 +240,21 @@ export default function LoginPage() {
                   <>
                     <Mail className="w-12 h-12 mx-auto text-primary-600 mb-2" />
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Enter the verification code sent to your email
+                      {t('auth.enterVerificationCodeEmail')}
                     </p>
                   </>
                 ) : (
                   <>
                     <Smartphone className="w-12 h-12 mx-auto text-primary-600 mb-2" />
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Enter the code from your authenticator app
+                      {t('auth.enterCodeFromApp')}
                     </p>
                   </>
                 )}
               </div>
 
               <div>
-                <label className="label">{useBackupCode ? 'Backup Code' : 'Verification Code'}</label>
+                <label className="label">{useBackupCode ? t('auth.backupCode') : t('auth.verificationCode')}</label>
                 <input
                   type="text"
                   value={verificationCode}
@@ -271,7 +271,7 @@ export default function LoginPage() {
                 className="btn btn-primary w-full"
                 disabled={isLoading}
               >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Verify'}
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : t('auth.verify')}
               </button>
 
               <div className="flex justify-between items-center text-sm">
@@ -282,7 +282,7 @@ export default function LoginPage() {
                     disabled={isResending}
                     className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
                   >
-                    {isResending ? 'Sending...' : 'Resend code'}
+                    {isResending ? t('common.sending') : t('auth.resendCode')}
                   </button>
                 )}
 
@@ -291,7 +291,7 @@ export default function LoginPage() {
                   onClick={() => setUseBackupCode(!useBackupCode)}
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
                 >
-                  {useBackupCode ? 'Use verification code' : 'Use backup code'}
+                  {useBackupCode ? t('auth.useVerificationCode') : t('auth.useBackupCode')}
                 </button>
               </div>
 
@@ -301,7 +301,7 @@ export default function LoginPage() {
                 className="flex items-center justify-center gap-2 w-full text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to login
+                {t('auth.backToLogin')}
               </button>
             </form>
           )}
@@ -312,7 +312,7 @@ export default function LoginPage() {
               <div className="text-center mb-4">
                 <KeyRound className="w-12 h-12 mx-auto text-amber-500 mb-2" />
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Two-factor authentication is required for your account. Please choose a method:
+                  {t('auth.twoFactorRequired')}
                 </p>
               </div>
 
@@ -325,8 +325,8 @@ export default function LoginPage() {
                   >
                     <Mail className="w-8 h-8 text-primary-600" />
                     <div className="text-left">
-                      <div className="font-medium text-gray-900 dark:text-gray-100">Email Code</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">Receive a code via email each time you log in</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{t('auth.emailCode')}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{t('auth.emailCodeDesc')}</div>
                     </div>
                   </button>
                 )}
@@ -339,8 +339,8 @@ export default function LoginPage() {
                   >
                     <Smartphone className="w-8 h-8 text-primary-600" />
                     <div className="text-left">
-                      <div className="font-medium text-gray-900 dark:text-gray-100">Authenticator App</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">Use Google Authenticator or similar app</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{t('auth.authenticatorApp')}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{t('auth.authenticatorAppDesc')}</div>
                     </div>
                   </button>
                 )}
@@ -352,7 +352,7 @@ export default function LoginPage() {
                 className="flex items-center justify-center gap-2 w-full text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 mt-4"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to login
+                {t('auth.backToLogin')}
               </button>
             </div>
           )}
@@ -363,11 +363,11 @@ export default function LoginPage() {
               {twoFactorMethod === 'totp' && totpQrCode && (
                 <div className="text-center mb-4">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    Scan this QR code with your authenticator app:
+                    {t('auth.scanQrCode')}
                   </p>
                   <img src={totpQrCode} alt="QR Code" className="mx-auto mb-4" />
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    Or enter this code manually: <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{totpSecret}</code>
+                    {t('auth.enterCodeManually')} <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{totpSecret}</code>
                   </div>
                 </div>
               )}
@@ -376,13 +376,13 @@ export default function LoginPage() {
                 <div className="text-center mb-4">
                   <Mail className="w-12 h-12 mx-auto text-primary-600 mb-2" />
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Enter the verification code sent to your email
+                    {t('auth.enterVerificationCodeEmail')}
                   </p>
                 </div>
               )}
 
               <div>
-                <label className="label">Verification Code</label>
+                <label className="label">{t('auth.verificationCode')}</label>
                 <input
                   type="text"
                   value={verificationCode}
@@ -399,7 +399,7 @@ export default function LoginPage() {
                 className="btn btn-primary w-full"
                 disabled={isLoading}
               >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Verify & Enable 2FA'}
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : t('auth.verifyAndEnable2fa')}
               </button>
 
               <button
@@ -408,7 +408,7 @@ export default function LoginPage() {
                 className="flex items-center justify-center gap-2 w-full text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Choose different method
+                {t('auth.chooseDifferentMethod')}
               </button>
             </form>
           )}
@@ -419,7 +419,7 @@ export default function LoginPage() {
               <div className="text-center mb-4">
                 <CheckCircle className="w-12 h-12 mx-auto text-green-500 mb-2" />
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  2FA has been enabled! Save these backup codes in a safe place. Each code can only be used once.
+                  {t('auth.twoFaEnabled')}
                 </p>
               </div>
 
@@ -439,7 +439,7 @@ export default function LoginPage() {
                 className="btn btn-secondary w-full flex items-center justify-center gap-2"
               >
                 {copiedCodes ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {copiedCodes ? 'Copied!' : 'Copy Backup Codes'}
+                {copiedCodes ? t('auth.copied') : t('auth.copyBackupCodes')}
               </button>
 
               <button
@@ -447,7 +447,7 @@ export default function LoginPage() {
                 onClick={handleBackupCodesComplete}
                 className="btn btn-primary w-full"
               >
-                Continue to Dashboard
+                {t('auth.continueToDashboard')}
               </button>
             </div>
           )}

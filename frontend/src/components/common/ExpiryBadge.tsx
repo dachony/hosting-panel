@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 interface ExpiryBadgeProps {
   daysUntilExpiry: number;
   size?: 'sm' | 'md';
@@ -24,6 +26,7 @@ const statusConfig: Record<ExpiryStatusType, { dotColor: string; textColor: stri
 };
 
 export default function ExpiryBadge({ daysUntilExpiry, size = 'md' }: ExpiryBadgeProps) {
+  const { t } = useTranslation();
   const status = getExpiryStatus(daysUntilExpiry);
   const { dotColor, textColor } = statusConfig[status];
 
@@ -36,7 +39,7 @@ export default function ExpiryBadge({ daysUntilExpiry, size = 'md' }: ExpiryBadg
     return (
       <div className="flex items-center gap-2">
         <div className={`${dotSize} rounded-full ${dotColor}`}></div>
-        <span className={`${textSize} font-bold ${textColor}`}>DELETED</span>
+        <span className={`${textSize} font-bold ${textColor}`}>{t('common.deleted')}</span>
       </div>
     );
   }
@@ -46,7 +49,7 @@ export default function ExpiryBadge({ daysUntilExpiry, size = 'md' }: ExpiryBadg
     return (
       <div className="flex items-center gap-2">
         <div className={`${dotSize} rounded-full ${dotColor}`}></div>
-        <span className={`${textSize} font-bold ${textColor}`}>FOR DELETION</span>
+        <span className={`${textSize} font-bold ${textColor}`}>{t('common.forDeletion')}</span>
       </div>
     );
   }
@@ -56,7 +59,7 @@ export default function ExpiryBadge({ daysUntilExpiry, size = 'md' }: ExpiryBadg
     return (
       <div className="flex items-center gap-2">
         <div className={`${dotSize} rounded-full ${dotColor}`}></div>
-        <span className={`${textSize} font-bold ${textColor}`}>EXPIRED</span>
+        <span className={`${textSize} font-bold ${textColor}`}>{t('common.expired')}</span>
       </div>
     );
   }
@@ -65,7 +68,7 @@ export default function ExpiryBadge({ daysUntilExpiry, size = 'md' }: ExpiryBadg
     <div className="flex items-center gap-2">
       <div className={`${dotSize} rounded-full ${dotColor}`}></div>
       <div className="text-center">
-        <div className={`text-xs ${textColor}`}>days left</div>
+        <div className={`text-xs ${textColor}`}>{t('common.daysLeft')}</div>
         <div className={`${numberSize} font-bold ${textColor} leading-tight`}>
           {daysUntilExpiry > 36000 ? '∞' : daysUntilExpiry}
         </div>

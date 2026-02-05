@@ -223,11 +223,11 @@ export async function getRecentActivity(limit: number = 10) {
 // Status colors for HTML table
 const statusColors: Record<DomainStatus, { bg: string; text: string; label: string }> = {
   green: { bg: '#dcfce7', text: '#166534', label: 'OK' },
-  yellow: { bg: '#fef9c3', text: '#854d0e', label: 'Upozorenje' },
+  yellow: { bg: '#fef9c3', text: '#854d0e', label: 'Warning' },
   orange: { bg: '#ffedd5', text: '#c2410c', label: 'Critical' },
-  red: { bg: '#fee2e2', text: '#dc2626', label: 'Isteklo' },
-  forDeletion: { bg: '#f3e8ff', text: '#7c3aed', label: 'Za brisanje' },
-  deleted: { bg: '#f3f4f6', text: '#6b7280', label: 'Obrisano' },
+  red: { bg: '#fee2e2', text: '#dc2626', label: 'Expired' },
+  forDeletion: { bg: '#f3e8ff', text: '#7c3aed', label: 'For Deletion' },
+  deleted: { bg: '#f3f4f6', text: '#6b7280', label: 'Deleted' },
 };
 
 interface HostingItem {
@@ -337,8 +337,8 @@ export async function generateHostingListHtml(config: ReportConfig): Promise<str
     const daysText = item.daysUntilExpiry > 0
       ? `${item.daysUntilExpiry}`
       : item.daysUntilExpiry === 0
-        ? 'Danas'
-        : `${Math.abs(item.daysUntilExpiry)} isteklo`;
+        ? 'Today'
+        : `${Math.abs(item.daysUntilExpiry)} expired`;
     const enabledBg = item.isEnabled ? '#dcfce7' : '#f3f4f6';
     const enabledText = item.isEnabled ? '#166534' : '#6b7280';
     const enabledLabel = item.isEnabled ? 'Enabled' : 'Disabled';
@@ -380,12 +380,12 @@ export async function generateHostingListHtml(config: ReportConfig): Promise<str
       <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
         <thead>
           <tr style="background:#f3f4f6;">
-            <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Domen</th>
-            <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Klijent</th>
-            <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Datum isteka</th>
-            <th style="padding:8px; text-align:center; border-bottom:2px solid #e5e7eb;">Dana</th>
+            <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Domain</th>
+            <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Client</th>
+            <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Expiry Date</th>
+            <th style="padding:8px; text-align:center; border-bottom:2px solid #e5e7eb;">Days</th>
             <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Status</th>
-            <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Aktivan</th>
+            <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Active</th>
           </tr>
         </thead>
         <tbody>
@@ -393,23 +393,23 @@ export async function generateHostingListHtml(config: ReportConfig): Promise<str
         </tbody>
       </table>`;
     }
-    return html || '<p style="color:#6b7280;">Nema stavki koje odgovaraju filterima.</p>';
+    return html || '<p style="color:#6b7280;">No items match the selected filters.</p>';
   } else {
     // Single table without grouping
     if (sortedItems.length === 0) {
-      return '<p style="color:#6b7280;">Nema stavki koje odgovaraju filterima.</p>';
+      return '<p style="color:#6b7280;">No items match the selected filters.</p>';
     }
 
     return `
     <table style="width:100%; border-collapse:collapse;">
       <thead>
         <tr style="background:#f3f4f6;">
-          <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Domen</th>
-          <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Klijent</th>
-          <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Datum isteka</th>
-          <th style="padding:8px; text-align:center; border-bottom:2px solid #e5e7eb;">Dana</th>
+          <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Domain</th>
+          <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Client</th>
+          <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Expiry Date</th>
+          <th style="padding:8px; text-align:center; border-bottom:2px solid #e5e7eb;">Days</th>
           <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Status</th>
-          <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Aktivan</th>
+          <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Active</th>
         </tr>
       </thead>
       <tbody>

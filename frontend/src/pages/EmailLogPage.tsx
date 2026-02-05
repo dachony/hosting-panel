@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { Search, Loader2, Mail, Trash2, RefreshCw, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
@@ -27,6 +28,7 @@ interface EmailResponse {
 }
 
 export default function EmailLogPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,14 +45,14 @@ export default function EmailLogPage() {
     mutationFn: () => api.delete('/api/system/emails'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['email-logs'] });
-      toast.success('Svi emailovi obrisani');
+      toast.success(t('emailLog.allEmailsDeleted'));
     },
-    onError: () => toast.error('Error deleting'),
+    onError: () => toast.error(t('emailLog.errorDeleting')),
   });
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleString('sr-RS', {
+    return date.toLocaleString('en-GB', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -68,7 +70,7 @@ export default function EmailLogPage() {
   };
 
   const getSubject = (item: EmailItem) => {
-    return item.Content?.Headers?.Subject?.[0] || '(no subject)';
+    return item.Content?.Headers?.Subject?.[0] || t('emailLog.noSubject');
   };
 
   const filteredEmails = (data?.emails || []).filter(email => {
@@ -86,7 +88,7 @@ export default function EmailLogPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-        Email Log
+        {t('emailLog.title')}
       </h1>
 
       <div className="card !p-0 overflow-hidden">
@@ -98,7 +100,7 @@ export default function EmailLogPage() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search..."
+                placeholder={t('common.searchPlaceholder')}
                 className="input !py-1.5 !text-sm w-full pl-8"
               />
             </div>
@@ -107,7 +109,7 @@ export default function EmailLogPage() {
               className="btn btn-secondary !py-1.5 !px-3 !text-sm flex items-center gap-1"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              Refresh
+              {t('emailLog.refresh')}
             </button>
           </div>
           <div className="flex items-center gap-3">
@@ -122,7 +124,7 @@ export default function EmailLogPage() {
             </a>
             <button
               onClick={() => {
-                if (confirm('Are you sure you want to delete all emails?')) {
+                if (confirm(t('emailLog.deleteAllConfirm'))) {
                   deleteAllMutation.mutate();
                 }
               }}
@@ -130,14 +132,14 @@ export default function EmailLogPage() {
               className="btn !py-1.5 !px-3 !text-sm flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Delete all
+              {t('emailLog.deleteAll')}
             </button>
           </div>
         </div>
 
         {data?.error && (
           <div className="px-4 py-3 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-sm">
-            MailHog nije dostupan. Proverite da li je servis pokrenut.
+            {t('emailLog.mailhogUnavailable')}
           </div>
         )}
 
@@ -147,7 +149,7 @@ export default function EmailLogPage() {
           </div>
         ) : filteredEmails.length === 0 ? (
           <div className="text-center py-12 text-sm text-gray-500">
-            {searchTerm ? 'Nema rezultata' : 'Nema emailova'}
+            {searchTerm ? t('common.noResults') : t('emailLog.noEmails')}
           </div>
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -166,20 +168,20 @@ export default function EmailLogPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                      <span>Od: {getEmailAddress(email)}</span>
+                      <span>{t('emailLog.from')} {getEmailAddress(email)}</span>
                       <span className="text-gray-400">→</span>
-                      <span>Za: {getToAddresses(email)}</span>
+                      <span>{t('emailLog.to')} {getToAddresses(email)}</span>
                       <span className="text-gray-400">|</span>
                       <span>{formatDate(email.Created)}</span>
                     </div>
 
                     {selectedEmail?.ID === email.ID && (
                       <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
-                        <div className="font-medium mb-2">Content:</div>
+                        <div className="font-medium mb-2">{t('emailLog.content')}</div>
                         <div
                           className="prose prose-sm dark:prose-invert max-w-none overflow-auto max-h-96"
                           dangerouslySetInnerHTML={{
-                            __html: email.Content?.Body || '(empty content)'
+                            __html: email.Content?.Body || t('emailLog.emptyContent')
                           }}
                         />
                       </div>
@@ -195,7 +197,7 @@ export default function EmailLogPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700">
             <div className="text-sm text-gray-500">
-              Total: {data?.total || 0} emails
+              {t('emailLog.totalEmails', { count: data?.total || 0 })}
             </div>
             <div className="flex items-center gap-2">
               <button

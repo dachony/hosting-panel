@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import toast from 'react-hot-toast';
 
@@ -9,6 +10,7 @@ interface Branding {
 }
 
 export default function ResetPasswordPage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
@@ -32,12 +34,12 @@ export default function ResetPasswordPage() {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('auth.passwordsDoNotMatch'));
       return;
     }
 
     if (password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+      toast.error(t('auth.passwordMinLength'));
       return;
     }
 
@@ -46,10 +48,10 @@ export default function ResetPasswordPage() {
     try {
       await api.post('/api/auth/reset-password', { token, password });
       setSuccess(true);
-      toast.success('Password successfully changed');
+      toast.success(t('auth.passwordSuccessfullyChanged'));
       setTimeout(() => navigate('/login'), 3000);
     } catch {
-      toast.error('Link za reset je istekao ili nije validan');
+      toast.error(t('auth.resetLinkExpired'));
     } finally {
       setIsLoading(false);
     }
@@ -76,16 +78,16 @@ export default function ResetPasswordPage() {
               </svg>
             </div>
             <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-              Invalid link
+              {t('auth.invalidLink')}
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Link za reset lozinke nije validan ili je istekao.
+              {t('auth.resetLinkInvalid')}
             </p>
             <Link
               to="/forgot-password"
               className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
             >
-              Request new link
+              {t('auth.requestNewLink')}
             </Link>
           </div>
         </div>
@@ -105,7 +107,7 @@ export default function ResetPasswordPage() {
             />
           )}
           <h1 className="text-3xl font-bold text-primary-600">{branding.systemName}</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">New password</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">{t('auth.newPassword')}</p>
         </div>
 
         <div className="card">
@@ -117,22 +119,22 @@ export default function ResetPasswordPage() {
                 </svg>
               </div>
               <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                Password changed
+                {t('auth.passwordChanged')}
               </h2>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                You will be redirected to the login page...
+                {t('auth.redirectToLogin')}
               </p>
               <Link
                 to="/login"
                 className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
               >
-                Login now
+                {t('auth.loginNow')}
               </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="label">New password</label>
+                <label className="label">{t('auth.newPassword')}</label>
                 <input
                   type="password"
                   value={password}
@@ -140,12 +142,12 @@ export default function ResetPasswordPage() {
                   className="input"
                   required
                   minLength={6}
-                  placeholder="Minimum 6 characters"
+                  placeholder={t('auth.minCharacters')}
                 />
               </div>
 
               <div>
-                <label className="label">Confirm password</label>
+                <label className="label">{t('auth.confirmPassword')}</label>
                 <input
                   type="password"
                   value={confirmPassword}
@@ -160,7 +162,7 @@ export default function ResetPasswordPage() {
                 className="btn btn-primary w-full"
                 disabled={isLoading}
               >
-                {isLoading ? 'Changing...' : 'Change password'}
+                {isLoading ? t('auth.changing') : t('auth.changePassword')}
               </button>
 
               <div className="text-center">
@@ -168,7 +170,7 @@ export default function ResetPasswordPage() {
                   to="/login"
                   className="text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
                 >
-                  Back to login
+                  {t('auth.backToLogin')}
                 </Link>
               </div>
             </form>

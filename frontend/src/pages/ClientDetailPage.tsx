@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { Client, Domain, Hosting, ExpiryStatus, ExtendPeriod, Package, MailServer, MailSecurity } from '../types';
 import Modal from '../components/common/Modal';
@@ -27,6 +28,8 @@ const statusColors: Record<ExpiryStatus, string> = {
   yellow: 'bg-yellow-400',
   orange: 'bg-orange-500',
   red: 'bg-red-600',
+  forDeletion: 'bg-purple-500',
+  deleted: 'bg-gray-400',
 };
 
 const statusFilters: Record<ExpiryStatus, { border: string; bg: string; text: string; label: string }> = {
@@ -34,6 +37,8 @@ const statusFilters: Record<ExpiryStatus, { border: string; bg: string; text: st
   yellow: { border: 'border-yellow-500', bg: 'bg-yellow-500/20', text: 'text-yellow-600 dark:text-yellow-400', label: 'Warning' },
   orange: { border: 'border-orange-500', bg: 'bg-orange-500/20', text: 'text-orange-600 dark:text-orange-400', label: 'Critical' },
   red: { border: 'border-red-500', bg: 'bg-red-500/20', text: 'text-red-600 dark:text-red-400', label: 'Expired' },
+  forDeletion: { border: 'border-purple-500', bg: 'bg-purple-500/20', text: 'text-purple-600 dark:text-purple-400', label: 'For Deletion' },
+  deleted: { border: 'border-gray-500', bg: 'bg-gray-500/20', text: 'text-gray-600 dark:text-gray-400', label: 'Deleted' },
 };
 
 const getExpiryStatus = (days: number): ExpiryStatus => {
@@ -117,6 +122,7 @@ function DateInput({
 }
 
 export default function ClientDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -239,10 +245,10 @@ export default function ClientDetailPage() {
       api.put(`/api/clients/${id}`, clientData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['client', id] });
-      toast.success('Client updated');
+      toast.success(t('clients.clientUpdated'));
       setIsClientLocked(true);
     },
-    onError: () => toast.error('Error saving client'),
+    onError: () => toast.error(t('common.errorSaving')),
   });
 
   const extendMutation = useMutation({
@@ -251,13 +257,13 @@ export default function ClientDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['client', id] });
       queryClient.invalidateQueries({ queryKey: ['hosting'] });
-      toast.success('Hosting extended');
+      toast.success(t('domains.hostingUpdated'));
       setExtendModalOpen(false);
       setExtendItem(null);
       setSelectedExtendPeriod('');
       setExtendModalFromToday(false);
     },
-    onError: () => toast.error('Error extending hosting'),
+    onError: () => toast.error(t('domains.errorUpdatingHosting')),
   });
 
   const addDomainMutation = useMutation({
@@ -290,10 +296,10 @@ export default function ClientDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['client', id] });
       queryClient.invalidateQueries({ queryKey: ['hosting'] });
       queryClient.invalidateQueries({ queryKey: ['domains'] });
-      toast.success('Domain added');
+      toast.success(t('domains.domainCreated'));
       setAddDomainModalOpen(false);
     },
-    onError: () => toast.error('Error adding domain'),
+    onError: () => toast.error(t('domains.errorCreatingDomain')),
   });
 
   const editDomainMutation = useMutation({
@@ -334,11 +340,11 @@ export default function ClientDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['client', id] });
       queryClient.invalidateQueries({ queryKey: ['domains'] });
       queryClient.invalidateQueries({ queryKey: ['hosting'] });
-      toast.success('Domain updated');
+      toast.success(t('domains.domainUpdated'));
       setEditDomainModalOpen(false);
       setEditingDomain(null);
     },
-    onError: () => toast.error('Error updating domain'),
+    onError: () => toast.error(t('domains.errorUpdatingDomain')),
   });
 
   const editHostingMutation = useMutation({
@@ -351,11 +357,11 @@ export default function ClientDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['client', id] });
       queryClient.invalidateQueries({ queryKey: ['hosting'] });
-      toast.success('Hosting updated');
+      toast.success(t('domains.hostingUpdated'));
       setEditHostingModalOpen(false);
       setEditingHosting(null);
     },
-    onError: () => toast.error('Error updating hosting'),
+    onError: () => toast.error(t('domains.errorUpdatingHosting')),
   });
 
   const toggleDomainExpand = (domainId: number) => {
@@ -497,7 +503,7 @@ export default function ClientDetailPage() {
   }
 
   if (!data) {
-    return <div>Client not found</div>;
+    return <div>{t('clients.clientNotFound')}</div>;
   }
 
   const { client, domains, hosting } = data;
@@ -509,7 +515,7 @@ export default function ClientDetailPage() {
       return (
         <div className="flex items-center gap-2">
           <div className={`w-3 h-3 rounded-full ${statusColors[status]}`}></div>
-          <span className={`text-sm font-bold ${textColor}`}>EXPIRED</span>
+          <span className={`text-sm font-bold ${textColor}`}>{t('common.expired')}</span>
         </div>
       );
     }
@@ -518,7 +524,7 @@ export default function ClientDetailPage() {
       <div className="flex items-center gap-2">
         <div className={`w-3 h-3 rounded-full ${statusColors[status]}`}></div>
         <div className="text-center">
-          <div className={`text-xs ${textColor}`}>days left</div>
+          <div className={`text-xs ${textColor}`}>{t('common.daysLeft')}</div>
           <div className={`text-lg font-bold ${textColor} leading-tight`}>{days > 36000 ? '∞' : days}</div>
         </div>
       </div>
@@ -567,7 +573,7 @@ export default function ClientDetailPage() {
         <div className="flex items-center justify-between px-3 py-2">
           <div className="flex items-center">
             <Users className="w-4 h-4 mr-2 text-primary-600" />
-            <h2 className="text-base font-semibold">Client</h2>
+            <h2 className="text-base font-semibold">{t('common.client')}</h2>
           </div>
         </div>
 
@@ -588,11 +594,11 @@ export default function ClientDetailPage() {
               <span className="font-medium text-sm flex-shrink-0">{client.name}</span>
               <span className="text-gray-400 mx-1 flex-shrink-0">|</span>
               <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                <span className="text-gray-500 font-medium">Primary</span> {client.contactPerson || '-'}, {client.phone || '-'}, {client.email1 || '-'}
+                <span className="text-gray-500 font-medium">{t('common.primaryContact')}</span> {client.contactPerson || '-'}, {client.phone || '-'}, {client.email1 || '-'}
               </span>
               <span className="text-gray-400 mx-1 flex-shrink-0">|</span>
               <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                <span className="text-gray-500 font-medium">Technical</span> {client.techContact || client.contactPerson || '-'}, {client.techPhone || client.phone || '-'}, {client.techEmail || client.email1 || '-'}
+                <span className="text-gray-500 font-medium">{t('common.technicalContact')}</span> {client.techContact || client.contactPerson || '-'}, {client.techPhone || client.phone || '-'}, {client.techEmail || client.email1 || '-'}
               </span>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -611,12 +617,12 @@ export default function ClientDetailPage() {
                 {isClientLocked ? (
                   <>
                     <Pencil className="w-3 h-3" />
-                    Edit
+                    {t('common.edit')}
                   </>
                 ) : (
                   <>
                     <Lock className="w-3 h-3" />
-                    Save
+                    {t('common.save')}
                   </>
                 )}
               </button>
@@ -629,7 +635,7 @@ export default function ClientDetailPage() {
                   className="btn btn-secondary !text-xs !py-1 !px-2 flex items-center gap-1"
                 >
                   <Unlock className="w-3 h-3" />
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               )}
             </div>
@@ -641,7 +647,7 @@ export default function ClientDetailPage() {
               {/* Client Name & Business Info */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
-                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">Client Name</span>
+                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.name')}</span>
                   {isClientLocked ? (
                     <div className="mt-1 font-medium text-sm">{client.name}</div>
                   ) : (
@@ -655,7 +661,7 @@ export default function ClientDetailPage() {
                   )}
                 </div>
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
-                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">Address</span>
+                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.address')}</span>
                   {isClientLocked ? (
                     <div className="mt-1 font-medium text-sm">{client.address || '-'}</div>
                   ) : (
@@ -671,10 +677,10 @@ export default function ClientDetailPage() {
 
               {/* Primary Contact */}
               <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
-                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">Primary Contact</span>
+                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.primaryContact')}</span>
                 <div className="mt-1.5 grid grid-cols-3 gap-2 text-xs">
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Name</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.name')}</label>
                     {isClientLocked ? (
                       <div className="text-sm">{client.contactPerson || '-'}</div>
                     ) : (
@@ -688,7 +694,7 @@ export default function ClientDetailPage() {
                     )}
                   </div>
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Phone</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.phone')}</label>
                     {isClientLocked ? (
                       <div className="text-sm">{client.phone || '-'}</div>
                     ) : (
@@ -701,7 +707,7 @@ export default function ClientDetailPage() {
                     )}
                   </div>
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Email</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.email')}</label>
                     {isClientLocked ? (
                       <div className="text-sm">{client.email1 || '-'}</div>
                     ) : (
@@ -720,7 +726,7 @@ export default function ClientDetailPage() {
               {/* Technical Contact */}
               <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">Technical Contact</span>
+                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.technicalContact')}</span>
                   {!isClientLocked && (
                     <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                       <input
@@ -739,13 +745,13 @@ export default function ClientDetailPage() {
                         }}
                         className="w-3 h-3 rounded border-gray-300 text-primary-600"
                       />
-                      <span className="text-gray-500">Same as primary</span>
+                      <span className="text-gray-500">{t('common.sameAsPrimaryContact')}</span>
                     </label>
                   )}
                 </div>
                 <div className="mt-1.5 grid grid-cols-3 gap-2 text-xs">
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Name</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.name')}</label>
                     {isClientLocked ? (
                       <div className="text-sm">{client.techContact || client.contactPerson || '-'}</div>
                     ) : (
@@ -759,7 +765,7 @@ export default function ClientDetailPage() {
                     )}
                   </div>
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Phone</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.phone')}</label>
                     {isClientLocked ? (
                       <div className="text-sm">{client.techPhone || client.phone || '-'}</div>
                     ) : (
@@ -773,7 +779,7 @@ export default function ClientDetailPage() {
                     )}
                   </div>
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Email</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.email')}</label>
                     {isClientLocked ? (
                       <div className="text-sm">{client.techEmail || client.email1 || '-'}</div>
                     ) : (
@@ -791,7 +797,7 @@ export default function ClientDetailPage() {
 
               {/* PIB/MIB */}
               <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
-                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">Business Info</span>
+                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.businessInfo')}</span>
                 <div className="mt-1.5 grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <label className="text-[11px] text-gray-500 dark:text-gray-400">PIB</label>
@@ -824,7 +830,7 @@ export default function ClientDetailPage() {
 
               {/* Notes */}
               <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
-                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">Notes</span>
+                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.notes')}</span>
                 {isClientLocked ? (
                   <div className="mt-1 text-sm">{client.notes || '-'}</div>
                 ) : (
@@ -846,14 +852,14 @@ export default function ClientDetailPage() {
         <div className="flex items-center justify-between px-3 py-2 border-b dark:border-gray-700">
           <div className="flex items-center">
             <Globe className="w-4 h-4 mr-2 text-primary-600" />
-            <h2 className="text-base font-semibold">Domains ({domains.length})</h2>
+            <h2 className="text-base font-semibold">{t('domains.title')} ({domains.length})</h2>
           </div>
           <button
             onClick={() => setAddDomainModalOpen(true)}
             className="btn btn-primary btn-sm flex items-center"
           >
             <Plus className="w-3 h-3 mr-1" />
-            Add
+            {t('common.add')}
           </button>
         </div>
 
@@ -865,7 +871,7 @@ export default function ClientDetailPage() {
               type="text"
               value={domainSearch}
               onChange={(e) => setDomainSearch(e.target.value)}
-              placeholder="Search..."
+              placeholder={t('common.searchPlaceholder')}
               className="input !py-1.5 !text-sm w-full pl-8"
             />
           </div>
@@ -898,9 +904,9 @@ export default function ClientDetailPage() {
         </div>
 
         {domains.length === 0 ? (
-          <p className="text-gray-500 dark:text-gray-400">No domains</p>
+          <p className="text-gray-500 dark:text-gray-400">{t('domains.noDomains')}</p>
         ) : filteredDomains.length === 0 ? (
-          <p className="text-gray-500 dark:text-gray-400">No results</p>
+          <p className="text-gray-500 dark:text-gray-400">{t('common.noResults')}</p>
         ) : (
           <div className="space-y-3">
             {filteredDomains.map((domain) => {
@@ -933,21 +939,21 @@ export default function ClientDetailPage() {
                     {/* Contacts */}
                     <div className="min-w-0 text-xs space-y-1">
                       <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                        <span className="text-gray-500 font-medium w-28 flex-shrink-0">Primary Contact</span>
-                        <span className="text-gray-400">Name:</span>
+                        <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.primaryContact')}</span>
+                        <span className="text-gray-400">{t('common.name')}:</span>
                         <span>{domain.primaryContactName || client.contactPerson || '-'},</span>
-                        <span className="text-gray-400">Phone:</span>
+                        <span className="text-gray-400">{t('common.phone')}:</span>
                         <span>{domain.primaryContactPhone || client.phone || '-'},</span>
-                        <span className="text-gray-400">E-Mail:</span>
+                        <span className="text-gray-400">{t('common.email')}:</span>
                         <span className="truncate">{domain.primaryContactEmail || client.email1 || '-'}</span>
                       </div>
                       <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                        <span className="text-gray-500 font-medium w-28 flex-shrink-0">Technical Contact</span>
-                        <span className="text-gray-400">Name:</span>
+                        <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.technicalContact')}</span>
+                        <span className="text-gray-400">{t('common.name')}:</span>
                         <span>{domain.contactEmail1 || client.techContact || client.contactPerson || '-'},</span>
-                        <span className="text-gray-400">Phone:</span>
+                        <span className="text-gray-400">{t('common.phone')}:</span>
                         <span>{domain.contactEmail2 || client.techPhone || client.phone || '-'},</span>
-                        <span className="text-gray-400">E-Mail:</span>
+                        <span className="text-gray-400">{t('common.email')}:</span>
                         <span className="truncate">{domain.contactEmail3 || client.techEmail || client.email1 || '-'}</span>
                       </div>
                     </div>
@@ -957,19 +963,19 @@ export default function ClientDetailPage() {
                       <div className="flex items-center gap-4 flex-shrink-0 text-xs ml-auto">
                         <div>
                           <div className="text-gray-700 dark:text-gray-300">
-                            <span className="text-gray-500 font-medium">Package</span> {domainHosting.packageName || '-'}
+                            <span className="text-gray-500 font-medium">{t('common.package')}</span> {domainHosting.packageName || '-'}
                           </div>
                           {(domainHosting as HostingWithPackage).packageDescription && (
                             <div className="text-gray-500">{(domainHosting as HostingWithPackage).packageDescription}</div>
                           )}
                         </div>
                         <div className="text-gray-600 dark:text-gray-400">
-                          <div>{(domainHosting as HostingWithPackage).packageMaxMailboxes || 0} mailboxes</div>
+                          <div>{(domainHosting as HostingWithPackage).packageMaxMailboxes || 0} {t('common.mailboxes')}</div>
                           <div>{(domainHosting as HostingWithPackage).packageStorageGb || 0} GB</div>
                         </div>
                         <div className="text-gray-600 dark:text-gray-400">
-                          <div><span className="text-gray-500 font-medium">Mail Server</span> {(domainHosting as HostingWithPackage).mailServerName || '-'}</div>
-                          <div><span className="text-gray-500 font-medium">Mail Security</span> {(domainHosting as HostingWithPackage).mailSecurityName || '-'}</div>
+                          <div><span className="text-gray-500 font-medium">{t('common.mailServer')}</span> {(domainHosting as HostingWithPackage).mailServerName || '-'}</div>
+                          <div><span className="text-gray-500 font-medium">{t('common.mailSecurity')}</span> {(domainHosting as HostingWithPackage).mailSecurityName || '-'}</div>
                         </div>
                       </div>
                     )}
@@ -987,7 +993,7 @@ export default function ClientDetailPage() {
                         className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                       >
                         <Pencil className="w-3 h-3" />
-                        Edit
+                        {t('common.edit')}
                       </button>
                       {domainHosting && (
                         <button
@@ -998,7 +1004,7 @@ export default function ClientDetailPage() {
                           className="btn btn-primary text-xs py-1 px-2 flex items-center gap-1"
                         >
                           <Calendar className="w-3 h-3" />
-                          Extend
+                          {t('common.extend')}
                         </button>
                       )}
                     </div>
@@ -1009,7 +1015,7 @@ export default function ClientDetailPage() {
                     <div className="border-t dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50 space-y-4">
                       {/* Company */}
                       <div className="text-sm">
-                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Company</span>
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.company')}</span>
                         <div className="mt-1 font-medium">{client.name}</div>
                       </div>
 
@@ -1017,18 +1023,18 @@ export default function ClientDetailPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Primary Contact */}
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border dark:border-gray-700">
-                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Primary Contact</span>
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.primaryContact')}</span>
                           <div className="mt-2 space-y-1 text-sm">
                             <div className="flex">
-                              <span className="text-gray-500 dark:text-gray-400 w-16">Name:</span>
+                              <span className="text-gray-500 dark:text-gray-400 w-16">{t('common.name')}:</span>
                               <span>{domain.primaryContactName || client.contactPerson || '-'}</span>
                             </div>
                             <div className="flex">
-                              <span className="text-gray-500 dark:text-gray-400 w-16">Phone:</span>
+                              <span className="text-gray-500 dark:text-gray-400 w-16">{t('common.phone')}:</span>
                               <span>{domain.primaryContactPhone || client.phone || '-'}</span>
                             </div>
                             <div className="flex">
-                              <span className="text-gray-500 dark:text-gray-400 w-16">Email:</span>
+                              <span className="text-gray-500 dark:text-gray-400 w-16">{t('common.email')}:</span>
                               <span>{domain.primaryContactEmail || client.email1 || '-'}</span>
                             </div>
                           </div>
@@ -1036,18 +1042,18 @@ export default function ClientDetailPage() {
 
                         {/* Technical Contact */}
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border dark:border-gray-700">
-                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Technical Contact</span>
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.technicalContact')}</span>
                           <div className="mt-2 space-y-1 text-sm">
                             <div className="flex">
-                              <span className="text-gray-500 dark:text-gray-400 w-16">Name:</span>
+                              <span className="text-gray-500 dark:text-gray-400 w-16">{t('common.name')}:</span>
                               <span>{domain.contactEmail1 || '-'}</span>
                             </div>
                             <div className="flex">
-                              <span className="text-gray-500 dark:text-gray-400 w-16">Phone:</span>
+                              <span className="text-gray-500 dark:text-gray-400 w-16">{t('common.phone')}:</span>
                               <span>{domain.contactEmail2 || '-'}</span>
                             </div>
                             <div className="flex">
-                              <span className="text-gray-500 dark:text-gray-400 w-16">Email:</span>
+                              <span className="text-gray-500 dark:text-gray-400 w-16">{t('common.email')}:</span>
                               <span>{domain.contactEmail3 || '-'}</span>
                             </div>
                           </div>
@@ -1057,7 +1063,7 @@ export default function ClientDetailPage() {
                       {/* Notes */}
                       {domain.notes && (
                         <div className="text-sm">
-                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Notes</span>
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.notes')}</span>
                           <div className="mt-1">{domain.notes}</div>
                         </div>
                       )}
@@ -1070,16 +1076,16 @@ export default function ClientDetailPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Server className="w-4 h-4 text-primary-600" />
-                            <span className="font-medium text-sm">HOSTING</span>
+                            <span className="font-medium text-sm">{t('domains.hosting')}</span>
                             <span className={`px-2 py-0.5 text-xs rounded-full ${
                               domainHosting
                                 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                                 : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
                             }`}>
-                              {domainHosting ? 'ACTIVE' : 'INACTIVE'}
+                              {domainHosting ? t('domains.active') : t('domains.inactive')}
                             </span>
                             {domainHosting && (
-                              <span className="text-xs text-gray-400">(click to edit)</span>
+                              <span className="text-xs text-gray-400">({t('domains.clickToEdit')})</span>
                             )}
                           </div>
                         </div>
@@ -1087,29 +1093,29 @@ export default function ClientDetailPage() {
                           <>
                             <div className="mt-2 pt-2 border-t dark:border-gray-700 flex items-center gap-4 text-xs flex-wrap">
                               <div className="flex items-center gap-1">
-                                <span className="text-gray-500">Package:</span>
+                                <span className="text-gray-500">{t('common.package')}:</span>
                                 <span className="font-medium">{domainHosting.packageName || '-'}</span>
                               </div>
                               <div className="flex items-center gap-1">
-                                <span className="text-gray-500">{(domainHosting as HostingWithPackage).packageMaxMailboxes || 0} mailboxes</span>
+                                <span className="text-gray-500">{(domainHosting as HostingWithPackage).packageMaxMailboxes || 0} {t('common.mailboxes')}</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <span className="text-gray-500">{(domainHosting as HostingWithPackage).packageStorageGb || 0} GB</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Server className="w-3 h-3 text-gray-400" />
-                                <span className="text-gray-500 font-medium">Mail Server</span>
+                                <span className="text-gray-500 font-medium">{t('common.mailServer')}</span>
                                 <span>{(domainHosting as HostingWithPackage).mailServerName || '-'}</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Shield className="w-3 h-3 text-gray-400" />
-                                <span className="text-gray-500 font-medium">Mail Security</span>
+                                <span className="text-gray-500 font-medium">{t('common.mailSecurity')}</span>
                                 <span>{(domainHosting as HostingWithPackage).mailSecurityName || '-'}</span>
                               </div>
                             </div>
                             <div className="mt-2 pt-2 border-t dark:border-gray-700 flex items-center justify-between text-xs">
                               <div className="flex items-center gap-1">
-                                <span className="text-gray-500">Expires:</span>
+                                <span className="text-gray-500">{t('common.expiry')}</span>
                                 <span className="font-medium">{formatDateDisplay(domainHosting.expiryDate)}</span>
                               </div>
                               <div className="flex items-center gap-3">
@@ -1122,7 +1128,7 @@ export default function ClientDetailPage() {
                                   className="btn btn-primary text-xs py-1 px-2 flex items-center gap-1"
                                 >
                                   <Calendar className="w-3 h-3" />
-                                  Extend
+                                  {t('common.extend')}
                                 </button>
                               </div>
                             </div>
@@ -1147,7 +1153,7 @@ export default function ClientDetailPage() {
           setSelectedExtendPeriod('');
           setExtendModalFromToday(false);
         }}
-        title={`Extend: ${extendItem?.name || ''}`}
+        title={`${t('common.extend')}: ${extendItem?.name || ''}`}
         size="sm"
       >
         <div className="space-y-4">
@@ -1161,7 +1167,7 @@ export default function ClientDetailPage() {
                 onChange={() => setExtendModalFromToday(false)}
                 className="w-4 h-4 text-primary-600"
               />
-              <span className="text-gray-700 dark:text-gray-300">From Expiry Date</span>
+              <span className="text-gray-700 dark:text-gray-300">{t('common.fromExpiryDate')}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer text-sm">
               <input
@@ -1171,7 +1177,7 @@ export default function ClientDetailPage() {
                 onChange={() => setExtendModalFromToday(true)}
                 className="w-4 h-4 text-primary-600"
               />
-              <span className="text-gray-700 dark:text-gray-300">From Today</span>
+              <span className="text-gray-700 dark:text-gray-300">{t('common.fromToday')}</span>
             </label>
           </div>
 
@@ -1211,7 +1217,7 @@ export default function ClientDetailPage() {
               }}
               className="btn btn-secondary py-1.5 px-3 text-sm"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="button"
@@ -1227,7 +1233,7 @@ export default function ClientDetailPage() {
               disabled={!selectedExtendPeriod || extendMutation.isPending}
               className="btn btn-primary py-1.5 px-3 text-sm"
             >
-              {extendMutation.isPending ? 'Saving...' : 'Save'}
+              {extendMutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </div>
@@ -1237,12 +1243,12 @@ export default function ClientDetailPage() {
       <Modal
         isOpen={addDomainModalOpen}
         onClose={() => setAddDomainModalOpen(false)}
-        title="Add Domain"
+        title={t('domains.addDomain')}
         size="lg"
       >
         <form onSubmit={handleAddDomainSubmit} className="space-y-3">
           <div>
-            <label className="text-xs text-gray-500">Domain *</label>
+            <label className="text-xs text-gray-500">{t('common.domain')} *</label>
             <input
               value={domainForm.domainName}
               onChange={(e) => setDomainForm({ ...domainForm, domainName: e.target.value })}
@@ -1255,7 +1261,7 @@ export default function ClientDetailPage() {
           {/* Primary Contact */}
           <div className="pt-3 border-t dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-500 uppercase">Primary Contact</span>
+              <span className="text-xs font-medium text-gray-500 uppercase">{t('common.primaryContact')}</span>
               <label className="flex items-center gap-1.5 cursor-pointer text-xs">
                 <input
                   type="checkbox"
@@ -1274,12 +1280,12 @@ export default function ClientDetailPage() {
                   }}
                   className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600"
                 />
-                <span className="text-gray-500">Same as company primary contact</span>
+                <span className="text-gray-500">{t('common.sameAsCompanyPrimary')}</span>
               </label>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500">Name *</label>
+                <label className="text-xs text-gray-500">{t('common.name')} *</label>
                 <input
                   value={domainForm.primaryName}
                   onChange={(e) => setDomainForm({ ...domainForm, primaryName: e.target.value })}
@@ -1289,7 +1295,7 @@ export default function ClientDetailPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Phone *</label>
+                <label className="text-xs text-gray-500">{t('common.phone')} *</label>
                 <input
                   value={domainForm.primaryPhone}
                   onChange={(e) => setDomainForm({ ...domainForm, primaryPhone: e.target.value })}
@@ -1299,7 +1305,7 @@ export default function ClientDetailPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Email *</label>
+                <label className="text-xs text-gray-500">{t('common.email')} *</label>
                 <input
                   type="email"
                   value={domainForm.primaryEmail}
@@ -1315,7 +1321,7 @@ export default function ClientDetailPage() {
           {/* Technical Contact */}
           <div className="pt-3 border-t dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-500 uppercase">Technical Contact</span>
+              <span className="text-xs font-medium text-gray-500 uppercase">{t('common.technicalContact')}</span>
               <label className="flex items-center gap-1.5 cursor-pointer text-xs">
                 <input
                   type="checkbox"
@@ -1334,12 +1340,12 @@ export default function ClientDetailPage() {
                   }}
                   className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600"
                 />
-                <span className="text-gray-500">Same as company technical contact</span>
+                <span className="text-gray-500">{t('common.sameAsCompanyTechnical')}</span>
               </label>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500">Name *</label>
+                <label className="text-xs text-gray-500">{t('common.name')} *</label>
                 <input
                   value={domainForm.techName}
                   onChange={(e) => setDomainForm({ ...domainForm, techName: e.target.value })}
@@ -1349,7 +1355,7 @@ export default function ClientDetailPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Phone *</label>
+                <label className="text-xs text-gray-500">{t('common.phone')} *</label>
                 <input
                   value={domainForm.techPhone}
                   onChange={(e) => setDomainForm({ ...domainForm, techPhone: e.target.value })}
@@ -1359,7 +1365,7 @@ export default function ClientDetailPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Email *</label>
+                <label className="text-xs text-gray-500">{t('common.email')} *</label>
                 <input
                   type="email"
                   value={domainForm.techEmail}
@@ -1374,15 +1380,15 @@ export default function ClientDetailPage() {
 
           {/* Hosting Package */}
           <div className="pt-3 border-t dark:border-gray-700">
-            <span className="text-xs font-medium text-gray-500 uppercase">Hosting</span>
+            <span className="text-xs font-medium text-gray-500 uppercase">{t('domains.hosting')}</span>
             <div className="mt-2">
-              <label className="text-xs text-gray-500">Package</label>
+              <label className="text-xs text-gray-500">{t('common.package')}</label>
               <select
                 value={domainForm.packageId}
                 onChange={(e) => setDomainForm({ ...domainForm, packageId: e.target.value })}
                 className="input py-1.5 text-sm"
               >
-                <option value="">-- No package --</option>
+                <option value="">{t('common.noPackage')}</option>
                 {packagesData?.packages.map((pkg) => (
                   <option key={pkg.id} value={pkg.id}>
                     {pkg.name}
@@ -1399,18 +1405,18 @@ export default function ClientDetailPage() {
                     <div className="text-sm text-gray-700 dark:text-gray-300 mb-1.5">{selectedPkg.description}</div>
                   )}
                   <div className="flex items-center gap-4 text-xs">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">{selectedPkg.maxMailboxes} mailboxes</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{selectedPkg.maxMailboxes} {t('common.mailboxes')}</span>
                     <span className="font-medium text-gray-700 dark:text-gray-300">{selectedPkg.storageGb} GB</span>
                   </div>
                   <div className="mt-1.5 pt-1.5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
                       <Server className="w-3 h-3 text-gray-400" />
-                      <span className="text-gray-500 font-medium">Mail Server</span>
+                      <span className="text-gray-500 font-medium">{t('common.mailServer')}</span>
                       <span className="text-gray-700 dark:text-gray-300">{selectedPkg.mailServerName || '-'}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Shield className="w-3 h-3 text-gray-400" />
-                      <span className="text-gray-500 font-medium">Mail Security</span>
+                      <span className="text-gray-500 font-medium">{t('common.mailSecurity')}</span>
                       <span className="text-gray-700 dark:text-gray-300">{selectedPkg.mailSecurityName || '-'}</span>
                     </div>
                   </div>
@@ -1425,7 +1431,7 @@ export default function ClientDetailPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div />
                 <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-3 -m-1">
-                  <span className="text-xs font-medium text-primary-700 dark:text-primary-300 uppercase">Expiry Date *</span>
+                  <span className="text-xs font-medium text-primary-700 dark:text-primary-300 uppercase">{t('common.expiry')} *</span>
                   <div className="mt-2">
                     <DateInput
                       name="addDomainExpiryDate"
@@ -1456,7 +1462,7 @@ export default function ClientDetailPage() {
 
           {/* Notes */}
           <div className="pt-3 border-t dark:border-gray-700">
-            <label className="text-xs text-gray-500">Notes</label>
+            <label className="text-xs text-gray-500">{t('common.notes')}</label>
             <textarea
               value={domainForm.notes}
               onChange={(e) => setDomainForm({ ...domainForm, notes: e.target.value })}
@@ -1471,14 +1477,14 @@ export default function ClientDetailPage() {
               onClick={() => setAddDomainModalOpen(false)}
               className="btn btn-secondary py-1.5 px-3 text-sm"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               className="btn btn-primary py-1.5 px-3 text-sm"
               disabled={addDomainMutation.isPending}
             >
-              {addDomainMutation.isPending ? 'Adding...' : 'Add'}
+              {addDomainMutation.isPending ? t('common.creating') : t('common.add')}
             </button>
           </div>
         </form>
@@ -1491,12 +1497,12 @@ export default function ClientDetailPage() {
           setEditDomainModalOpen(false);
           setEditingDomain(null);
         }}
-        title={`Edit: ${editingDomain?.domainName || ''}`}
+        title={`${t('common.edit')}: ${editingDomain?.domainName || ''}`}
         size="lg"
       >
         <form onSubmit={handleEditDomainSubmit} className="space-y-3">
           <div>
-            <label className="text-xs text-gray-500">Domain *</label>
+            <label className="text-xs text-gray-500">{t('common.domain')} *</label>
             <input
               value={editDomainForm.domainName}
               onChange={(e) => setEditDomainForm({ ...editDomainForm, domainName: e.target.value })}
@@ -1506,7 +1512,7 @@ export default function ClientDetailPage() {
           </div>
 
           <div>
-            <label className="text-xs text-gray-500">Company</label>
+            <label className="text-xs text-gray-500">{t('common.company')}</label>
             <select
               value={editDomainForm.clientId}
               onChange={(e) => {
@@ -1540,7 +1546,7 @@ export default function ClientDetailPage() {
               }}
               className="input py-1.5 text-sm"
             >
-              <option value="">-- No company --</option>
+              <option value="">{t('common.selectClient')}</option>
               {allClientsData?.clients.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -1550,7 +1556,7 @@ export default function ClientDetailPage() {
           {/* Primary Contact */}
           <div className="pt-3 border-t dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-500 uppercase">Primary Contact</span>
+              <span className="text-xs font-medium text-gray-500 uppercase">{t('common.primaryContact')}</span>
               <label className="flex items-center gap-1.5 cursor-pointer text-xs">
                 <input
                   type="checkbox"
@@ -1570,12 +1576,12 @@ export default function ClientDetailPage() {
                   }}
                   className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600"
                 />
-                <span className="text-gray-500">Same as company primary contact</span>
+                <span className="text-gray-500">{t('common.sameAsCompanyPrimary')}</span>
               </label>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500">Name *</label>
+                <label className="text-xs text-gray-500">{t('common.name')} *</label>
                 <input
                   value={editDomainForm.primaryName}
                   onChange={(e) => setEditDomainForm({ ...editDomainForm, primaryName: e.target.value })}
@@ -1585,7 +1591,7 @@ export default function ClientDetailPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Phone *</label>
+                <label className="text-xs text-gray-500">{t('common.phone')} *</label>
                 <input
                   value={editDomainForm.primaryPhone}
                   onChange={(e) => setEditDomainForm({ ...editDomainForm, primaryPhone: e.target.value })}
@@ -1595,7 +1601,7 @@ export default function ClientDetailPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Email *</label>
+                <label className="text-xs text-gray-500">{t('common.email')} *</label>
                 <input
                   type="email"
                   value={editDomainForm.primaryEmail}
@@ -1611,7 +1617,7 @@ export default function ClientDetailPage() {
           {/* Technical Contact */}
           <div className="pt-3 border-t dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-500 uppercase">Technical Contact</span>
+              <span className="text-xs font-medium text-gray-500 uppercase">{t('common.technicalContact')}</span>
               <label className="flex items-center gap-1.5 cursor-pointer text-xs">
                 <input
                   type="checkbox"
@@ -1631,12 +1637,12 @@ export default function ClientDetailPage() {
                   }}
                   className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600"
                 />
-                <span className="text-gray-500">Same as company technical contact</span>
+                <span className="text-gray-500">{t('common.sameAsCompanyTechnical')}</span>
               </label>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500">Name *</label>
+                <label className="text-xs text-gray-500">{t('common.name')} *</label>
                 <input
                   value={editDomainForm.techName}
                   onChange={(e) => setEditDomainForm({ ...editDomainForm, techName: e.target.value })}
@@ -1646,7 +1652,7 @@ export default function ClientDetailPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Phone *</label>
+                <label className="text-xs text-gray-500">{t('common.phone')} *</label>
                 <input
                   value={editDomainForm.techPhone}
                   onChange={(e) => setEditDomainForm({ ...editDomainForm, techPhone: e.target.value })}
@@ -1656,7 +1662,7 @@ export default function ClientDetailPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Email *</label>
+                <label className="text-xs text-gray-500">{t('common.email')} *</label>
                 <input
                   type="email"
                   value={editDomainForm.techEmail}
@@ -1671,15 +1677,15 @@ export default function ClientDetailPage() {
 
           {/* Hosting Package */}
           <div className="pt-3 border-t dark:border-gray-700">
-            <span className="text-xs font-medium text-gray-500 uppercase">Hosting</span>
+            <span className="text-xs font-medium text-gray-500 uppercase">{t('domains.hosting')}</span>
             <div className="mt-2">
-              <label className="text-xs text-gray-500">Package</label>
+              <label className="text-xs text-gray-500">{t('common.package')}</label>
               <select
                 value={editDomainForm.packageId}
                 onChange={(e) => setEditDomainForm({ ...editDomainForm, packageId: e.target.value })}
                 className="input py-1.5 text-sm"
               >
-                <option value="">-- Select package --</option>
+                <option value="">{t('common.noPackage')}</option>
                 {packagesData?.packages.map((pkg) => (
                   <option key={pkg.id} value={pkg.id}>
                     {pkg.name}
@@ -1697,18 +1703,18 @@ export default function ClientDetailPage() {
                       <div className="text-sm text-gray-700 dark:text-gray-300 mb-1.5">{selectedPkg.description}</div>
                     )}
                     <div className="flex items-center gap-4 text-xs">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">{selectedPkg.maxMailboxes} mailboxes</span>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{selectedPkg.maxMailboxes} {t('common.mailboxes')}</span>
                       <span className="font-medium text-gray-700 dark:text-gray-300">{selectedPkg.storageGb} GB</span>
                     </div>
                     <div className="mt-1.5 pt-1.5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-4 text-xs">
                       <div className="flex items-center gap-1">
                         <Server className="w-3 h-3 text-gray-400" />
-                        <span className="text-gray-500 font-medium">Mail Server</span>
+                        <span className="text-gray-500 font-medium">{t('common.mailServer')}</span>
                         <span className="text-gray-700 dark:text-gray-300">{selectedPkg.mailServerName || '-'}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Shield className="w-3 h-3 text-gray-400" />
-                        <span className="text-gray-500 font-medium">Mail Security</span>
+                        <span className="text-gray-500 font-medium">{t('common.mailSecurity')}</span>
                         <span className="text-gray-700 dark:text-gray-300">{selectedPkg.mailSecurityName || '-'}</span>
                       </div>
                     </div>
@@ -1724,13 +1730,13 @@ export default function ClientDetailPage() {
               {/* Left: Start Date and Expiry Date (read-only) */}
               <div className="space-y-3">
                 <div>
-                  <span className="text-xs font-medium text-gray-500 uppercase">Added</span>
+                  <span className="text-xs font-medium text-gray-500 uppercase">{t('common.added')}</span>
                   <div className="mt-1 py-2 px-3 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
                     {formatDateDisplay(editDomainForm.startDate) || '-'}
                   </div>
                 </div>
                 <div>
-                  <span className="text-xs font-medium text-gray-500 uppercase">Expiry Date</span>
+                  <span className="text-xs font-medium text-gray-500 uppercase">{t('common.expiry')}</span>
                   <div className="mt-1 py-2 px-3 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
                     {formatDateDisplay(originalExpiryDate) || '-'}
                   </div>
@@ -1739,7 +1745,7 @@ export default function ClientDetailPage() {
 
               {/* Right: Extend To Date */}
               <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-3 -m-1">
-                <span className="text-xs font-medium text-primary-700 dark:text-primary-300 uppercase">Extend To Date</span>
+                <span className="text-xs font-medium text-primary-700 dark:text-primary-300 uppercase">{t('common.extendTo')}</span>
                 <div className="mt-2">
                   <DateInput
                     name="editDomainExpiryDate"
@@ -1755,7 +1761,7 @@ export default function ClientDetailPage() {
                         onChange={() => setExtendFromToday(false)}
                         className="w-3 h-3 text-primary-600"
                       />
-                      <span className="text-gray-600 dark:text-gray-400">From Expiry</span>
+                      <span className="text-gray-600 dark:text-gray-400">{t('common.fromExpiryDate')}</span>
                     </label>
                     <label className="flex items-center gap-1 cursor-pointer text-xs">
                       <input
@@ -1765,7 +1771,7 @@ export default function ClientDetailPage() {
                         onChange={() => setExtendFromToday(true)}
                         className="w-3 h-3 text-primary-600"
                       />
-                      <span className="text-gray-600 dark:text-gray-400">From Today</span>
+                      <span className="text-gray-600 dark:text-gray-400">{t('common.fromToday')}</span>
                     </label>
                   </div>
                   <div className="flex gap-1.5 flex-wrap">
@@ -1817,7 +1823,7 @@ export default function ClientDetailPage() {
 
           {/* Notes */}
           <div className="pt-3 border-t dark:border-gray-700">
-            <label className="text-xs text-gray-500">Notes</label>
+            <label className="text-xs text-gray-500">{t('common.notes')}</label>
             <textarea
               value={editDomainForm.notes}
               onChange={(e) => setEditDomainForm({ ...editDomainForm, notes: e.target.value })}
@@ -1835,14 +1841,14 @@ export default function ClientDetailPage() {
               }}
               className="btn btn-secondary py-1.5 px-3 text-sm"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               className="btn btn-primary py-1.5 px-3 text-sm"
               disabled={editDomainMutation.isPending}
             >
-              {editDomainMutation.isPending ? 'Saving...' : 'Save'}
+              {editDomainMutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>
@@ -1855,35 +1861,35 @@ export default function ClientDetailPage() {
           setEditHostingModalOpen(false);
           setEditingHosting(null);
         }}
-        title={`Edit Hosting: ${editingHosting?.packageName || ''}`}
+        title={`${t('domains.editHosting')}: ${editingHosting?.packageName || ''}`}
         size="lg"
       >
         <form onSubmit={handleEditHostingSubmit} className="space-y-3">
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-xs text-gray-500">Package *</label>
+              <label className="text-xs text-gray-500">{t('common.package')} *</label>
               <select
                 value={editHostingForm.packageId}
                 onChange={(e) => setEditHostingForm({ ...editHostingForm, packageId: e.target.value })}
                 className="input py-1.5 text-sm"
                 required
               >
-                <option value="">-- Select package --</option>
+                <option value="">{t('common.noPackage')}</option>
                 {packagesData?.packages.map((pkg) => (
                   <option key={pkg.id} value={pkg.id}>
-                    {pkg.name} ({pkg.maxMailboxes} mailboxes, {pkg.storageGb} GB)
+                    {pkg.name} ({pkg.maxMailboxes} {t('common.mailboxes')}, {pkg.storageGb} GB)
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Mail Server</label>
+              <label className="text-xs text-gray-500">{t('common.mailServer')}</label>
               <div className="py-1.5 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded px-2">
                 {packagesData?.packages.find(p => p.id === Number(editHostingForm.packageId))?.mailServerName || '-'}
               </div>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Mail Security</label>
+              <label className="text-xs text-gray-500">{t('common.mailSecurity')}</label>
               <div className="py-1.5 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded px-2">
                 {packagesData?.packages.find(p => p.id === Number(editHostingForm.packageId))?.mailSecurityName || '-'}
               </div>
@@ -1896,13 +1902,13 @@ export default function ClientDetailPage() {
               {/* Left: Added and Expiry Date (read-only) */}
               <div className="space-y-3">
                 <div>
-                  <span className="text-xs font-medium text-gray-500 uppercase">Added</span>
+                  <span className="text-xs font-medium text-gray-500 uppercase">{t('common.added')}</span>
                   <div className="mt-1 py-2 px-3 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
                     {formatDateDisplay(editHostingForm.startDate) || '-'}
                   </div>
                 </div>
                 <div>
-                  <span className="text-xs font-medium text-gray-500 uppercase">Expiry Date</span>
+                  <span className="text-xs font-medium text-gray-500 uppercase">{t('common.expiry')}</span>
                   <div className="mt-1 py-2 px-3 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
                     {formatDateDisplay(originalHostingExpiryDate) || '-'}
                   </div>
@@ -1911,7 +1917,7 @@ export default function ClientDetailPage() {
 
               {/* Right: Extend To Date */}
               <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-3 -m-1">
-                <span className="text-xs font-medium text-primary-700 dark:text-primary-300 uppercase">Extend To Date</span>
+                <span className="text-xs font-medium text-primary-700 dark:text-primary-300 uppercase">{t('common.extendTo')}</span>
                 <div className="mt-2">
                   <DateInput
                     name="editHostingExpiryDate"
@@ -1939,7 +1945,7 @@ export default function ClientDetailPage() {
           </div>
 
           <div className="pt-3 border-t dark:border-gray-700">
-            <label className="text-xs text-gray-500">Notes</label>
+            <label className="text-xs text-gray-500">{t('common.notes')}</label>
             <textarea
               value={editHostingForm.notes}
               onChange={(e) => setEditHostingForm({ ...editHostingForm, notes: e.target.value })}
@@ -1957,14 +1963,14 @@ export default function ClientDetailPage() {
               }}
               className="btn btn-secondary py-1.5 px-3 text-sm"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               className="btn btn-primary py-1.5 px-3 text-sm"
               disabled={editHostingMutation.isPending}
             >
-              {editHostingMutation.isPending ? 'Saving...' : 'Save'}
+              {editHostingMutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>

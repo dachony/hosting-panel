@@ -319,30 +319,30 @@ notifications.post('/settings/:id/test', adminMiddleware, async (c) => {
 
       if (template) {
         subject = template.subject
-          .replace(/\{\{clientName\}\}/g, 'Test Klijent')
+          .replace(/\{\{clientName\}\}/g, 'Test Client')
           .replace(/\{\{domainName\}\}/g, 'test-domain.rs')
           .replace(/\{\{expiryDate\}\}/g, new Date().toLocaleDateString('sr-RS'))
           .replace(/\{\{daysUntilExpiry\}\}/g, '7')
-          .replace(/\{\{packageName\}\}/g, 'Test Paket');
+          .replace(/\{\{packageName\}\}/g, 'Test Package');
 
         htmlContent = template.htmlContent
-          .replace(/\{\{clientName\}\}/g, 'Test Klijent')
+          .replace(/\{\{clientName\}\}/g, 'Test Client')
           .replace(/\{\{domainName\}\}/g, 'test-domain.rs')
           .replace(/\{\{expiryDate\}\}/g, new Date().toLocaleDateString('sr-RS'))
           .replace(/\{\{daysUntilExpiry\}\}/g, '7')
-          .replace(/\{\{packageName\}\}/g, 'Test Paket');
+          .replace(/\{\{packageName\}\}/g, 'Test Package');
       }
     }
 
     if (!htmlContent) {
-      const typeLabels = { domain: 'Domen', hosting: 'Web Hosting', mail: 'Mail Hosting' };
+      const typeLabels = { domain: 'Domain', hosting: 'Web Hosting', mail: 'Mail Hosting' };
       subject = `[TEST] ${setting.name || typeLabels[setting.type]} - Expiry notification`;
       htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">Test Notifikacija</h2>
+          <h2 style="color: #2563eb;">Test Notification</h2>
           <p>This is a test notification for setting: <strong>${setting.name || typeLabels[setting.type]}</strong></p>
           <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Tip:</strong></td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${typeLabels[setting.type]}</td></tr>
+            <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Type:</strong></td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${typeLabels[setting.type]}</td></tr>
             <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Days before expiry:</strong></td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${setting.daysBefore.join(', ')}</td></tr>
           </table>
           <p style="color: #6b7280; font-size: 14px;">This is a test email. In production, you will receive real notifications with client and domain data.</p>

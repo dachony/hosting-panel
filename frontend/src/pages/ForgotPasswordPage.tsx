@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import toast from 'react-hot-toast';
 
@@ -9,6 +10,7 @@ interface Branding {
 }
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -30,7 +32,7 @@ export default function ForgotPasswordPage() {
     try {
       await api.post('/api/auth/forgot-password', { email });
       setSubmitted(true);
-      toast.success('Password reset link has been sent');
+      toast.success(t('auth.resetLinkSent'));
     } catch {
       // Always show success to prevent email enumeration
       setSubmitted(true);
@@ -51,7 +53,7 @@ export default function ForgotPasswordPage() {
             />
           )}
           <h1 className="text-3xl font-bold text-primary-600">{branding.systemName}</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Password Reset</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">{t('auth.passwordReset')}</p>
         </div>
 
         <div className="card">
@@ -63,26 +65,26 @@ export default function ForgotPasswordPage() {
                 </svg>
               </div>
               <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                Check your email
+                {t('auth.checkYourEmail')}
               </h2>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                If an account with that email exists, we will send you a password reset link.
+                {t('auth.resetLinkSentMessage')}
               </p>
               <Link
                 to="/login"
                 className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
               >
-                Back to login
+                {t('auth.backToLogin')}
               </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Enter your email address and we will send you a password reset link.
+                {t('auth.enterEmailForReset')}
               </p>
 
               <div>
-                <label className="label">Email</label>
+                <label className="label">{t('auth.email')}</label>
                 <input
                   type="email"
                   value={email}
@@ -98,7 +100,7 @@ export default function ForgotPasswordPage() {
                 className="btn btn-primary w-full"
                 disabled={isLoading}
               >
-                {isLoading ? 'Sending...' : 'Send reset link'}
+                {isLoading ? t('common.sending') : t('auth.sendResetLink')}
               </button>
 
               <div className="text-center">
@@ -106,7 +108,7 @@ export default function ForgotPasswordPage() {
                   to="/login"
                   className="text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
                 >
-                  Back to login
+                  {t('auth.backToLogin')}
                 </Link>
               </div>
             </form>

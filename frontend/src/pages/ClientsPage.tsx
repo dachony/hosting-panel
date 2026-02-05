@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { Client } from '../types';
 import Modal from '../components/common/Modal';
@@ -10,6 +11,7 @@ import toast from 'react-hot-toast';
 type ViewMode = 'list' | 'cards';
 
 export default function ClientsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -41,12 +43,12 @@ export default function ClientsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      toast.success(selectedClient ? 'Client updated' : 'Client created');
+      toast.success(selectedClient ? t('clients.clientUpdated') : t('clients.clientCreated'));
       setModalOpen(false);
       setSelectedClient(null);
     },
     onError: () => {
-      toast.error('Error saving');
+      toast.error(t('common.errorSaving'));
     },
   });
 
@@ -106,7 +108,7 @@ export default function ClientsPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-        Clients
+        {t('clients.title')}
       </h1>
 
       {/* Clients List */}
@@ -119,7 +121,7 @@ export default function ClientsPage() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search..."
+                placeholder={t('common.searchPlaceholder')}
                 className="input !py-1.5 !text-sm w-full pl-8"
               />
             </div>
@@ -133,7 +135,7 @@ export default function ClientsPage() {
                     ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
                     : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                 }`}
-                title="List view"
+                title={t('common.listView')}
               >
                 <LayoutList className="w-4 h-4" />
               </button>
@@ -144,7 +146,7 @@ export default function ClientsPage() {
                     ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
                     : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                 }`}
-                title="Cards view"
+                title={t('common.cardsView')}
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
@@ -159,7 +161,7 @@ export default function ClientsPage() {
             className="btn btn-primary btn-sm flex items-center"
           >
             <Plus className="w-3 h-3 mr-1" />
-            Add
+            {t('common.add')}
           </button>
         </div>
 
@@ -169,7 +171,7 @@ export default function ClientsPage() {
           </div>
         ) : filteredClients.length === 0 ? (
           <div className="text-center py-6 text-sm text-gray-500">
-            {searchTerm ? 'No results' : 'No clients'}
+            {searchTerm ? t('common.noResults') : t('clients.noClients')}
           </div>
         ) : viewMode === 'cards' ? (
           /* Cards View */
@@ -191,14 +193,14 @@ export default function ClientsPage() {
                 {/* Info Grid */}
                 <div className="space-y-2 text-xs">
                   <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
-                    <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">Primary Contact</div>
+                    <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">{t('common.primaryContact')}</div>
                     <div className="text-gray-700 dark:text-gray-300">{client.contactPerson || '-'}</div>
                     <div className="text-gray-500 dark:text-gray-400">{client.phone || '-'}</div>
                     <div className="text-gray-500 dark:text-gray-400 truncate">{client.email1 || '-'}</div>
                   </div>
 
                   <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
-                    <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">Technical Contact</div>
+                    <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">{t('common.technicalContact')}</div>
                     <div className="text-gray-700 dark:text-gray-300">{client.techContact || client.contactPerson || '-'}</div>
                     <div className="text-gray-500 dark:text-gray-400">{client.techPhone || client.phone || '-'}</div>
                     <div className="text-gray-500 dark:text-gray-400 truncate">{client.techEmail || client.email1 || '-'}</div>
@@ -206,7 +208,7 @@ export default function ClientsPage() {
 
                   {client.address && (
                     <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
-                      <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">Address</div>
+                      <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">{t('common.address')}</div>
                       <div className="text-gray-700 dark:text-gray-300">{client.address}</div>
                     </div>
                   )}
@@ -235,7 +237,7 @@ export default function ClientsPage() {
                     onClick={(e) => { e.stopPropagation(); handleEdit(client); }}
                     className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                   >
-                    <Pencil className="w-3 h-3" />Edit
+                    <Pencil className="w-3 h-3" />{t('common.edit')}
                   </button>
                 </div>
               </div>
@@ -261,21 +263,21 @@ export default function ClientsPage() {
                 {/* Contacts */}
                 <div className="min-w-0 flex-1 text-xs space-y-1">
                   <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                    <span className="text-gray-500 font-medium w-28 flex-shrink-0">Primary Contact</span>
-                    <span className="text-gray-400">Name:</span>
+                    <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.primaryContact')}</span>
+                    <span className="text-gray-400">{t('common.name') + ':'}</span>
                     <span>{client.contactPerson || '-'},</span>
-                    <span className="text-gray-400">Phone:</span>
+                    <span className="text-gray-400">{t('common.phone') + ':'}</span>
                     <span>{client.phone || '-'},</span>
-                    <span className="text-gray-400">E-Mail:</span>
+                    <span className="text-gray-400">{t('common.email') + ':'}</span>
                     <span className="truncate">{client.email1 || '-'}</span>
                   </div>
                   <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                    <span className="text-gray-500 font-medium w-28 flex-shrink-0">Technical Contact</span>
-                    <span className="text-gray-400">Name:</span>
+                    <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.technicalContact')}</span>
+                    <span className="text-gray-400">{t('common.name') + ':'}</span>
                     <span>{client.techContact || client.contactPerson || '-'},</span>
-                    <span className="text-gray-400">Phone:</span>
+                    <span className="text-gray-400">{t('common.phone') + ':'}</span>
                     <span>{client.techPhone || client.phone || '-'},</span>
-                    <span className="text-gray-400">E-Mail:</span>
+                    <span className="text-gray-400">{t('common.email') + ':'}</span>
                     <span className="truncate">{client.techEmail || client.email1 || '-'}</span>
                   </div>
                 </div>
@@ -285,7 +287,7 @@ export default function ClientsPage() {
                   onClick={(e) => { e.stopPropagation(); handleEdit(client); }}
                   className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150 flex-shrink-0"
                 >
-                  <Pencil className="w-3 h-3" />Edit
+                  <Pencil className="w-3 h-3" />{t('common.edit')}
                 </button>
               </div>
             ))}
@@ -301,12 +303,12 @@ export default function ClientsPage() {
           setSelectedClient(null);
           setTechSameAsPrimary(false);
         }}
-        title={selectedClient ? 'Edit Client' : 'Add Client'}
+        title={selectedClient ? t('clients.editClient') : t('clients.addClient')}
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="text-xs text-gray-500">Name *</label>
+            <label className="text-xs text-gray-500">{t('common.name') + ' *'}</label>
             <input
               name="name"
               defaultValue={selectedClient?.name}
@@ -318,11 +320,11 @@ export default function ClientsPage() {
           {/* Primary Contact */}
           <div className="pt-3 border-t dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-500 uppercase">Primary Contact</span>
+              <span className="text-xs font-medium text-gray-500 uppercase">{t('common.primaryContact')}</span>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500">Name *</label>
+                <label className="text-xs text-gray-500">{t('common.name') + ' *'}</label>
                 <input
                   name="contactPerson"
                   defaultValue={selectedClient?.contactPerson || ''}
@@ -331,7 +333,7 @@ export default function ClientsPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Phone *</label>
+                <label className="text-xs text-gray-500">{t('common.phone') + ' *'}</label>
                 <input
                   name="phone"
                   defaultValue={selectedClient?.phone || ''}
@@ -340,7 +342,7 @@ export default function ClientsPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Email *</label>
+                <label className="text-xs text-gray-500">{t('common.email') + ' *'}</label>
                 <input
                   name="email1"
                   type="email"
@@ -355,7 +357,7 @@ export default function ClientsPage() {
           {/* Technical Contact */}
           <div className="pt-3 border-t dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-500 uppercase">Technical Contact</span>
+              <span className="text-xs font-medium text-gray-500 uppercase">{t('common.technicalContact')}</span>
               <label className="flex items-center gap-1.5 cursor-pointer text-xs">
                 <input
                   type="checkbox"
@@ -363,13 +365,13 @@ export default function ClientsPage() {
                   onChange={(e) => setTechSameAsPrimary(e.target.checked)}
                   className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600"
                 />
-                <span className="text-gray-500">Same as primary contact</span>
+                <span className="text-gray-500">{t('common.sameAsPrimaryContact')}</span>
               </label>
             </div>
             {!techSameAsPrimary && (
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-xs text-gray-500">Name *</label>
+                  <label className="text-xs text-gray-500">{t('common.name') + ' *'}</label>
                   <input
                     name="techContact"
                     defaultValue={selectedClient?.techContact || ''}
@@ -378,7 +380,7 @@ export default function ClientsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500">Phone *</label>
+                  <label className="text-xs text-gray-500">{t('common.phone') + ' *'}</label>
                   <input
                     name="techPhone"
                     defaultValue={selectedClient?.techPhone || ''}
@@ -387,7 +389,7 @@ export default function ClientsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500">Email *</label>
+                  <label className="text-xs text-gray-500">{t('common.email') + ' *'}</label>
                   <input
                     name="techEmail"
                     type="email"
@@ -402,9 +404,9 @@ export default function ClientsPage() {
 
           {/* Business Info */}
           <div className="pt-3 border-t dark:border-gray-700">
-            <span className="text-xs font-medium text-gray-500 uppercase">Business Info</span>
+            <span className="text-xs font-medium text-gray-500 uppercase">{t('common.businessInfo')}</span>
             <div className="mt-2">
-              <label className="text-xs text-gray-500">Address</label>
+              <label className="text-xs text-gray-500">{t('common.address')}</label>
               <input
                 name="address"
                 defaultValue={selectedClient?.address || ''}
@@ -433,7 +435,7 @@ export default function ClientsPage() {
 
           {/* Notes */}
           <div className="pt-3 border-t dark:border-gray-700">
-            <label className="text-xs text-gray-500">Notes</label>
+            <label className="text-xs text-gray-500">{t('common.notes')}</label>
             <textarea
               name="notes"
               defaultValue={selectedClient?.notes || ''}
@@ -448,14 +450,14 @@ export default function ClientsPage() {
               onClick={() => setModalOpen(false)}
               className="btn btn-secondary py-1.5 px-3 text-sm"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               className="btn btn-primary py-1.5 px-3 text-sm"
               disabled={saveMutation.isPending}
             >
-              {saveMutation.isPending ? 'Saving...' : 'Save'}
+              {saveMutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>

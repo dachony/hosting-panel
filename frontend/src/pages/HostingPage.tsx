@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { Hosting, ExpiryStatus, Client, Domain, Package } from '../types';
 import Modal from '../components/common/Modal';
@@ -61,13 +62,14 @@ function calculateExpiryDate(fromDate: string, yearsToAdd: number): string {
 }
 
 function StatusBadge({ status, days }: { status: ExpiryStatus; days: number }) {
+  const { t } = useTranslation();
   const config = statusColors[status];
 
   if (status === 'deleted') {
     return (
       <div className="flex items-center gap-2">
         <div className={`w-3 h-3 rounded-full ${config.dot}`}></div>
-        <span className={`text-sm font-bold ${config.text}`}>DELETED</span>
+        <span className={`text-sm font-bold ${config.text}`}>{t('common.deleted')}</span>
       </div>
     );
   }
@@ -76,7 +78,7 @@ function StatusBadge({ status, days }: { status: ExpiryStatus; days: number }) {
     return (
       <div className="flex items-center gap-2">
         <div className={`w-3 h-3 rounded-full ${config.dot}`}></div>
-        <span className={`text-sm font-bold ${config.text}`}>FOR DELETION</span>
+        <span className={`text-sm font-bold ${config.text}`}>{t('common.forDeletion')}</span>
       </div>
     );
   }
@@ -85,7 +87,7 @@ function StatusBadge({ status, days }: { status: ExpiryStatus; days: number }) {
     return (
       <div className="flex items-center gap-2">
         <div className={`w-3 h-3 rounded-full ${config.dot}`}></div>
-        <span className={`text-sm font-bold ${config.text}`}>EXPIRED</span>
+        <span className={`text-sm font-bold ${config.text}`}>{t('common.expired')}</span>
       </div>
     );
   }
@@ -94,7 +96,7 @@ function StatusBadge({ status, days }: { status: ExpiryStatus; days: number }) {
     <div className="flex items-center gap-2">
       <div className={`w-3 h-3 rounded-full ${config.dot}`}></div>
       <div className="text-center">
-        <div className={`text-xs ${config.text}`}>days left</div>
+        <div className={`text-xs ${config.text}`}>{t('common.daysLeft')}</div>
         <div className={`text-lg font-bold ${config.text} leading-tight`}>{days > 36000 ? '∞' : days}</div>
       </div>
     </div>
@@ -104,6 +106,7 @@ function StatusBadge({ status, days }: { status: ExpiryStatus; days: number }) {
 type ViewMode = 'list' | 'cards';
 
 export default function HostingPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -127,6 +130,15 @@ export default function HostingPage() {
     notes: '',
     expiryDate: '',
   });
+
+  const statusLabels: Record<ExpiryStatus, string> = {
+    green: t('status.ok'),
+    yellow: t('status.warning'),
+    orange: t('status.critical'),
+    red: t('status.expired'),
+    forDeletion: t('status.forDeletion'),
+    deleted: t('status.deleted'),
+  };
 
   // Open modal if ?add=true
   const urlAddParam = searchParams.get('add');
@@ -204,11 +216,11 @@ export default function HostingPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hosting'] });
       queryClient.invalidateQueries({ queryKey: ['domains'] });
-      toast.success('Domain created');
+      toast.success(t('domains.domainCreated'));
       setAddDomainModalOpen(false);
       resetDomainForm();
     },
-    onError: () => toast.error('Error creating domain'),
+    onError: () => toast.error(t('domains.errorCreatingDomain')),
   });
 
   const resetDomainForm = () => {
@@ -344,7 +356,7 @@ export default function HostingPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-        Domains
+        {t('nav.domains')}
       </h1>
 
       {/* Domains List */}
@@ -356,7 +368,7 @@ export default function HostingPage() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search..."
+              placeholder={t('common.searchPlaceholder')}
               className="input !py-1.5 !text-sm w-full pl-8"
             />
           </div>
@@ -365,7 +377,7 @@ export default function HostingPage() {
             className="btn btn-primary btn-sm flex items-center"
           >
             <Plus className="w-3 h-3 mr-1" />
-            Add
+            {t('common.add')}
           </button>
         </div>
 
@@ -382,7 +394,7 @@ export default function HostingPage() {
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
-                All
+                {t('common.all')}
               </button>
               {ALL_STATUSES.map((status) => (
                 <button
@@ -396,7 +408,7 @@ export default function HostingPage() {
                   style={statusFilters.has(status) ? { '--tw-ring-color': status === 'green' ? '#22c55e' : status === 'yellow' ? '#eab308' : status === 'orange' ? '#f97316' : status === 'red' ? '#ef4444' : status === 'forDeletion' ? '#a855f7' : '#6b7280' } as React.CSSProperties : undefined}
                 >
                   <span className={`w-2 h-2 rounded-full ${statusColors[status].dot}`}></span>
-                  {statusColors[status].label}
+                  {statusLabels[status]}
                 </button>
               ))}
 
@@ -413,7 +425,7 @@ export default function HostingPage() {
                 style={enabledFilter === 'enabled' ? { '--tw-ring-color': '#10b981' } as React.CSSProperties : undefined}
               >
                 <Power className="w-3 h-3" />
-                Enabled
+                {t('common.enabled')}
               </button>
               <button
                 onClick={() => setEnabledFilter(enabledFilter === 'disabled' ? 'all' : 'disabled')}
@@ -425,7 +437,7 @@ export default function HostingPage() {
                 style={enabledFilter === 'disabled' ? { '--tw-ring-color': '#6b7280' } as React.CSSProperties : undefined}
               >
                 <PowerOff className="w-3 h-3" />
-                Disabled
+                {t('common.disabled')}
               </button>
             </div>
           </div>
@@ -439,7 +451,7 @@ export default function HostingPage() {
                   ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
-              title="List view"
+              title={t('common.listView')}
             >
               <LayoutList className="w-4 h-4" />
             </button>
@@ -450,7 +462,7 @@ export default function HostingPage() {
                   ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
-              title="Cards view"
+              title={t('common.cardsView')}
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
@@ -463,7 +475,7 @@ export default function HostingPage() {
           </div>
         ) : filteredHosting.length === 0 ? (
           <div className="text-center py-6 text-sm text-gray-500">
-            {searchTerm ? 'No results' : 'No domains'}
+            {searchTerm ? t('common.noResults') : t('domains.noDomains')}
           </div>
         ) : viewMode === 'cards' ? (
           /* Cards View */
@@ -491,24 +503,24 @@ export default function HostingPage() {
                   {/* Info Grid */}
                   <div className="space-y-2 text-xs">
                     <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
-                      <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">Primary Contact</div>
+                      <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">{t('common.primaryContact')}</div>
                       <div className="text-gray-700 dark:text-gray-300">{hosting.clientContactPerson || '-'}</div>
                       <div className="text-gray-500 dark:text-gray-400">{hosting.clientPhone || '-'}</div>
                       <div className="text-gray-500 dark:text-gray-400 truncate">{hosting.clientEmail || '-'}</div>
                     </div>
 
                     <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
-                      <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">Technical Contact</div>
+                      <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">{t('common.technicalContact')}</div>
                       <div className="text-gray-700 dark:text-gray-300">{hosting.domainTechName || hosting.clientTechContact || '-'}</div>
                       <div className="text-gray-500 dark:text-gray-400">{hosting.domainTechPhone || hosting.clientTechPhone || '-'}</div>
                       <div className="text-gray-500 dark:text-gray-400 truncate">{hosting.domainTechEmail || hosting.clientTechEmail || '-'}</div>
                     </div>
 
                     <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
-                      <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">Package</div>
+                      <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">{t('common.package')}</div>
                       <div className="text-gray-700 dark:text-gray-300">{hosting.packageName || '-'}</div>
                       <div className="flex gap-2 text-gray-500 dark:text-gray-400">
-                        <span>{hosting.packageMaxMailboxes || 0} mailboxes</span>
+                        <span>{hosting.packageMaxMailboxes || 0} {t('common.mailboxes')}</span>
                         <span>•</span>
                         <span>{hosting.packageStorageGb || 0} GB</span>
                       </div>
@@ -523,13 +535,13 @@ export default function HostingPage() {
                         : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
                     }`}>
                       {hosting.isActive !== false ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
-                      {hosting.isActive !== false ? 'Enabled' : 'Disabled'}
+                      {hosting.isActive !== false ? t('common.enabled') : t('common.disabled')}
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); navigate(`/domains/${hosting.domainId}`); }}
                       className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                     >
-                      <Pencil className="w-3 h-3" />Edit
+                      <Pencil className="w-3 h-3" />{t('common.edit')}
                     </button>
                   </div>
                 </div>
@@ -555,28 +567,28 @@ export default function HostingPage() {
                       <span className="font-medium text-sm">{hosting.domainName || '-'}</span>
                     </div>
                     <div className="text-xs text-gray-500 mt-0.5 ml-6">
-                      <span className="font-medium">Company</span> {hosting.clientName || '-'}
+                      <span className="font-medium">{t('common.company')}</span> {hosting.clientName || '-'}
                     </div>
                   </div>
 
                   {/* Contacts */}
                   <div className="min-w-0 text-xs space-y-1">
                     <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                      <span className="text-gray-500 font-medium w-28 flex-shrink-0">Primary Contact</span>
-                      <span className="text-gray-400">Name:</span>
+                      <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.primaryContact')}</span>
+                      <span className="text-gray-400">{t('common.name')}:</span>
                       <span>{hosting.clientContactPerson || '-'},</span>
-                      <span className="text-gray-400">Phone:</span>
+                      <span className="text-gray-400">{t('common.phone')}:</span>
                       <span>{hosting.clientPhone || '-'},</span>
-                      <span className="text-gray-400">E-Mail:</span>
+                      <span className="text-gray-400">{t('common.email')}:</span>
                       <span className="truncate">{hosting.clientEmail || '-'}</span>
                     </div>
                     <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                      <span className="text-gray-500 font-medium w-28 flex-shrink-0">Technical Contact</span>
-                      <span className="text-gray-400">Name:</span>
+                      <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.technicalContact')}</span>
+                      <span className="text-gray-400">{t('common.name')}:</span>
                       <span>{hosting.domainTechName || hosting.clientTechContact || hosting.clientContactPerson || '-'},</span>
-                      <span className="text-gray-400">Phone:</span>
+                      <span className="text-gray-400">{t('common.phone')}:</span>
                       <span>{hosting.domainTechPhone || hosting.clientTechPhone || hosting.clientPhone || '-'},</span>
-                      <span className="text-gray-400">E-Mail:</span>
+                      <span className="text-gray-400">{t('common.email')}:</span>
                       <span className="truncate">{hosting.domainTechEmail || hosting.clientTechEmail || hosting.clientEmail || '-'}</span>
                     </div>
                   </div>
@@ -585,19 +597,19 @@ export default function HostingPage() {
                   <div className="flex items-center gap-4 flex-shrink-0 text-xs ml-auto">
                     <div>
                       <div className="text-gray-700 dark:text-gray-300">
-                        <span className="text-gray-500 font-medium">Package</span> {hosting.packageName || '-'}
+                        <span className="text-gray-500 font-medium">{t('common.package')}</span> {hosting.packageName || '-'}
                       </div>
                       {hosting.packageDescription && (
                         <div className="text-gray-500">{hosting.packageDescription}</div>
                       )}
                     </div>
                     <div className="text-gray-600 dark:text-gray-400">
-                      <div>{hosting.packageMaxMailboxes || 0} mailboxes</div>
+                      <div>{hosting.packageMaxMailboxes || 0} {t('common.mailboxes')}</div>
                       <div>{hosting.packageStorageGb || 0} GB</div>
                     </div>
                     <div className="text-gray-600 dark:text-gray-400">
-                      <div><span className="text-gray-500 font-medium">Mail Server</span> {hosting.mailServerName || '-'}</div>
-                      <div><span className="text-gray-500 font-medium">Mail Security</span> {hosting.mailSecurityName || '-'}</div>
+                      <div><span className="text-gray-500 font-medium">{t('common.mailServer')}</span> {hosting.mailServerName || '-'}</div>
+                      <div><span className="text-gray-500 font-medium">{t('common.mailSecurity')}</span> {hosting.mailSecurityName || '-'}</div>
                     </div>
                   </div>
 
@@ -608,14 +620,14 @@ export default function HostingPage() {
                       : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
                   }`}>
                     {hosting.isActive !== false ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
-                    {hosting.isActive !== false ? 'ON' : 'OFF'}
+                    {hosting.isActive !== false ? t('common.on') : t('common.off')}
                   </div>
                   <StatusBadge status={status} days={hosting.daysUntilExpiry} />
                   <button
                     onClick={(e) => { e.stopPropagation(); navigate(`/domains/${hosting.domainId}`); }}
                     className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150 flex-shrink-0"
                   >
-                    <Pencil className="w-3 h-3" />Edit
+                    <Pencil className="w-3 h-3" />{t('common.edit')}
                   </button>
                 </div>
               );
@@ -631,19 +643,19 @@ export default function HostingPage() {
           setAddDomainModalOpen(false);
           resetDomainForm();
         }}
-        title="Add Domain"
+        title={t('domains.addDomain')}
         size="lg"
       >
         <form onSubmit={handleAddDomainSubmit} className="space-y-3">
           <div>
-            <label className="text-xs text-gray-500">Client *</label>
+            <label className="text-xs text-gray-500">{t('domains.client')} *</label>
             <select
               value={selectedClientId}
               onChange={(e) => handleClientChange(e.target.value ? Number(e.target.value) : '')}
               className="input py-1.5 text-sm"
               required
             >
-              <option value="">-- Select client --</option>
+              <option value="">{t('common.selectClient')}</option>
               {clientsData?.clients.map((client) => (
                 <option key={client.id} value={client.id}>
                   {client.name}
@@ -653,7 +665,7 @@ export default function HostingPage() {
           </div>
 
           <div>
-            <label className="text-xs text-gray-500">Domain *</label>
+            <label className="text-xs text-gray-500">{t('common.domain')} *</label>
             <input
               type="text"
               value={domainForm.domainName}
@@ -667,7 +679,7 @@ export default function HostingPage() {
           {/* Primary Contact */}
           <div className="pt-3 border-t dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-500 uppercase">Primary Contact</span>
+              <span className="text-xs font-medium text-gray-500 uppercase">{t('common.primaryContact')}</span>
               <label className="flex items-center gap-1.5 cursor-pointer text-xs">
                 <input
                   type="checkbox"
@@ -676,12 +688,12 @@ export default function HostingPage() {
                   className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600"
                   disabled={!selectedClientId}
                 />
-                <span className="text-gray-500">Same as company primary contact</span>
+                <span className="text-gray-500">{t('common.sameAsCompanyPrimary')}</span>
               </label>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500">Name *</label>
+                <label className="text-xs text-gray-500">{t('common.name')} *</label>
                 <input
                   value={domainForm.primaryName}
                   onChange={(e) => setDomainForm(prev => ({ ...prev, primaryName: e.target.value }))}
@@ -691,7 +703,7 @@ export default function HostingPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Phone *</label>
+                <label className="text-xs text-gray-500">{t('common.phone')} *</label>
                 <input
                   value={domainForm.primaryPhone}
                   onChange={(e) => setDomainForm(prev => ({ ...prev, primaryPhone: e.target.value }))}
@@ -701,7 +713,7 @@ export default function HostingPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Email *</label>
+                <label className="text-xs text-gray-500">{t('common.email')} *</label>
                 <input
                   type="email"
                   value={domainForm.primaryEmail}
@@ -717,7 +729,7 @@ export default function HostingPage() {
           {/* Technical Contact */}
           <div className="pt-3 border-t dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-500 uppercase">Technical Contact</span>
+              <span className="text-xs font-medium text-gray-500 uppercase">{t('common.technicalContact')}</span>
               <label className="flex items-center gap-1.5 cursor-pointer text-xs">
                 <input
                   type="checkbox"
@@ -726,12 +738,12 @@ export default function HostingPage() {
                   className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600"
                   disabled={!selectedClientId}
                 />
-                <span className="text-gray-500">Same as company technical contact</span>
+                <span className="text-gray-500">{t('common.sameAsCompanyTechnical')}</span>
               </label>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500">Name *</label>
+                <label className="text-xs text-gray-500">{t('common.name')} *</label>
                 <input
                   value={domainForm.techName}
                   onChange={(e) => setDomainForm(prev => ({ ...prev, techName: e.target.value }))}
@@ -741,7 +753,7 @@ export default function HostingPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Phone *</label>
+                <label className="text-xs text-gray-500">{t('common.phone')} *</label>
                 <input
                   value={domainForm.techPhone}
                   onChange={(e) => setDomainForm(prev => ({ ...prev, techPhone: e.target.value }))}
@@ -751,7 +763,7 @@ export default function HostingPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Email *</label>
+                <label className="text-xs text-gray-500">{t('common.email')} *</label>
                 <input
                   type="email"
                   value={domainForm.techEmail}
@@ -766,15 +778,15 @@ export default function HostingPage() {
 
           {/* Hosting Package */}
           <div className="pt-3 border-t dark:border-gray-700">
-            <span className="text-xs font-medium text-gray-500 uppercase">Hosting</span>
+            <span className="text-xs font-medium text-gray-500 uppercase">{t('domains.hosting')}</span>
             <div className="mt-2">
-              <label className="text-xs text-gray-500">Package</label>
+              <label className="text-xs text-gray-500">{t('common.package')}</label>
               <select
                 value={selectedPackageId}
                 onChange={(e) => setSelectedPackageId(e.target.value ? Number(e.target.value) : '')}
                 className="input py-1.5 text-sm"
               >
-                <option value="">-- No package --</option>
+                <option value="">{t('common.noPackage')}</option>
                 {packagesData?.packages.map((pkg) => (
                   <option key={pkg.id} value={pkg.id}>
                     {pkg.name}
@@ -791,18 +803,18 @@ export default function HostingPage() {
                     <div className="text-sm text-gray-700 dark:text-gray-300 mb-1.5">{selectedPkg.description}</div>
                   )}
                   <div className="flex items-center gap-4 text-xs">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">{selectedPkg.maxMailboxes} mailboxes</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{selectedPkg.maxMailboxes} {t('common.mailboxes')}</span>
                     <span className="font-medium text-gray-700 dark:text-gray-300">{selectedPkg.storageGb} GB</span>
                   </div>
                   <div className="mt-1.5 pt-1.5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
                       <Server className="w-3 h-3 text-gray-400" />
-                      <span className="text-gray-500 font-medium">Mail Server</span>
+                      <span className="text-gray-500 font-medium">{t('common.mailServer')}</span>
                       <span className="text-gray-700 dark:text-gray-300">{selectedPkg.mailServerName || '-'}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Shield className="w-3 h-3 text-gray-400" />
-                      <span className="text-gray-500 font-medium">Mail Security</span>
+                      <span className="text-gray-500 font-medium">{t('common.mailSecurity')}</span>
                       <span className="text-gray-700 dark:text-gray-300">{selectedPkg.mailSecurityName || '-'}</span>
                     </div>
                   </div>
@@ -814,7 +826,7 @@ export default function HostingPage() {
           {/* Expiry Date */}
           {selectedPackageId && (
             <div className="pt-3 border-t dark:border-gray-700">
-              <label className="text-xs text-gray-500">Expiry Date *</label>
+              <label className="text-xs text-gray-500">{t('common.expiryDate')} *</label>
               <input
                 type="date"
                 value={domainForm.expiryDate}
@@ -842,7 +854,7 @@ export default function HostingPage() {
 
           {/* Notes */}
           <div className="pt-3 border-t dark:border-gray-700">
-            <label className="text-xs text-gray-500">Notes</label>
+            <label className="text-xs text-gray-500">{t('common.notes')}</label>
             <textarea
               value={domainForm.notes}
               onChange={(e) => setDomainForm(prev => ({ ...prev, notes: e.target.value }))}
@@ -860,14 +872,14 @@ export default function HostingPage() {
               }}
               className="btn btn-secondary py-1.5 px-3 text-sm"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               className="btn btn-primary py-1.5 px-3 text-sm"
               disabled={createDomainMutation.isPending}
             >
-              {createDomainMutation.isPending ? 'Creating...' : 'Create'}
+              {createDomainMutation.isPending ? t('common.creating') : t('common.add')}
             </button>
           </div>
         </form>

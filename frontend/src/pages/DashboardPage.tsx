@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { DashboardStats, ExpiringItem } from '../types';
 import { Users, Globe, Server, AlertTriangle, Trash2, Loader2, Plus, UserPlus } from 'lucide-react';
@@ -14,6 +15,7 @@ function formatDateDisplay(dateStr: string): string {
 }
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const { data: statsData, isLoading: statsLoading } = useQuery({
@@ -36,15 +38,15 @@ export default function DashboardPage() {
   const willBeDeletedItems = willBeDeletedData?.items || [];
 
   const statCards = [
-    { label: 'Total Clients', value: stats?.totalClients || 0, icon: Users, color: 'bg-blue-500', link: '/clients' },
-    { label: 'Total Active Domains', value: stats?.totalActiveDomains || 0, icon: Globe, color: 'bg-green-500', link: '/domains' },
-    { label: 'Total Hosting', value: stats?.totalHosting || 0, icon: Server, color: 'bg-purple-500', link: '/domains' },
+    { label: t('dashboard.totalClients'), value: stats?.totalClients || 0, icon: Users, color: 'bg-blue-500', link: '/clients' },
+    { label: t('dashboard.totalActiveDomains'), value: stats?.totalActiveDomains || 0, icon: Globe, color: 'bg-green-500', link: '/domains' },
+    { label: t('dashboard.totalHosting'), value: stats?.totalHosting || 0, icon: Server, color: 'bg-purple-500', link: '/domains' },
   ];
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-        Dashboard
+        {t('dashboard.title')}
       </h1>
 
       {/* Main stats */}
@@ -78,8 +80,8 @@ export default function DashboardPage() {
             <UserPlus className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Quick Action</p>
-            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Add Client</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.quickAction')}</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{t('dashboard.addClient')}</p>
           </div>
         </div>
 
@@ -91,8 +93,8 @@ export default function DashboardPage() {
             <Plus className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Quick Action</p>
-            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Add Domain</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.quickAction')}</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{t('dashboard.addDomain')}</p>
           </div>
         </div>
 
@@ -102,7 +104,7 @@ export default function DashboardPage() {
         >
           <AlertTriangle className="w-6 h-6 text-yellow-500 mr-3" />
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Expiring (30 days)</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.expiring30Days')}</p>
             <p className={`text-lg font-bold ${(stats?.expiringHosting || 0) > 0 ? 'text-yellow-600' : 'text-gray-900 dark:text-gray-100'}`}>
               {statsLoading ? '...' : stats?.expiringHosting || 0}
             </p>
@@ -115,7 +117,7 @@ export default function DashboardPage() {
         >
           <Trash2 className="w-6 h-6 text-red-500 mr-3" />
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Will Be Deleted</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.willBeDeleted')}</p>
             <p className={`text-lg font-bold ${(stats?.willBeDeletedCount || 0) > 0 ? 'text-red-600' : 'text-gray-900 dark:text-gray-100'}`}>
               {statsLoading ? '...' : stats?.willBeDeletedCount || 0}
             </p>
@@ -129,7 +131,7 @@ export default function DashboardPage() {
         <div className="card !p-0 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <h2 className="font-semibold text-sm text-gray-900 dark:text-gray-100">
-              Expiring Items (next 30 days)
+              {t('dashboard.expiringItemsNext30Days')}
             </h2>
           </div>
 
@@ -139,7 +141,7 @@ export default function DashboardPage() {
             </div>
           ) : expiringItems.length === 0 ? (
             <div className="text-center py-6 text-sm text-gray-500">
-              No expiring items
+              {t('dashboard.noExpiringItems')}
             </div>
           ) : (
             <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-96 overflow-y-auto">
@@ -151,7 +153,7 @@ export default function DashboardPage() {
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0 text-xs">
                     <span className={`px-1.5 py-0.5 text-[10px] rounded ${item.type === 'hosting' ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300' : item.type === 'mail' ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300'}`}>
-                      {item.type === 'hosting' ? 'Web' : item.type === 'mail' ? 'Mail' : 'Domain'}
+                      {item.type === 'hosting' ? t('common.web') : item.type === 'mail' ? t('common.mail') : t('common.domain')}
                     </span>
                     <span className="font-medium truncate">{item.name}</span>
                     <span className="text-gray-500 dark:text-gray-400 truncate hidden sm:inline">{item.clientName || '-'}</span>
@@ -170,7 +172,7 @@ export default function DashboardPage() {
         <div className="card !p-0 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-900/20">
             <h2 className="font-semibold text-sm text-red-700 dark:text-red-400">
-              Will Be Deleted (expired 60+ days)
+              {t('dashboard.willBeDeletedExpired60')}
             </h2>
           </div>
 
@@ -180,7 +182,7 @@ export default function DashboardPage() {
             </div>
           ) : willBeDeletedItems.length === 0 ? (
             <div className="text-center py-6 text-sm text-gray-500">
-              No items pending deletion
+              {t('dashboard.noItemsPendingDeletion')}
             </div>
           ) : (
             <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-96 overflow-y-auto">
@@ -192,7 +194,7 @@ export default function DashboardPage() {
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0 text-xs">
                     <span className={`px-1.5 py-0.5 text-[10px] rounded ${item.type === 'hosting' ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'}`}>
-                      {item.type === 'hosting' ? 'Web' : 'Mail'}
+                      {item.type === 'hosting' ? t('common.web') : t('common.mail')}
                     </span>
                     <span className="font-medium truncate">{item.name}</span>
                     <span className="text-gray-500 dark:text-gray-400 truncate hidden sm:inline">{item.clientName || '-'}</span>

@@ -538,10 +538,10 @@ auth.post('/forgot-password', async (c) => {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2563eb;">Password Reset</h2>
           <p>We received a password reset request for your account.</p>
-          <p>Kliknite na link ispod da biste postavili novu lozinku:</p>
+          <p>Click the link below to set a new password:</p>
           <p style="margin: 20px 0;">
             <a href="${resetUrl}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-              Resetuj lozinku
+              Reset Password
             </a>
           </p>
           <p style="color: #6b7280; font-size: 14px;">
@@ -551,7 +551,7 @@ auth.post('/forgot-password', async (c) => {
           <p style="color: #9ca3af; font-size: 12px;">Hosting Panel</p>
         </div>
       `,
-      text: `Password Reset\n\nKliknite na link da resetujete lozinku: ${resetUrl}\n\nLink je validan 1 sat.`,
+      text: `Password Reset\n\nClick the link to reset your password: ${resetUrl}\n\nThis link is valid for 1 hour.`,
     });
 
     return c.json({ message: 'If the email exists, a reset link has been sent' });

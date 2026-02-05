@@ -206,11 +206,11 @@ templates.post('/:id/test', adminMiddleware, async (c) => {
 
     // Sample data for variables
     const variables: Record<string, string> = {
-      clientName: 'Test Klijent',
+      clientName: 'Test Client',
       domainName: 'test-domain.rs',
       expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('sr-RS'),
       daysUntilExpiry: '7',
-      packageName: 'Test Paket',
+      packageName: 'Test Package',
       companyName: companyInfo?.name || 'Hosting Panel',
       companyLogo: companyInfo?.logo || '',
       hostingStatus: 'Enabled',

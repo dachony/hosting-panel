@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../api/client';
 import { CompanyInfo } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +24,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
+  const { t } = useTranslation();
   const { isSalesAdmin, isAdmin } = useAuth();
 
   const { data: companyData } = useQuery({
@@ -37,16 +39,16 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   // SalesAdmin+: add Settings (limited)
   // Admin+: add Audit Log, Email Log, System Status
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Clients', href: '/clients', icon: Users },
-    { name: 'Domains', href: '/domains', icon: Globe },
+    { name: t('nav.dashboard'), href: '/', icon: LayoutDashboard },
+    { name: t('nav.clients'), href: '/clients', icon: Users },
+    { name: t('nav.domains'), href: '/domains', icon: Globe },
     // Settings visible to salesadmin and above
-    ...(isSalesAdmin ? [{ name: 'Settings', href: '/settings', icon: Settings }] : []),
+    ...(isSalesAdmin ? [{ name: t('nav.settings'), href: '/settings', icon: Settings }] : []),
     // Admin features
     ...(isAdmin ? [
-      { name: 'Audit Log', href: '/audit', icon: ScrollText },
-      { name: 'Email Log', href: '/emails', icon: Mail },
-      { name: 'System Status', href: '/system', icon: Activity },
+      { name: t('nav.auditLog'), href: '/audit', icon: ScrollText },
+      { name: t('nav.emailLog'), href: '/emails', icon: Mail },
+      { name: t('nav.systemStatus'), href: '/system', icon: Activity },
     ] : []),
   ];
 

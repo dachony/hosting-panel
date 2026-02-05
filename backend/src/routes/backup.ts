@@ -19,7 +19,7 @@ const csvTemplates: Record<string, { headers: string[]; example: string[] }> = {
   },
   domains: {
     headers: ['domainName', 'clientName', 'contactEmail1', 'contactEmail2', 'contactEmail3', 'notes'],
-    example: ['example.com', 'Acme Corp', 'admin@example.com', 'webmaster@example.com', '', 'Registrovan kod NIC-a'],
+    example: ['example.com', 'Acme Corp', 'admin@example.com', 'webmaster@example.com', '', 'Registered with NIC'],
   },
   hosting: {
     headers: ['domainName', 'clientName', 'packageName', 'startDate', 'expiryDate', 'isActive', 'notes'],
@@ -27,7 +27,7 @@ const csvTemplates: Record<string, { headers: string[]; example: string[] }> = {
   },
   packages: {
     headers: ['name', 'description', 'maxMailboxes', 'storageGb', 'price', 'features'],
-    example: ['Basic', 'Osnovni hosting paket', '5', '10', '1200', 'Email|SSL|Backup'],
+    example: ['Basic', 'Basic hosting package', '5', '10', '1200', 'Email|SSL|Backup'],
   },
 };
 
@@ -163,15 +163,15 @@ backup.get('/export', async (c) => {
 
 // Validation schemas for each entity type
 const clientSchema = z.object({
-  name: z.string().min(1, 'Ime je obavezno'),
+  name: z.string().min(1, 'Name is required'),
   contactPerson: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
-  email1: z.string().email('Email 1 nije validan').optional().nullable().or(z.literal('')),
-  email2: z.string().email('Email 2 nije validan').optional().nullable().or(z.literal('')),
-  email3: z.string().email('Email 3 nije validan').optional().nullable().or(z.literal('')),
+  email1: z.string().email('Email 1 is not valid').optional().nullable().or(z.literal('')),
+  email2: z.string().email('Email 2 is not valid').optional().nullable().or(z.literal('')),
+  email3: z.string().email('Email 3 is not valid').optional().nullable().or(z.literal('')),
   techContact: z.string().optional().nullable(),
   techPhone: z.string().optional().nullable(),
-  techEmail: z.string().email('Tech email nije validan').optional().nullable().or(z.literal('')),
+  techEmail: z.string().email('Tech email is not valid').optional().nullable().or(z.literal('')),
   address: z.string().optional().nullable(),
   pib: z.string().optional().nullable(),
   mib: z.string().optional().nullable(),
@@ -179,12 +179,12 @@ const clientSchema = z.object({
 });
 
 const domainSchema = z.object({
-  domainName: z.string().min(1, 'Naziv domena je obavezan'),
+  domainName: z.string().min(1, 'Domain name is required'),
   clientName: z.string().optional().nullable(),
   clientId: z.number().optional().nullable(),
-  contactEmail1: z.string().email('Email 1 nije validan').optional().nullable().or(z.literal('')),
-  contactEmail2: z.string().email('Email 2 nije validan').optional().nullable().or(z.literal('')),
-  contactEmail3: z.string().email('Email 3 nije validan').optional().nullable().or(z.literal('')),
+  contactEmail1: z.string().email('Email 1 is not valid').optional().nullable().or(z.literal('')),
+  contactEmail2: z.string().email('Email 2 is not valid').optional().nullable().or(z.literal('')),
+  contactEmail3: z.string().email('Email 3 is not valid').optional().nullable().or(z.literal('')),
   notes: z.string().optional().nullable(),
 });
 
@@ -196,13 +196,13 @@ const hostingSchema = z.object({
   packageName: z.string().optional().nullable(),
   packageId: z.number().optional().nullable(),
   startDate: z.string().optional().nullable(),
-  expiryDate: z.string().min(1, 'Datum isteka je obavezan'),
+  expiryDate: z.string().min(1, 'Expiry date is required'),
   isActive: z.union([z.boolean(), z.string()]).transform(v => v === true || v === 'true').optional(),
   notes: z.string().optional().nullable(),
 });
 
 const packageSchema = z.object({
-  name: z.string().min(1, 'Naziv paketa je obavezan'),
+  name: z.string().min(1, 'Package name is required'),
   description: z.string().optional().nullable(),
   maxMailboxes: z.union([z.number(), z.string()]).transform(v => typeof v === 'string' ? parseInt(v) || 0 : v),
   storageGb: z.union([z.number(), z.string()]).transform(v => typeof v === 'string' ? parseInt(v) || 0 : v),
@@ -225,7 +225,7 @@ backup.post('/validate', async (c) => {
       // Parse CSV data
       const lines = (data as string).split('\n').filter(l => l.trim());
       if (lines.length < 2) {
-        return c.json({ valid: false, errors: [{ row: 0, field: '', message: 'CSV mora imati zaglavlje i bar jedan red podataka' }] }, 400);
+        return c.json({ valid: false, errors: [{ row: 0, field: '', message: 'CSV must have a header and at least one data row' }] }, 400);
       }
 
       const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
@@ -259,7 +259,7 @@ backup.post('/validate', async (c) => {
         itemSchema = packageSchema;
         break;
       default:
-        return c.json({ valid: false, errors: [{ row: 0, field: '', message: 'Nepoznat tip podataka' }] }, 400);
+        return c.json({ valid: false, errors: [{ row: 0, field: '', message: 'Unknown data type' }] }, 400);
     }
 
     for (let i = 0; i < items.length; i++) {
@@ -340,7 +340,7 @@ backup.post('/import', async (c) => {
       if (importData.format === 'csv') {
         const lines = (importData.data as string).split('\n').filter(l => l.trim());
         if (lines.length < 2) {
-          return c.json({ error: 'CSV mora imati zaglavlje i bar jedan red podataka' }, 400);
+          return c.json({ error: 'CSV must have a header and at least one data row' }, 400);
         }
 
         const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
@@ -395,7 +395,7 @@ backup.post('/import', async (c) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json({ error: 'Neispravan format fajla', details: error.errors }, 400);
+      return c.json({ error: 'Invalid file format', details: error.errors }, 400);
     }
     console.error('Import error:', error);
     return c.json({ error: 'Error during import' }, 500);
@@ -494,7 +494,7 @@ async function importItems(type: string, items: Record<string, unknown>[]): Prom
           result.skipped++;
       }
     } catch (error) {
-      result.errors.push(`Red: ${JSON.stringify(item).substring(0, 100)}... - ${error instanceof Error ? error.message : 'Error'}`);
+      result.errors.push(`Row: ${JSON.stringify(item).substring(0, 100)}... - ${error instanceof Error ? error.message : 'Error'}`);
       result.skipped++;
     }
   }
