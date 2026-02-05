@@ -464,7 +464,7 @@ export default function ClientDetailPage() {
       editDomainMutation.mutate({
         ...editDomainForm,
         id: editingDomain.id,
-        hostingId: domainHosting?.id,
+        hostingId: domainHosting?.id ?? undefined,
       });
     }
   };
@@ -475,7 +475,7 @@ export default function ClientDetailPage() {
     setEditHostingForm({
       packageId: hosting.packageId?.toString() || '',
       startDate: hosting.startDate || '',
-      expiryDate: hosting.expiryDate,
+      expiryDate: hosting.expiryDate || '',
       notes: hosting.notes || '',
     });
     setEditHostingModalOpen(true);
@@ -484,7 +484,7 @@ export default function ClientDetailPage() {
   const handleEditHostingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (editingHosting) {
-      editHostingMutation.mutate({ ...editHostingForm, id: editingHosting.id });
+      editHostingMutation.mutate({ ...editHostingForm, id: editingHosting.id! });
     }
   };
 
@@ -993,7 +993,7 @@ export default function ClientDetailPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleExtend(domainHosting.id, domain.domainName);
+                            handleExtend(domainHosting.id!, domain.domainName);
                           }}
                           className="btn btn-primary text-xs py-1 px-2 flex items-center gap-1"
                         >
@@ -1110,14 +1110,14 @@ export default function ClientDetailPage() {
                             <div className="mt-2 pt-2 border-t dark:border-gray-700 flex items-center justify-between text-xs">
                               <div className="flex items-center gap-1">
                                 <span className="text-gray-500">{t('common.expiry')}</span>
-                                <span className="font-medium">{formatDateDisplay(domainHosting.expiryDate)}</span>
+                                <span className="font-medium">{formatDateDisplay(domainHosting.expiryDate!)}</span>
                               </div>
                               <div className="flex items-center gap-3">
                                 <StatusBadge status={domainHosting.expiryStatus} days={domainHosting.daysUntilExpiry || 0} />
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleExtend(domainHosting.id, domainHosting.packageName || 'Hosting');
+                                    handleExtend(domainHosting.id!, domainHosting.packageName || 'Hosting');
                                   }}
                                   className="btn btn-primary text-xs py-1 px-2 flex items-center gap-1"
                                 >
