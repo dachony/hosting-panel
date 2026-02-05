@@ -305,19 +305,24 @@
   },
   "emailLog": {
     "title": "Email dnevnik",
-    "allEmailsDeleted": "Svi emailovi su obrisani",
-    "errorDeleting": "Greška pri brisanju emailova",
-    "refresh": "Osvežii",
+    "allEmailsDeleted": "Svi email logovi su obrisani",
+    "errorDeleting": "Greška pri brisanju email logova",
+    "refresh": "Osveži",
+    "deleteLogs": "Obriši logove",
     "deleteAll": "Obriši sve",
-    "deleteAllConfirm": "Da li ste sigurni da želite da obrišete sve emailove?",
-    "mailhogUnavailable": "MailHog nije dostupan. Proverite da li je servis pokrenut.",
-    "noEmails": "Nema emailova",
+    "deleteAllConfirm": "Da li ste sigurni da želite da obrišete sve email logove?",
+    "deleteOlderThan30": "Starije od 30 dana",
+    "deleteOlderThan90": "Starije od 90 dana",
+    "noEmails": "Još nema poslatih emailova",
     "from": "Od:",
     "to": "Za:",
     "content": "Sadržaj:",
     "emptyContent": "(prazan sadržaj)",
     "noSubject": "(bez naslova)",
-    "totalEmails": "Ukupno: {{count}} emailova"
+    "totalEmails": "Ukupno: {{count}} emailova",
+    "searchPlaceholder": "Pretraži po primaocu ili naslovu...",
+    "statusSent": "Poslat",
+    "statusFailed": "Neuspešan"
   },
   "users": {
     "title": "Korisnici",
@@ -385,7 +390,7 @@
     "olderThan12Months": "Starije od 12 meseci",
     "deleting": "Brisanje...",
     "emailLogs": "Email dnevnici",
-    "emailsStoredInMailHog": "Emailovi su sačuvani u MailHog servisu",
+    "emailsStoredInDb": "Emailovi su sačuvani u bazi podataka",
     "errorLoading": "Greška pri učitavanju statusa sistema"
   }
 }

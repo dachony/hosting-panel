@@ -308,16 +308,21 @@
     "allEmailsDeleted": "All emails deleted",
     "errorDeleting": "Error deleting emails",
     "refresh": "Refresh",
+    "deleteLogs": "Delete logs",
     "deleteAll": "Delete all",
-    "deleteAllConfirm": "Are you sure you want to delete all emails?",
-    "mailhogUnavailable": "MailHog is not available. Check if the service is running.",
-    "noEmails": "No emails",
+    "deleteAllConfirm": "Are you sure you want to delete all email logs?",
+    "deleteOlderThan30": "Older than 30 days",
+    "deleteOlderThan90": "Older than 90 days",
+    "noEmails": "No emails sent yet",
     "from": "From:",
     "to": "To:",
     "content": "Content:",
     "emptyContent": "(empty content)",
     "noSubject": "(no subject)",
-    "totalEmails": "Total: {{count}} emails"
+    "totalEmails": "Total: {{count}} emails",
+    "searchPlaceholder": "Search by recipient or subject...",
+    "statusSent": "Sent",
+    "statusFailed": "Failed"
   },
   "users": {
     "title": "Users",
@@ -385,7 +390,7 @@
     "olderThan12Months": "Older than 12 months",
     "deleting": "Deleting...",
     "emailLogs": "Email Logs",
-    "emailsStoredInMailHog": "Emails are stored in MailHog service",
+    "emailsStoredInDb": "Emails are stored in the database",
     "errorLoading": "Error loading system status"
   }
 }

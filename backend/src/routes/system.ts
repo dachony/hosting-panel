@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db, schema } from '../db/index.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { sql } from 'drizzle-orm';
+import { sql, eq, or, like, desc } from 'drizzle-orm';
 import os from 'os';
 import fs from 'fs';
 
@@ -111,116 +111,115 @@ system.get('/status', async (c) => {
   }
 });
 
-// Get email logs from MailHog
+// Get email logs from database
 system.get('/emails', async (c) => {
   try {
-    const start = parseInt(c.req.query('start') || '0');
-    const limit = parseInt(c.req.query('limit') || '50');
+    const page = parseInt(c.req.query('page') || '1');
+    const limit = parseInt(c.req.query('limit') || '30');
+    const search = c.req.query('search') || '';
+    const offset = (page - 1) * limit;
 
-    const mailhogUrl = `http://${process.env.SMTP_HOST || 'mailhog'}:8025/api/v2/messages?start=${start}&limit=${limit}`;
+    let query = db.select().from(schema.emailLogs);
 
-    const response = await fetch(mailhogUrl);
-
-    if (!response.ok) {
-      throw new Error(`MailHog responded with ${response.status}`);
+    if (search) {
+      query = query.where(
+        or(
+          like(schema.emailLogs.toEmail, `%${search}%`),
+          like(schema.emailLogs.subject, `%${search}%`),
+          like(schema.emailLogs.fromEmail, `%${search}%`)
+        )
+      ) as typeof query;
     }
 
-    const data = await response.json();
+    const emails = await query.orderBy(desc(schema.emailLogs.createdAt)).limit(limit).offset(offset);
+
+    // Count total
+    let countQuery = db.select({ count: sql<number>`count(*)` }).from(schema.emailLogs);
+    if (search) {
+      countQuery = countQuery.where(
+        or(
+          like(schema.emailLogs.toEmail, `%${search}%`),
+          like(schema.emailLogs.subject, `%${search}%`),
+          like(schema.emailLogs.fromEmail, `%${search}%`)
+        )
+      ) as typeof countQuery;
+    }
+    const totalResult = await countQuery;
+    const total = totalResult[0]?.count || 0;
 
     return c.json({
-      emails: data.items || [],
-      total: data.total || 0,
-      count: data.count || 0,
-      start: data.start || 0,
+      emails,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
     console.error('Email log error:', error);
-    return c.json({
-      emails: [],
-      total: 0,
-      count: 0,
-      start: 0,
-      error: 'MailHog not available'
-    });
+    return c.json({ error: 'Failed to load email logs' }, 500);
   }
 });
 
-// Delete emails from MailHog (all or older than X days)
+// Get email statistics (must be before /emails/:id)
+system.get('/emails/stats', async (c) => {
+  try {
+    const totalResult = await db.select({ count: sql<number>`count(*)` }).from(schema.emailLogs);
+    const total = totalResult[0]?.count || 0;
+
+    const sentResult = await db.select({ count: sql<number>`count(*)` }).from(schema.emailLogs)
+      .where(eq(schema.emailLogs.status, 'sent'));
+    const sent = sentResult[0]?.count || 0;
+
+    const failedResult = await db.select({ count: sql<number>`count(*)` }).from(schema.emailLogs)
+      .where(eq(schema.emailLogs.status, 'failed'));
+    const failed = failedResult[0]?.count || 0;
+
+    // Estimate size based on average email size (~2KB)
+    const estimatedSize = total * 2048;
+
+    return c.json({ total, sent, failed, estimatedSize });
+  } catch (error) {
+    console.error('Email stats error:', error);
+    return c.json({ total: 0, sent: 0, failed: 0, estimatedSize: 0 }, 500);
+  }
+});
+
+// Get single email by ID
+system.get('/emails/:id', async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'));
+    const email = await db.select().from(schema.emailLogs).where(eq(schema.emailLogs.id, id)).get();
+
+    if (!email) {
+      return c.json({ error: 'Email not found' }, 404);
+    }
+
+    return c.json(email);
+  } catch (error) {
+    console.error('Email detail error:', error);
+    return c.json({ error: 'Failed to load email' }, 500);
+  }
+});
+
+// Delete email logs (all or older than X days)
 system.delete('/emails', async (c) => {
   try {
     const days = parseInt(c.req.query('days') || '0');
-    const mailhogHost = `http://${process.env.SMTP_HOST || 'mailhog'}:8025`;
 
-    // days=0 means delete all
     if (days === 0) {
-      const response = await fetch(`${mailhogHost}/api/v1/messages`, { method: 'DELETE' });
-      if (!response.ok) {
-        throw new Error(`MailHog responded with ${response.status}`);
-      }
-      return c.json({ message: 'All emails deleted', deleted: -1 });
+      await db.delete(schema.emailLogs);
+      return c.json({ message: 'All email logs deleted' });
     }
 
-    // Date-based deletion: fetch all emails, filter by date, delete individually
-    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    let deleted = 0;
-    let start = 0;
-    const batchSize = 50;
+    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    await db.delete(schema.emailLogs).where(
+      sql`${schema.emailLogs.createdAt} < ${cutoffDate}`
+    );
 
-    // Fetch all emails in batches to find old ones
-    while (true) {
-      const listRes = await fetch(`${mailhogHost}/api/v2/messages?start=${start}&limit=${batchSize}`);
-      if (!listRes.ok) break;
-      const data = await listRes.json();
-      const items = data.items || [];
-      if (items.length === 0) break;
-
-      for (const item of items) {
-        const created = new Date(item.Created);
-        if (created < cutoffDate) {
-          const delRes = await fetch(`${mailhogHost}/api/v1/messages/${item.ID}`, { method: 'DELETE' });
-          if (delRes.ok) deleted++;
-        }
-      }
-
-      start += batchSize;
-      if (start >= (data.total || 0)) break;
-    }
-
-    return c.json({ message: `Deleted ${deleted} emails older than ${days} days`, deleted });
+    return c.json({ message: `Deleted email logs older than ${days} days` });
   } catch (error) {
     console.error('Delete emails error:', error);
-    return c.json({ error: 'Failed to delete emails' }, 500);
-  }
-});
-
-// Get email statistics from MailHog
-system.get('/emails/stats', async (c) => {
-  try {
-    const mailhogUrl = `http://${process.env.SMTP_HOST || 'mailhog'}:8025/api/v2/messages?start=0&limit=1`;
-
-    const response = await fetch(mailhogUrl);
-
-    if (!response.ok) {
-      throw new Error(`MailHog responded with ${response.status}`);
-    }
-
-    const data = await response.json();
-    const total = data.total || 0;
-
-    // Estimate size (~2KB average per email)
-    const estimatedSize = total * 2048;
-
-    return c.json({
-      total,
-      estimatedSize,
-    });
-  } catch (error) {
-    console.error('Email stats error:', error);
-    return c.json({
-      total: 0,
-      estimatedSize: 0,
-      error: 'MailHog not available'
-    });
+    return c.json({ error: 'Failed to delete email logs' }, 500);
   }
 });
 

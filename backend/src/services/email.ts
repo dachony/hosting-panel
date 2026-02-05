@@ -65,14 +65,50 @@ export interface EmailOptions {
 
 export async function sendEmail(options: EmailOptions): Promise<void> {
   const { transporter, from } = await createTransporter();
+  const settings = await getSmtpSettings();
 
-  await transporter.sendMail({
-    from,
-    to: options.to,
-    subject: options.subject,
-    html: options.html,
-    text: options.text,
-  });
+  try {
+    await transporter.sendMail({
+      from,
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text,
+    });
+
+    // Log successful email
+    try {
+      await db.insert(schema.emailLogs).values({
+        fromEmail: settings.fromEmail,
+        fromName: settings.fromName || null,
+        toEmail: options.to,
+        subject: options.subject,
+        htmlContent: options.html,
+        textContent: options.text || null,
+        status: 'sent',
+      });
+    } catch (logError) {
+      console.error('Failed to log email:', logError);
+    }
+  } catch (error: any) {
+    // Log failed email
+    try {
+      await db.insert(schema.emailLogs).values({
+        fromEmail: settings.fromEmail,
+        fromName: settings.fromName || null,
+        toEmail: options.to,
+        subject: options.subject,
+        htmlContent: options.html,
+        textContent: options.text || null,
+        status: 'failed',
+        error: error.message || 'Unknown error',
+      });
+    } catch (logError) {
+      console.error('Failed to log email:', logError);
+    }
+
+    throw error;
+  }
 }
 
 export async function sendTestEmail(to: string): Promise<void> {

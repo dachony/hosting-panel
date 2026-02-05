@@ -335,6 +335,22 @@ export const blockedIps = sqliteTable('blocked_ips', {
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const emailLogs = sqliteTable('email_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  fromEmail: text('from_email').notNull(),
+  fromName: text('from_name'),
+  toEmail: text('to_email').notNull(),
+  subject: text('subject').notNull(),
+  htmlContent: text('html_content').notNull(),
+  textContent: text('text_content'),
+  status: text('status', { enum: ['sent', 'failed'] }).notNull().default('sent'),
+  error: text('error'),
+  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export type EmailLog = typeof emailLogs.$inferSelect;
+export type NewEmailLog = typeof emailLogs.$inferInsert;
+
 export type VerificationCode = typeof verificationCodes.$inferSelect;
 export type LoginAttempt = typeof loginAttempts.$inferSelect;
 export type BlockedIp = typeof blockedIps.$inferSelect;

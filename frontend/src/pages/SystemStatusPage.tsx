@@ -486,7 +486,7 @@ export default function SystemStatusPage() {
                 </div>
               </div>
               <div className="text-xs text-gray-500">
-                {t('systemStatus.emailsStoredInMailHog')}
+                {t('systemStatus.emailsStoredInDb')}
               </div>
 
               {/* Delete Logs */}
