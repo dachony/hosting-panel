@@ -1,36 +1,7 @@
-import bcrypt from 'bcryptjs';
 import { db, schema } from './index.js';
-import { eq } from 'drizzle-orm';
 
-async function seed() {
-  console.log('Seeding database...');
-
-  // Superadmin user from environment or defaults
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-  const adminFirstName = process.env.ADMIN_FIRST_NAME || 'Admin';
-  const adminLastName = process.env.ADMIN_LAST_NAME || 'User';
-  const adminPhone = process.env.ADMIN_PHONE || '';
-  const adminName = `${adminFirstName} ${adminLastName}`.trim();
-
-  const existingAdmin = await db.select().from(schema.users).where(eq(schema.users.email, adminEmail)).get();
-
-  if (!existingAdmin) {
-    const passwordHash = await bcrypt.hash(adminPassword, 10);
-    await db.insert(schema.users).values({
-      email: adminEmail,
-      passwordHash,
-      name: adminName,
-      firstName: adminFirstName,
-      lastName: adminLastName,
-      phone: adminPhone,
-      role: 'superadmin',
-      mustChangePassword: false,
-    });
-    console.log(`Created superadmin user: ${adminEmail}`);
-  } else {
-    console.log(`Superadmin user already exists: ${adminEmail}`);
-  }
+export async function seedDefaults() {
+  console.log('Seeding default data...');
 
   // Create default notification settings
   const existingSettings = await db.select().from(schema.notificationSettings).all();
@@ -163,4 +134,5 @@ async function seed() {
   console.log('Seeding completed!');
 }
 
-seed().catch(console.error);
+// Allow running directly: node dist/db/seed.js
+seedDefaults().catch(console.error);

@@ -23,11 +23,13 @@ interface LoginResult {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  needsSetup: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
   verify2FA: (sessionToken: string, code: string, useBackupCode?: boolean) => Promise<void>;
   setup2FA: (setupToken: string, method: 'email' | 'totp') => Promise<{ secret?: string; qrCode?: string }>;
   verify2FASetup: (setupToken: string, code: string, method: 'email' | 'totp') => Promise<{ backupCodes?: string[] }>;
   resend2FACode: (sessionToken: string) => Promise<void>;
+  completeSetup: (token: string, user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
   // Role checks
@@ -44,28 +46,43 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [needsSetup, setNeedsSetup] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
+    const init = async () => {
+      try {
+        // Check if setup is needed
+        const setupRes = await fetch('/api/auth/setup-status');
+        const setupData = await setupRes.json();
+        if (setupData.needsSetup) {
+          setNeedsSetup(true);
+          setIsLoading(false);
+          return;
+        }
+      } catch {
+        // If setup-status fails, continue normally
+      }
 
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-      // Verify token is still valid
-      api.get<{ user: User }>('/api/auth/me')
-        .then(({ user }) => {
+      const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+
+      if (storedUser && token) {
+        setUser(JSON.parse(storedUser));
+        try {
+          const { user } = await api.get<{ user: User }>('/api/auth/me');
           setUser(user);
           localStorage.setItem('user', JSON.stringify(user));
-        })
-        .catch(() => {
+        } catch {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setUser(null);
-        })
-        .finally(() => setIsLoading(false));
-    } else {
+        }
+      }
+
       setIsLoading(false);
-    }
+    };
+
+    init();
   }, []);
 
   const login = async (email: string, password: string): Promise<LoginResult> => {
@@ -142,6 +159,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await api.post('/api/auth/login/resend-2fa', { sessionToken });
   };
 
+  const completeSetup = (token: string, setupUser: User) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(setupUser));
+    setUser(setupUser);
+    setNeedsSetup(false);
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -159,11 +183,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isLoading,
+        needsSetup,
         login,
         verify2FA,
         setup2FA,
         verify2FASetup,
         resend2FACode,
+        completeSetup,
         logout,
         isAuthenticated: !!user,
         isSuperAdmin,

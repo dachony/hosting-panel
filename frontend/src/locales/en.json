@@ -331,6 +331,17 @@
     "user": "User",
     "deleteConfirm": "Are you sure you want to delete this user?"
   },
+  "setup": {
+    "title": "Create Administrator Account",
+    "subtitle": "First-time setup - create your administrator account",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "phone": "Phone",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "createAccount": "Create Account & Start"
+  },
   "systemStatus": {
     "title": "System Status",
     "lastUpdate": "Last update:",

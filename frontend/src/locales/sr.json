@@ -331,6 +331,17 @@
     "user": "Korisnik",
     "deleteConfirm": "Da li ste sigurni da želite da obrišete ovog korisnika?"
   },
+  "setup": {
+    "title": "Kreiranje administratorskog naloga",
+    "subtitle": "Prvo pokretanje - kreirajte administratorski nalog",
+    "firstName": "Ime",
+    "lastName": "Prezime",
+    "email": "Email",
+    "phone": "Telefon",
+    "password": "Lozinka",
+    "confirmPassword": "Potvrdite lozinku",
+    "createAccount": "Kreiraj nalog i započni"
+  },
   "systemStatus": {
     "title": "Status sistema",
     "lastUpdate": "Poslednje ažuriranje:",

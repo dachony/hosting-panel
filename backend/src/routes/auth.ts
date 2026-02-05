@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { db, schema } from '../db/index.js';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, gt, count } from 'drizzle-orm';
 import { generateToken, authMiddleware, AppEnv } from '../middleware/auth.js';
 import { z } from 'zod';
 import { sendEmail } from '../services/email.js';
@@ -20,6 +20,7 @@ import {
   validatePassword,
 } from '../services/security.js';
 import { authenticator } from 'otplib';
+import { seedDefaults } from '../db/seed.js';
 
 const auth = new Hono<AppEnv>();
 
@@ -604,6 +605,80 @@ auth.post('/reset-password', async (c) => {
       .where(eq(schema.passwordResetTokens.id, resetToken.id));
 
     return c.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: 'Invalid input', details: error.errors }, 400);
+    }
+    throw error;
+  }
+});
+
+// --- Setup wizard endpoints (public, no auth) ---
+
+auth.get('/setup-status', async (c) => {
+  const result = await db.select({ value: count() }).from(schema.users).get();
+  const userCount = result?.value ?? 0;
+  return c.json({ needsSetup: userCount === 0 });
+});
+
+const setupSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email(),
+  phone: z.string().optional().default(''),
+  password: z.string().min(6),
+});
+
+auth.post('/setup', async (c) => {
+  try {
+    // Only allow when zero users exist
+    const result = await db.select({ value: count() }).from(schema.users).get();
+    const userCount = result?.value ?? 0;
+    if (userCount > 0) {
+      return c.json({ error: 'Setup already completed' }, 403);
+    }
+
+    const body = await c.req.json();
+    const { firstName, lastName, email, phone, password } = setupSchema.parse(body);
+
+    const name = `${firstName} ${lastName}`.trim();
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await db.insert(schema.users).values({
+      email,
+      passwordHash,
+      name,
+      firstName,
+      lastName,
+      phone,
+      role: 'superadmin',
+      mustChangePassword: false,
+    });
+
+    // Seed default settings, templates, notification settings
+    await seedDefaults();
+
+    const user = await db.select().from(schema.users).where(eq(schema.users.email, email)).get();
+
+    if (!user) {
+      return c.json({ error: 'Failed to create user' }, 500);
+    }
+
+    const token = generateToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    return c.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return c.json({ error: 'Invalid input', details: error.errors }, 400);
