@@ -32,7 +32,7 @@ export default function ResetPasswordPage() {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast.error('Lozinke se ne poklapaju');
+      toast.error('Passwords do not match');
       return;
     }
 
@@ -76,7 +76,7 @@ export default function ResetPasswordPage() {
               </svg>
             </div>
             <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-              Neispravan link
+              Invalid link
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               Link za reset lozinke nije validan ili je istekao.
@@ -140,12 +140,12 @@ export default function ResetPasswordPage() {
                   className="input"
                   required
                   minLength={6}
-                  placeholder="Minimum 6 karaktera"
+                  placeholder="Minimum 6 characters"
                 />
               </div>
 
               <div>
-                <label className="label">Potvrdi lozinku</label>
+                <label className="label">Confirm password</label>
                 <input
                   type="password"
                   value={confirmPassword}
@@ -160,7 +160,7 @@ export default function ResetPasswordPage() {
                 className="btn btn-primary w-full"
                 disabled={isLoading}
               >
-                {isLoading ? 'Promena...' : 'Promeni lozinku'}
+                {isLoading ? 'Changing...' : 'Change password'}
               </button>
 
               <div className="text-center">

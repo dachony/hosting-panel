@@ -1462,7 +1462,7 @@ export default function SettingsPage() {
         valid: false,
         totalRows: 0,
         validRows: 0,
-        errors: [{ row: 0, field: '', message: 'Neispravan format fajla' }],
+        errors: [{ row: 0, field: '', message: 'Invalid file format' }],
         preview: [],
       });
     }
@@ -3792,7 +3792,7 @@ export default function SettingsPage() {
                       onClick={handleImportConfirm}
                       className="mt-3 btn btn-primary w-full !py-1.5 !text-sm"
                     >
-                      Potvrdi import
+                      Confirm import
                     </button>
                   )}
                 </div>
