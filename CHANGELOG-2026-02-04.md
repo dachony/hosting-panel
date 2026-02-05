@@ -38,7 +38,7 @@
 
 ### Sidebar
 - Company logo iz Owner settings
-- "Hosting Dashboard" tekst ispod loga
+- "Hosting Panel" tekst ispod loga
 - Kompaktniji frejm
 
 ### Settings Page

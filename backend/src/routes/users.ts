@@ -111,7 +111,7 @@ users.post('/', async (c) => {
     if (data.sendInvite) {
       const systemSettings = await getSystemSettings();
       const baseUrl = systemSettings.baseUrl || 'http://localhost:3000';
-      const systemName = systemSettings.systemName || 'Hosting Dashboard';
+      const systemName = systemSettings.systemName || 'Hosting Panel';
 
       try {
         await sendEmail({
@@ -322,7 +322,7 @@ users.post('/:id/resend-invite', async (c) => {
   // Send invite email
   const systemSettings = await getSystemSettings();
   const baseUrl = systemSettings.baseUrl || 'http://localhost:3000';
-  const systemName = systemSettings.systemName || 'Hosting Dashboard';
+  const systemName = systemSettings.systemName || 'Hosting Panel';
 
   try {
     await sendEmail({

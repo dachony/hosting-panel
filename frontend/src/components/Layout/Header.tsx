@@ -27,7 +27,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const systemName = systemData?.settings?.systemName ?? 'Hosting Dashboard';
+  const systemName = systemData?.settings?.systemName ?? 'Hosting Panel';
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

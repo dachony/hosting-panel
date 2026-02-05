@@ -187,7 +187,7 @@ security.post('/2fa/setup/totp', async (c) => {
 
   // Get system name for the authenticator label
   const systemSetting = await db.select().from(schema.appSettings).where(eq(schema.appSettings.key, 'system')).get();
-  const systemName = (systemSetting?.value as any)?.systemName || 'Hosting Dashboard';
+  const systemName = (systemSetting?.value as any)?.systemName || 'Hosting Panel';
 
   // Generate secret
   const secret = authenticator.generateSecret();

@@ -26,7 +26,7 @@ settings.get('/system', async (c) => {
   const setting = await db.select().from(schema.appSettings).where(eq(schema.appSettings.key, 'system')).get();
 
   const defaults = {
-    systemName: 'Hosting Dashboard',
+    systemName: 'Hosting Panel',
     baseUrl: '',
   };
 

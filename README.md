@@ -1,4 +1,4 @@
-# Hosting Dashboard
+# Hosting Panel
 
 Web aplikacija za evidenciju domena, web hostinga i mail hostinga sa admin panelom, automatskim notifikacijama i izveštajima.
 

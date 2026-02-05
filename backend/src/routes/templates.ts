@@ -211,7 +211,7 @@ templates.post('/:id/test', adminMiddleware, async (c) => {
       expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('sr-RS'),
       daysUntilExpiry: '7',
       packageName: 'Test Paket',
-      companyName: companyInfo?.name || 'Hosting Dashboard',
+      companyName: companyInfo?.name || 'Hosting Panel',
       companyLogo: companyInfo?.logo || '',
       hostingStatus: 'Enabled',
     };

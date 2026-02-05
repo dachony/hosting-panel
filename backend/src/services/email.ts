@@ -19,7 +19,7 @@ const DEFAULT_SMTP: SmtpSettings = {
   user: '',
   password: '',
   fromEmail: process.env.SMTP_FROM || 'noreply@hosting-dashboard.local',
-  fromName: 'Hosting Dashboard',
+  fromName: 'Hosting Panel',
 };
 
 async function getSmtpSettings(): Promise<SmtpSettings> {
@@ -78,15 +78,15 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
 export async function sendTestEmail(to: string): Promise<void> {
   await sendEmail({
     to,
-    subject: 'Hosting Dashboard - Test Email',
+    subject: 'Hosting Panel - Test Email',
     html: `
       <h1>Test Email</h1>
-      <p>Ovo je test email iz Hosting Dashboard aplikacije.</p>
+      <p>Ovo je test email iz Hosting Panel aplikacije.</p>
       <p>Ako vidite ovu poruku, SMTP konfiguracija je ispravna.</p>
       <hr>
       <p><small>Poslato: ${new Date().toISOString()}</small></p>
     `,
-    text: 'Ovo je test email iz Hosting Dashboard aplikacije. Ako vidite ovu poruku, SMTP konfiguracija je ispravna.',
+    text: 'Ovo je test email iz Hosting Panel aplikacije. Ako vidite ovu poruku, SMTP konfiguracija je ispravna.',
   });
 }
 
@@ -153,7 +153,7 @@ export function getExpiryNotificationEmail(
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
 
         <p style="color: #9ca3af; font-size: 12px;">
-          Ova poruka je automatski generisana od strane Hosting Dashboard sistema.
+          Ova poruka je automatski generisana od strane Hosting Panel sistema.
         </p>
       </div>
     `,
@@ -197,7 +197,7 @@ export function getDailyReportEmail(
 
   return {
     to: '',
-    subject: `Hosting Dashboard - Dnevni izveštaj (${new Date().toLocaleDateString('sr-RS')})`,
+    subject: `Hosting Panel - Dnevni izveštaj (${new Date().toLocaleDateString('sr-RS')})`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
         <h1 style="color: #1f2937;">Dnevni izveštaj</h1>
@@ -216,7 +216,7 @@ export function getDailyReportEmail(
 
         <p style="color: #9ca3af; font-size: 12px;">
           Generisano: ${new Date().toISOString()}<br>
-          Hosting Dashboard
+          Hosting Panel
         </p>
       </div>
     `,

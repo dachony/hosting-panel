@@ -19,7 +19,7 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false);
 
   // Branding state
-  const [branding, setBranding] = useState<Branding>({ systemName: 'Hosting Dashboard', logo: null });
+  const [branding, setBranding] = useState<Branding>({ systemName: 'Hosting Panel', logo: null });
 
   useEffect(() => {
     fetch('/api/public/branding')

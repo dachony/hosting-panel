@@ -18,7 +18,7 @@ export default function LoginPage() {
   const { login, verify2FA, setup2FA, verify2FASetup, resend2FACode } = useAuth();
 
   // Branding state
-  const [branding, setBranding] = useState<Branding>({ systemName: 'Hosting Dashboard', logo: null });
+  const [branding, setBranding] = useState<Branding>({ systemName: 'Hosting Panel', logo: null });
 
   useEffect(() => {
     fetch('/api/public/branding')

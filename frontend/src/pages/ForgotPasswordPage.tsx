@@ -14,7 +14,7 @@ export default function ForgotPasswordPage() {
   const [submitted, setSubmitted] = useState(false);
 
   // Branding state
-  const [branding, setBranding] = useState<Branding>({ systemName: 'Hosting Dashboard', logo: null });
+  const [branding, setBranding] = useState<Branding>({ systemName: 'Hosting Panel', logo: null });
 
   useEffect(() => {
     fetch('/api/public/branding')

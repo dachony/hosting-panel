@@ -107,7 +107,7 @@ export default function SettingsPage() {
 
   // System settings state
   const [systemSettings, setSystemSettings] = useState<SystemSettings>({
-    systemName: 'Hosting Dashboard',
+    systemName: 'Hosting Panel',
     baseUrl: '',
   });
 
@@ -718,7 +718,7 @@ export default function SettingsPage() {
     user: '',
     password: '',
     fromEmail: 'noreply@hosting-dashboard.local',
-    fromName: 'Hosting Dashboard',
+    fromName: 'Hosting Panel',
     imapPort: 993,
     imapSecure: true,
   });
@@ -1892,7 +1892,7 @@ export default function SettingsPage() {
                       value={systemSettings.systemName}
                       onChange={(e) => setSystemSettings({ ...systemSettings, systemName: e.target.value })}
                       className="input !py-1.5 !text-sm"
-                      placeholder="Hosting Dashboard"
+                      placeholder="Hosting Panel"
                     />
                   </div>
                   <div className="col-span-6">
@@ -3100,7 +3100,7 @@ export default function SettingsPage() {
                       value={mailSettings.fromName}
                       onChange={(e) => setMailSettings({ ...mailSettings, fromName: e.target.value })}
                       className="input !py-1.5 !text-sm"
-                      placeholder="Hosting Dashboard"
+                      placeholder="Hosting Panel"
                     />
                   </div>
 

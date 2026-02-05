@@ -356,7 +356,7 @@ async function sendReportNotifications() {
 
     // Build variables
     const variables: Record<string, string> = {
-      companyName: companyInfo?.name || 'Hosting Dashboard',
+      companyName: companyInfo?.name || 'Hosting Panel',
       companyLogo: companyInfo?.logo || '',
     };
 
@@ -428,7 +428,7 @@ async function sendSystemNotifications() {
 
     // Build variables
     const variables: Record<string, string> = {
-      companyName: companyInfo?.name || 'Hosting Dashboard',
+      companyName: companyInfo?.name || 'Hosting Panel',
       companyLogo: companyInfo?.logo || '',
     };
 

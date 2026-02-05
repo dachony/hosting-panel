@@ -34,7 +34,7 @@ app.use('*', cors({
 }));
 
 // Health check
-app.get('/', (c) => c.json({ status: 'ok', message: 'Hosting Dashboard API' }));
+app.get('/', (c) => c.json({ status: 'ok', message: 'Hosting Panel API' }));
 app.get('/health', (c) => c.json({ status: 'healthy' }));
 
 // Public branding endpoint (no auth required)
@@ -47,7 +47,7 @@ app.get('/api/public/branding', async (c) => {
     db.select().from(schema.companyInfo).get(),
   ]);
 
-  const systemName = (systemSetting?.value as { systemName?: string })?.systemName || 'Hosting Dashboard';
+  const systemName = (systemSetting?.value as { systemName?: string })?.systemName || 'Hosting Panel';
   const logo = companyInfo?.logo || null;
 
   return c.json({ systemName, logo });

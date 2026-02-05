@@ -121,7 +121,7 @@ async function seed() {
   </table>
   <p style="color: #6b7280; font-size: 14px;">Molimo vas da preduzmete odgovarajuće akcije pre isteka.</p>
   <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-  <p style="color: #9ca3af; font-size: 12px;">Ova poruka je automatski generisana od strane Hosting Dashboard sistema.</p>
+  <p style="color: #9ca3af; font-size: 12px;">Ova poruka je automatski generisana od strane Hosting Panel sistema.</p>
 </div>`,
         pdfTemplate: `<html>
 <head><style>body{font-family:Arial,sans-serif;padding:40px;}h1{color:#1f2937;}table{width:100%;border-collapse:collapse;}td{padding:10px;border:1px solid #e5e7eb;}</style></head>
@@ -170,7 +170,7 @@ async function seed() {
       {
         name: 'Daily Report',
         type: 'reports',
-        subject: 'Hosting Dashboard - Dnevni izveštaj ({{date}})',
+        subject: 'Hosting Panel - Dnevni izveštaj ({{date}})',
         htmlContent: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
   <h1 style="color: #1f2937;">Dnevni izveštaj</h1>
   <p style="color: #6b7280;">Pregled usluga koje ističu u narednih 7 dana</p>
@@ -185,7 +185,7 @@ async function seed() {
   {{mailTable}}
 
   <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
-  <p style="color: #9ca3af; font-size: 12px;">Generisano: {{generatedAt}}<br>Hosting Dashboard</p>
+  <p style="color: #9ca3af; font-size: 12px;">Generisano: {{generatedAt}}<br>Hosting Panel</p>
 </div>`,
         variables: ['date', 'domainsCount', 'domainsTable', 'hostingCount', 'hostingTable', 'mailCount', 'mailTable', 'generatedAt'],
         isActive: true,
@@ -201,7 +201,7 @@ async function seed() {
     await db.insert(schema.appSettings).values([
       { key: 'theme', value: 'light' },
       { key: 'language', value: 'sr' },
-      { key: 'companyName', value: 'Hosting Dashboard' },
+      { key: 'companyName', value: 'Hosting Panel' },
     ]);
     console.log('Created default app settings');
   }

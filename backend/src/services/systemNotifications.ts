@@ -70,7 +70,7 @@ async function sendNotification(subject: string, html: string) {
           <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
             ${html}
             <p style="color: #6b7280; font-size: 12px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
-              This is an automated system notification from Hosting Dashboard.<br>
+              This is an automated system notification from Hosting Panel.<br>
               Time: ${new Date().toLocaleString('sr-RS')}
             </p>
           </div>
@@ -201,7 +201,7 @@ export async function notifyApplicationStart() {
 
   await sendNotification(
     'Application Started',
-    `<p style="margin: 0 0 10px 0;"><strong>The Hosting Dashboard application has started successfully.</strong></p>
+    `<p style="margin: 0 0 10px 0;"><strong>The Hosting Panel application has started successfully.</strong></p>
      <table style="width: 100%; border-collapse: collapse;">
        <tr><td style="padding: 5px 0; color: #6b7280;">Start Time:</td><td style="padding: 5px 0;">${new Date().toLocaleString('sr-RS')}</td></tr>
        <tr><td style="padding: 5px 0; color: #6b7280;">Node Version:</td><td style="padding: 5px 0;">${process.version}</td></tr>

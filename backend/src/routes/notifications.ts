@@ -196,7 +196,7 @@ notifications.get('/mail-settings', async (c) => {
     user: '',
     password: '',
     fromEmail: 'noreply@hosting-dashboard.local',
-    fromName: 'Hosting Dashboard',
+    fromName: 'Hosting Panel',
     imapPort: 993,
     imapSecure: true,
   };
@@ -347,7 +347,7 @@ notifications.post('/settings/:id/test', adminMiddleware, async (c) => {
           </table>
           <p style="color: #6b7280; font-size: 14px;">Ovo je test email. U produkciji, primićete pravu notifikaciju sa podacima o klijentu i domenu.</p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-          <p style="color: #9ca3af; font-size: 12px;">Hosting Dashboard - Test</p>
+          <p style="color: #9ca3af; font-size: 12px;">Hosting Panel - Test</p>
         </div>
       `;
     }

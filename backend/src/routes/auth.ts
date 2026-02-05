@@ -317,7 +317,7 @@ auth.post('/login/setup-2fa', async (c) => {
     } else if (method === 'totp') {
       // Generate TOTP secret and QR
       const systemSetting = await db.select().from(schema.appSettings).where(eq(schema.appSettings.key, 'system')).get();
-      const systemName = (systemSetting?.value as any)?.systemName || 'Hosting Dashboard';
+      const systemName = (systemSetting?.value as any)?.systemName || 'Hosting Panel';
 
       const secret = authenticator.generateSecret();
       await db.update(schema.users)
@@ -533,7 +533,7 @@ auth.post('/forgot-password', async (c) => {
 
     await sendEmail({
       to: user.email,
-      subject: 'Hosting Dashboard - Reset lozinke',
+      subject: 'Hosting Panel - Reset lozinke',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2563eb;">Reset lozinke</h2>
@@ -548,7 +548,7 @@ auth.post('/forgot-password', async (c) => {
             Link je validan 1 sat. Ako niste zahtevali reset lozinke, ignorišite ovaj email.
           </p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-          <p style="color: #9ca3af; font-size: 12px;">Hosting Dashboard</p>
+          <p style="color: #9ca3af; font-size: 12px;">Hosting Panel</p>
         </div>
       `,
       text: `Reset lozinke\n\nKliknite na link da resetujete lozinku: ${resetUrl}\n\nLink je validan 1 sat.`,
