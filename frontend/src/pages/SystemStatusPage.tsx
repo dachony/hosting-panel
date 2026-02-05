@@ -1,0 +1,548 @@
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '../api/client';
+import { Loader2, Cpu, HardDrive, Database, Server, Clock, RefreshCw, Users, Globe, Mail, FileText, ScrollText, Trash2, Download } from 'lucide-react';
+
+interface SystemStatus {
+  cpu: {
+    model: string;
+    cores: number;
+    usage: number;
+    loadAvg: number[];
+  };
+  memory: {
+    total: number;
+    used: number;
+    free: number;
+    usagePercent: number;
+  };
+  disk: {
+    total: number;
+    used: number;
+    free: number;
+    usagePercent: number;
+  };
+  system: {
+    platform: string;
+    arch: string;
+    hostname: string;
+    uptime: number;
+    nodeVersion: string;
+  };
+  database: {
+    size: number;
+    clients: number;
+    domains: number;
+    hosting: number;
+    users: number;
+    templates: number;
+    auditLogs: number;
+    auditLogsSize: number;
+  };
+}
+
+interface AuditStats {
+  total: number;
+  estimatedSize: number;
+  oldestLog: string | null;
+  newestLog: string | null;
+  olderThan30Days: number;
+  olderThan90Days: number;
+  olderThan1Year: number;
+}
+
+interface EmailStats {
+  total: number;
+  estimatedSize: number;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  const parts = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+
+  return parts.join(' ') || '< 1m';
+}
+
+function ProgressBar({ value, color = 'primary' }: { value: number; color?: 'primary' | 'green' | 'yellow' | 'red' }) {
+  const colorClasses = {
+    primary: 'bg-primary-500',
+    green: 'bg-green-500',
+    yellow: 'bg-yellow-500',
+    red: 'bg-red-500',
+  };
+
+  const getColor = () => {
+    if (value > 90) return colorClasses.red;
+    if (value > 70) return colorClasses.yellow;
+    return colorClasses.green;
+  };
+
+  return (
+    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+      <div
+        className={`h-2.5 rounded-full transition-all ${color === 'primary' ? colorClasses.primary : getColor()}`}
+        style={{ width: `${Math.min(100, value)}%` }}
+      />
+    </div>
+  );
+}
+
+function StatCard({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) {
+  return (
+    <div className="card">
+      <div className="flex items-center gap-2 mb-4">
+        <Icon className="w-5 h-5 text-primary-600" />
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export default function SystemStatusPage() {
+  const queryClient = useQueryClient();
+  const [confirmDeleteAudit, setConfirmDeleteAudit] = useState<number | null>(null);
+  const [confirmDeleteEmails, setConfirmDeleteEmails] = useState<number | null>(null);
+
+  const { data, isLoading, refetch, dataUpdatedAt } = useQuery({
+    queryKey: ['system-status'],
+    queryFn: () => api.get<SystemStatus>('/api/system/status'),
+    refetchInterval: 10000, // Refresh every 10 seconds
+  });
+
+  const { data: auditStats } = useQuery({
+    queryKey: ['audit-stats'],
+    queryFn: () => api.get<AuditStats>('/api/audit/stats'),
+  });
+
+  const { data: emailStats } = useQuery({
+    queryKey: ['email-stats'],
+    queryFn: () => api.get<EmailStats>('/api/system/emails/stats'),
+  });
+
+  const deleteAuditMutation = useMutation({
+    mutationFn: (days: number) => api.delete(`/api/audit/old?days=${days}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['audit-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['system-status'] });
+      setConfirmDeleteAudit(null);
+    },
+  });
+
+  const deleteEmailsMutation = useMutation({
+    mutationFn: (days: number) => api.delete(`/api/system/emails?days=${days}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['email-stats'] });
+      setConfirmDeleteEmails(null);
+    },
+  });
+
+  const handleExportAudit = async (format: 'json' | 'csv', days?: number) => {
+    try {
+      const url = days
+        ? `/api/audit/export?format=${format}&days=${days}`
+        : `/api/audit/export?format=${format}`;
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) throw new Error('Export failed');
+
+      const blob = await response.blob();
+      const filename = `audit-logs-${new Date().toISOString().split('T')[0]}.${format}`;
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Export error:', error);
+    }
+  };
+
+  const lastUpdate = dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('en-US') : '-';
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          System Status
+        </h1>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500">
+            Last update: {lastUpdate}
+          </span>
+          <button
+            onClick={() => refetch()}
+            className="btn btn-secondary !py-1.5 !px-3 !text-sm flex items-center gap-1"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-primary-600" />
+        </div>
+      ) : data ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* CPU */}
+          <StatCard title="CPU" icon={Cpu}>
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600 dark:text-gray-400">Usage</span>
+                  <span className="font-medium">{data.cpu.usage.toFixed(1)}%</span>
+                </div>
+                <ProgressBar value={data.cpu.usage} />
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-gray-500">Cores:</span>
+                  <span className="ml-2 font-medium">{data.cpu.cores}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Load:</span>
+                  <span className="ml-2 font-medium">{data.cpu.loadAvg[0]}</span>
+                </div>
+              </div>
+              <div className="text-xs text-gray-500 truncate" title={data.cpu.model}>
+                {data.cpu.model}
+              </div>
+            </div>
+          </StatCard>
+
+          {/* Memory */}
+          <StatCard title="Memory" icon={Server}>
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600 dark:text-gray-400">Usage</span>
+                  <span className="font-medium">{data.memory.usagePercent.toFixed(1)}%</span>
+                </div>
+                <ProgressBar value={data.memory.usagePercent} />
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-gray-500">Total:</span>
+                  <span className="ml-2 font-medium">{formatBytes(data.memory.total)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Used:</span>
+                  <span className="ml-2 font-medium">{formatBytes(data.memory.used)}</span>
+                </div>
+              </div>
+              <div className="text-sm">
+                <span className="text-gray-500">Free:</span>
+                <span className="ml-2 font-medium text-green-600">{formatBytes(data.memory.free)}</span>
+              </div>
+            </div>
+          </StatCard>
+
+          {/* Disk */}
+          <StatCard title="Disk" icon={HardDrive}>
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600 dark:text-gray-400">Usage</span>
+                  <span className="font-medium">{data.disk.usagePercent.toFixed(1)}%</span>
+                </div>
+                <ProgressBar value={data.disk.usagePercent} />
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-gray-500">Total:</span>
+                  <span className="ml-2 font-medium">{formatBytes(data.disk.total)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Used:</span>
+                  <span className="ml-2 font-medium">{formatBytes(data.disk.used)}</span>
+                </div>
+              </div>
+              <div className="text-sm">
+                <span className="text-gray-500">Free:</span>
+                <span className="ml-2 font-medium text-green-600">{formatBytes(data.disk.free)}</span>
+              </div>
+            </div>
+          </StatCard>
+
+          {/* Database */}
+          <StatCard title="Database" icon={Database}>
+            <div className="space-y-3">
+              <div className="text-sm">
+                <span className="text-gray-500">Size:</span>
+                <span className="ml-2 font-medium">{formatBytes(data.database.size)}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="text-gray-500">Clients:</span>
+                  <span className="font-medium">{data.database.clients}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Globe className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="text-gray-500">Domains:</span>
+                  <span className="font-medium">{data.database.domains}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Mail className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="text-gray-500">Hosting:</span>
+                  <span className="font-medium">{data.database.hosting}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="text-gray-500">Users:</span>
+                  <span className="font-medium">{data.database.users}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <FileText className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="text-gray-500">Templates:</span>
+                  <span className="font-medium">{data.database.templates}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <ScrollText className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="text-gray-500">Audit:</span>
+                  <span className="font-medium">{data.database.auditLogs}</span>
+                </div>
+              </div>
+            </div>
+          </StatCard>
+
+          {/* System Info */}
+          <StatCard title="System" icon={Server}>
+            <div className="space-y-2 text-sm">
+              <div>
+                <span className="text-gray-500">Platform:</span>
+                <span className="ml-2 font-medium">{data.system.platform} ({data.system.arch})</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Hostname:</span>
+                <span className="ml-2 font-medium">{data.system.hostname}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Node.js:</span>
+                <span className="ml-2 font-medium">{data.system.nodeVersion}</span>
+              </div>
+            </div>
+          </StatCard>
+
+          {/* Uptime */}
+          <StatCard title="Uptime" icon={Clock}>
+            <div className="flex items-center justify-center py-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-primary-600">
+                  {formatUptime(data.system.uptime)}
+                </div>
+                <div className="text-sm text-gray-500 mt-1">
+                  system active
+                </div>
+              </div>
+            </div>
+          </StatCard>
+
+          {/* Audit Logs */}
+          <StatCard title="Audit Logs" icon={ScrollText}>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-gray-500">Total:</span>
+                  <span className="ml-2 font-medium">{auditStats?.total || data.database.auditLogs}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Size:</span>
+                  <span className="ml-2 font-medium">{formatBytes(auditStats?.estimatedSize || data.database.auditLogsSize)}</span>
+                </div>
+              </div>
+              {auditStats && (
+                <div className="text-xs text-gray-500 space-y-1">
+                  <div>Older than 30 days: {auditStats.olderThan30Days}</div>
+                  <div>Older than 90 days: {auditStats.olderThan90Days}</div>
+                  <div>Older than 1 year: {auditStats.olderThan1Year}</div>
+                </div>
+              )}
+
+              {/* Export */}
+              <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="relative group">
+                  <button className="btn btn-secondary !py-1 !px-2 !text-xs flex items-center gap-1">
+                    <Download className="w-3 h-3" />
+                    Export
+                  </button>
+                  <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 rounded shadow-lg border border-gray-200 dark:border-gray-700 hidden group-hover:block z-10">
+                    <button
+                      onClick={() => handleExportAudit('json')}
+                      className="block w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      JSON (all)
+                    </button>
+                    <button
+                      onClick={() => handleExportAudit('csv')}
+                      className="block w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      CSV (all)
+                    </button>
+                    <button
+                      onClick={() => handleExportAudit('json', 30)}
+                      className="block w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      JSON (30 days)
+                    </button>
+                    <button
+                      onClick={() => handleExportAudit('csv', 30)}
+                      className="block w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      CSV (30 days)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Delete Logs */}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                  <span className="text-xs font-medium text-gray-500 uppercase">Delete Logs</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: 'Older than 1 month', days: 30 },
+                    { label: 'Older than 3 months', days: 90 },
+                    { label: 'Older than 6 months', days: 180 },
+                    { label: 'Older than 12 months', days: 365 },
+                    { label: 'All', days: 0 },
+                  ].map(({ label, days }) => (
+                    confirmDeleteAudit === days ? (
+                      <div key={days} className="flex items-center gap-1">
+                        <button
+                          onClick={() => deleteAuditMutation.mutate(days)}
+                          disabled={deleteAuditMutation.isPending}
+                          className="!py-0.5 !px-2 !text-xs rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
+                        >
+                          {deleteAuditMutation.isPending ? 'Deleting...' : 'Confirm'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteAudit(null)}
+                          className="!py-0.5 !px-1.5 !text-xs rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        key={days}
+                        onClick={() => setConfirmDeleteAudit(days)}
+                        className={`!py-0.5 !px-2 !text-xs rounded border transition-colors ${
+                          days === 0
+                            ? 'border-red-300 text-red-600 hover:bg-red-50 dark:border-red-500/50 dark:text-red-400 dark:hover:bg-red-500/10'
+                            : 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    )
+                  ))}
+                </div>
+              </div>
+            </div>
+          </StatCard>
+
+          {/* Email Logs */}
+          <StatCard title="Email Logs" icon={Mail}>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-gray-500">Total:</span>
+                  <span className="ml-2 font-medium">{emailStats?.total || 0}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Size:</span>
+                  <span className="ml-2 font-medium">{formatBytes(emailStats?.estimatedSize || 0)}</span>
+                </div>
+              </div>
+              <div className="text-xs text-gray-500">
+                Emails are stored in MailHog service
+              </div>
+
+              {/* Delete Logs */}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                  <span className="text-xs font-medium text-gray-500 uppercase">Delete Logs</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: 'Older than 1 month', days: 30 },
+                    { label: 'Older than 3 months', days: 90 },
+                    { label: 'Older than 6 months', days: 180 },
+                    { label: 'Older than 12 months', days: 365 },
+                    { label: 'All', days: 0 },
+                  ].map(({ label, days }) => (
+                    confirmDeleteEmails === days ? (
+                      <div key={days} className="flex items-center gap-1">
+                        <button
+                          onClick={() => deleteEmailsMutation.mutate(days)}
+                          disabled={deleteEmailsMutation.isPending}
+                          className="!py-0.5 !px-2 !text-xs rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
+                        >
+                          {deleteEmailsMutation.isPending ? 'Deleting...' : 'Confirm'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteEmails(null)}
+                          className="!py-0.5 !px-1.5 !text-xs rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        key={days}
+                        onClick={() => setConfirmDeleteEmails(days)}
+                        disabled={!emailStats?.total}
+                        className={`!py-0.5 !px-2 !text-xs rounded border transition-colors ${
+                          days === 0
+                            ? 'border-red-300 text-red-600 hover:bg-red-50 dark:border-red-500/50 dark:text-red-400 dark:hover:bg-red-500/10'
+                            : 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
+                        } disabled:opacity-40 disabled:cursor-not-allowed`}
+                      >
+                        {label}
+                      </button>
+                    )
+                  ))}
+                </div>
+              </div>
+            </div>
+          </StatCard>
+        </div>
+      ) : (
+        <div className="text-center py-12 text-gray-500">
+          Error loading system status
+        </div>
+      )}
+
+    </div>
+  );
+}
