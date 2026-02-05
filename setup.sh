@@ -39,42 +39,19 @@ if [ "$FIRST_RUN" = true ]; then
   echo "============================================"
   echo ""
 
-  # Prompt for required fields
-  prompt_required() {
-    value=""
-    while [ -z "$value" ]; do
-      printf "%s: " "$1"
-      read value
-      if [ -z "$value" ]; then
-        echo "  This field is required."
-      fi
-    done
-    echo "$value"
-  }
-
-  prompt_password() {
-    value=""
-    while [ -z "$value" ]; do
-      printf "%s: " "$1"
-      stty -echo 2>/dev/null || true
-      read value
-      stty echo 2>/dev/null || true
-      echo ""
-      if [ -z "$value" ]; then
-        echo "  This field is required."
-      elif [ ${#value} -lt 6 ]; then
-        echo "  Password must be at least 6 characters."
-        value=""
-      fi
-    done
-    echo "$value"
-  }
-
-  ADMIN_FIRST_NAME=$(prompt_required "First name")
-  ADMIN_LAST_NAME=$(prompt_required "Last name")
-  ADMIN_EMAIL=$(prompt_required "Email")
-  ADMIN_PHONE=$(prompt_required "Phone")
-  ADMIN_PASSWORD=$(prompt_password "Password")
+  printf "First name: "
+  read ADMIN_FIRST_NAME
+  printf "Last name: "
+  read ADMIN_LAST_NAME
+  printf "Email: "
+  read ADMIN_EMAIL
+  printf "Phone: "
+  read ADMIN_PHONE
+  printf "Password: "
+  stty -echo 2>/dev/null || true
+  read ADMIN_PASSWORD
+  stty echo 2>/dev/null || true
+  echo ""
 
   echo ""
   echo "Waiting for backend to be ready..."
