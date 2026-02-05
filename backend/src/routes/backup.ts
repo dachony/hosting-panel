@@ -15,15 +15,15 @@ type ExportType = 'clients' | 'domains' | 'hosting' | 'packages' | 'templates' |
 const csvTemplates: Record<string, { headers: string[]; example: string[] }> = {
   clients: {
     headers: ['name', 'contactPerson', 'phone', 'email1', 'email2', 'email3', 'techContact', 'techPhone', 'techEmail', 'address', 'pib', 'mib', 'notes'],
-    example: ['Kompanija DOO', 'Petar Petrović', '+381601234567', 'info@kompanija.rs', 'prodaja@kompanija.rs', '', 'Ivan Ivanović', '+381609876543', 'it@kompanija.rs', 'Ulica 123, Beograd', '123456789', '12345678', 'Napomena'],
+    example: ['Acme Corp', 'John Smith', '+381601234567', 'info@acme.com', 'sales@acme.com', '', 'Mike Johnson', '+381609876543', 'it@acme.com', '123 Main Street, City', '123456789', '12345678', 'Notes'],
   },
   domains: {
     headers: ['domainName', 'clientName', 'contactEmail1', 'contactEmail2', 'contactEmail3', 'notes'],
-    example: ['example.rs', 'Kompanija DOO', 'admin@example.rs', 'webmaster@example.rs', '', 'Registrovan kod NIC-a'],
+    example: ['example.com', 'Acme Corp', 'admin@example.com', 'webmaster@example.com', '', 'Registrovan kod NIC-a'],
   },
   hosting: {
     headers: ['domainName', 'clientName', 'packageName', 'startDate', 'expiryDate', 'isActive', 'notes'],
-    example: ['example.rs', 'Kompanija DOO', 'Basic', '2024-01-01', '2025-01-01', 'true', 'Godišnji paket'],
+    example: ['example.com', 'Acme Corp', 'Basic', '2024-01-01', '2025-01-01', 'true', 'Annual package'],
   },
   packages: {
     headers: ['name', 'description', 'maxMailboxes', 'storageGb', 'price', 'features'],
@@ -285,7 +285,7 @@ backup.post('/validate', async (c) => {
       preview: validItems.slice(0, 5),
     });
   } catch (error) {
-    return c.json({ valid: false, errors: [{ row: 0, field: '', message: 'Greška pri parsiranju podataka' }] }, 400);
+    return c.json({ valid: false, errors: [{ row: 0, field: '', message: 'Error parsing data' }] }, 400);
   }
 });
 
@@ -390,7 +390,7 @@ backup.post('/import', async (c) => {
     }
 
     return c.json({
-      message: 'Import završen',
+      message: 'Import completed',
       results,
     });
   } catch (error) {
@@ -398,7 +398,7 @@ backup.post('/import', async (c) => {
       return c.json({ error: 'Neispravan format fajla', details: error.errors }, 400);
     }
     console.error('Import error:', error);
-    return c.json({ error: 'Greška pri importu' }, 500);
+    return c.json({ error: 'Error during import' }, 500);
   }
 });
 
@@ -494,7 +494,7 @@ async function importItems(type: string, items: Record<string, unknown>[]): Prom
           result.skipped++;
       }
     } catch (error) {
-      result.errors.push(`Red: ${JSON.stringify(item).substring(0, 100)}... - ${error instanceof Error ? error.message : 'Greška'}`);
+      result.errors.push(`Red: ${JSON.stringify(item).substring(0, 100)}... - ${error instanceof Error ? error.message : 'Error'}`);
       result.skipped++;
     }
   }

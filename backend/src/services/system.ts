@@ -182,7 +182,7 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
     if (blockedIps.length === 0) {
       sections.push(generateSection(
         '🛡️ Blokirane IP adrese',
-        '<p style="color:#6b7280; margin:0;">Nema blokiranih IP adresa.</p>',
+        '<p style="color:#6b7280; margin:0;">Nema blokiranih IP addresses.</p>',
         '#dc2626'
       ));
     } else {
@@ -219,8 +219,8 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
 
     if (lockedUsers.length === 0) {
       sections.push(generateSection(
-        '🔒 Zaključani korisnici',
-        '<p style="color:#6b7280; margin:0;">Nema zaključanih korisnika.</p>',
+        '🔒 Locked users',
+        '<p style="color:#6b7280; margin:0;">No locked users.</p>',
         '#f59e0b'
       ));
     } else {
@@ -234,14 +234,14 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
       `).join('');
 
       sections.push(generateSection(
-        `🔒 Zaključani korisnici (${lockedUsers.length})`,
+        `🔒 Locked users (${lockedUsers.length})`,
         `<table style="width:100%; border-collapse:collapse; font-size:13px;">
           <thead>
             <tr style="background:#f3f4f6;">
               <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Ime</th>
               <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Email</th>
-              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Neuspelih pokušaja</th>
-              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Zaključan do</th>
+              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Failed attempts</th>
+              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Locked until</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -267,8 +267,8 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
 
     if (byIp.size === 0) {
       sections.push(generateSection(
-        '⚠️ Neuspeli pokušaji prijave',
-        '<p style="color:#6b7280; margin:0;">Nema neuspelih pokušaja prijave.</p>',
+        '⚠️ Failed login attempts',
+        '<p style="color:#6b7280; margin:0;">No failed login attempts.</p>',
         '#7c3aed'
       ));
     } else {
@@ -289,14 +289,14 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
         `).join('');
 
       sections.push(generateSection(
-        `⚠️ Neuspeli pokušaji prijave - ${periodLabels[config.period]} (${failedLogins.length} ukupno, ${byIp.size} IP adresa)`,
+        `⚠️ Failed login attempts - ${periodLabels[config.period]} (${failedLogins.length} total, ${byIp.size} IP addresses)`,
         `<table style="width:100%; border-collapse:collapse; font-size:13px;">
           <thead>
             <tr style="background:#f3f4f6;">
               <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">IP Adresa</th>
-              <th style="padding:6px 8px; text-align:center; border-bottom:2px solid #e5e7eb;">Pokušaja</th>
+              <th style="padding:6px 8px; text-align:center; border-bottom:2px solid #e5e7eb;">Attempts</th>
               <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Probani emailovi</th>
-              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Poslednji pokušaj</th>
+              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Last attempt</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -312,8 +312,8 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
 
     if (passwordChanges.length === 0) {
       sections.push(generateSection(
-        '🔑 Promene šifre',
-        '<p style="color:#6b7280; margin:0;">Nema promena šifre u izabranom periodu.</p>',
+        '🔑 Password changes',
+        '<p style="color:#6b7280; margin:0;">No password changes in the selected period.</p>',
         '#059669'
       ));
     } else {
@@ -327,11 +327,11 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
       `).join('');
 
       sections.push(generateSection(
-        `🔑 Promene šifre - ${periodLabels[config.period]} (${passwordChanges.length})`,
+        `🔑 Password changes - ${periodLabels[config.period]} (${passwordChanges.length})`,
         `<table style="width:100%; border-collapse:collapse; font-size:13px;">
           <thead>
             <tr style="background:#f3f4f6;">
-              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Korisnik</th>
+              <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">User</th>
               <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Email</th>
               <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">IP Adresa</th>
               <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Vreme</th>
@@ -356,16 +356,16 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
     `).join('');
 
     sections.push(generateSection(
-      '💾 Zauzeće resursa',
+      '💾 Resource usage',
       `<div style="margin-bottom:10px;">
-        <strong>Ukupno data folder:</strong> ${formatBytes(resources.totalSize)}
+        <strong>Total data folder:</strong> ${formatBytes(resources.totalSize)}
       </div>
       ${fileRows ? `
       <table style="width:100%; border-collapse:collapse; font-size:13px;">
         <thead>
           <tr style="background:#f3f4f6;">
             <th style="padding:4px 8px; text-align:left; border-bottom:2px solid #e5e7eb;">Fajl</th>
-            <th style="padding:4px 8px; text-align:right; border-bottom:2px solid #e5e7eb;">Veličina</th>
+            <th style="padding:4px 8px; text-align:right; border-bottom:2px solid #e5e7eb;">Size</th>
           </tr>
         </thead>
         <tbody>${fileRows}</tbody>
@@ -391,7 +391,7 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
       '🗄️ Informacije o bazi',
       `<table style="width:100%; border-collapse:collapse; font-size:13px;">
         <tr>
-          <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;"><strong>Veličina baze:</strong></td>
+          <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;"><strong>Size baze:</strong></td>
           <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb; text-align:right;">${formatBytes(dbSize)}</td>
         </tr>
         <tr>

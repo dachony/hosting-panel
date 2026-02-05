@@ -120,36 +120,36 @@ users.post('/', async (c) => {
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <div style="background: #1e40af; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
-                <h2 style="margin: 0;">Dobrodošli u ${systemName}</h2>
+                <h2 style="margin: 0;">Welcome to ${systemName}</h2>
               </div>
               <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-                <p>Poštovani/a ${fullName},</p>
-                <p>Kreiran vam je korisnički nalog za pristup sistemu ${systemName}.</p>
+                <p>Dear ${fullName},</p>
+                <p>Your user account has been created for system access to ${systemName}.</p>
 
                 <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin: 20px 0;">
-                  <p style="margin: 0 0 10px 0;"><strong>Podaci za prijavu:</strong></p>
+                  <p style="margin: 0 0 10px 0;"><strong>Login details:</strong></p>
                   <table style="width: 100%;">
                     <tr>
                       <td style="padding: 5px 0; color: #6b7280;">Email:</td>
                       <td style="padding: 5px 0;"><strong>${data.email}</strong></td>
                     </tr>
                     <tr>
-                      <td style="padding: 5px 0; color: #6b7280;">Privremena šifra:</td>
+                      <td style="padding: 5px 0; color: #6b7280;">Temporary password:</td>
                       <td style="padding: 5px 0; font-family: monospace; background: #fef3c7; padding: 5px 10px; border-radius: 4px;"><strong>${password}</strong></td>
                     </tr>
                   </table>
                 </div>
 
-                <p style="color: #dc2626;"><strong>Važno:</strong> Nakon prve prijave bićete obavezni da promenite šifru.</p>
+                <p style="color: #dc2626;"><strong>Important:</strong> You must change your password after the first login.</p>
 
                 <div style="text-align: center; margin: 25px 0;">
                   <a href="${baseUrl}" style="background: #1e40af; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                    Prijavi se
+                    Login
                   </a>
                 </div>
 
                 <p style="color: #6b7280; font-size: 12px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
-                  Ova poruka je automatski generisana. Molimo vas da ne odgovarate na nju.
+                  This message was automatically generated. Please do not reply.
                 </p>
               </div>
             </div>
@@ -334,28 +334,28 @@ users.post('/:id/resend-invite', async (c) => {
             <h2 style="margin: 0;">Nova pozivnica - ${systemName}</h2>
           </div>
           <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <p>Poštovani/a ${existing.name},</p>
-            <p>Generisana je nova privremena šifra za vaš nalog.</p>
+            <p>Dear ${existing.name},</p>
+            <p>A new temporary password has been generated for your account.</p>
 
             <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin: 20px 0;">
-              <p style="margin: 0 0 10px 0;"><strong>Podaci za prijavu:</strong></p>
+              <p style="margin: 0 0 10px 0;"><strong>Login details:</strong></p>
               <table style="width: 100%;">
                 <tr>
                   <td style="padding: 5px 0; color: #6b7280;">Email:</td>
                   <td style="padding: 5px 0;"><strong>${existing.email}</strong></td>
                 </tr>
                 <tr>
-                  <td style="padding: 5px 0; color: #6b7280;">Nova privremena šifra:</td>
+                  <td style="padding: 5px 0; color: #6b7280;">New temporary password:</td>
                   <td style="padding: 5px 0; font-family: monospace; background: #fef3c7; padding: 5px 10px; border-radius: 4px;"><strong>${password}</strong></td>
                 </tr>
               </table>
             </div>
 
-            <p style="color: #dc2626;"><strong>Važno:</strong> Nakon prijave bićete obavezni da promenite šifru.</p>
+            <p style="color: #dc2626;"><strong>Important:</strong> You must change your password after login.</p>
 
             <div style="text-align: center; margin: 25px 0;">
               <a href="${baseUrl}" style="background: #1e40af; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                Prijavi se
+                Login
               </a>
             </div>
           </div>

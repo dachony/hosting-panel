@@ -118,11 +118,11 @@ export function getExpiryNotificationEmail(
 
   return {
     to: '',
-    subject: `${urgency}${typeLabel} ističe za ${daysUntilExpiry} dana - ${itemName}`,
+    subject: `${urgency}${typeLabel} expires in ${daysUntilExpiry} days - ${itemName}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: ${daysUntilExpiry <= 3 ? '#dc2626' : daysUntilExpiry <= 7 ? '#f59e0b' : '#2563eb'};">
-          ${typeLabel} uskoro ističe
+          ${typeLabel} expiring soon
         </h2>
 
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
@@ -135,11 +135,11 @@ export function getExpiryNotificationEmail(
             <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${clientName}</td>
           </tr>
           <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Datum isteka:</strong></td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Expiry Date:</strong></td>
             <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${expiryDate}</td>
           </tr>
           <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Dana do isteka:</strong></td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Days until expiry:</strong></td>
             <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; color: ${daysUntilExpiry <= 3 ? '#dc2626' : daysUntilExpiry <= 7 ? '#f59e0b' : '#2563eb'}; font-weight: bold;">
               ${daysUntilExpiry}
             </td>
@@ -147,7 +147,7 @@ export function getExpiryNotificationEmail(
         </table>
 
         <p style="color: #6b7280; font-size: 14px;">
-          Molimo vas da preduzmete odgovarajuće akcije pre isteka.
+          Please take appropriate action before expiry.
         </p>
 
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
@@ -157,7 +157,7 @@ export function getExpiryNotificationEmail(
         </p>
       </div>
     `,
-    text: `${typeLabel} ističe za ${daysUntilExpiry} dana\n\nStavka: ${itemName}\nKlijent: ${clientName}\nDatum isteka: ${expiryDate}\n\nMolimo vas da preduzmete odgovarajuće akcije pre isteka.`,
+    text: `${typeLabel} expires in ${daysUntilExpiry} days\n\nStavka: ${itemName}\nKlijent: ${clientName}\nExpiry Date: ${expiryDate}\n\nPlease take appropriate action before expiry.`,
   };
 }
 
@@ -167,7 +167,7 @@ export function getDailyReportEmail(
   expiringMail: Array<{ name: string; clientName: string; expiryDate: string; daysUntilExpiry: number }>
 ): EmailOptions {
   const formatItems = (items: Array<{ name: string; clientName: string; expiryDate: string; daysUntilExpiry: number }>) => {
-    if (items.length === 0) return '<p style="color: #6b7280;">Nema stavki koje ističu.</p>';
+    if (items.length === 0) return '<p style="color: #6b7280;">No expiring items.</p>';
 
     return `
       <table style="width: 100%; border-collapse: collapse;">
@@ -175,7 +175,7 @@ export function getDailyReportEmail(
           <tr style="background: #f3f4f6;">
             <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Stavka</th>
             <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Klijent</th>
-            <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Ističe</th>
+            <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Expires</th>
             <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Dana</th>
           </tr>
         </thead>
@@ -197,11 +197,11 @@ export function getDailyReportEmail(
 
   return {
     to: '',
-    subject: `Hosting Panel - Dnevni izveštaj (${new Date().toLocaleDateString('sr-RS')})`,
+    subject: `Hosting Panel - Daily Report (${new Date().toLocaleDateString('en-US')})`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
-        <h1 style="color: #1f2937;">Dnevni izveštaj</h1>
-        <p style="color: #6b7280;">Pregled usluga koje ističu u narednih 7 dana</p>
+        <h1 style="color: #1f2937;">Daily Report</h1>
+        <p style="color: #6b7280;">Overview of services expiring in the next 7 days</p>
 
         <h2 style="color: #2563eb; margin-top: 30px;">Domeni (${expiringDomains.length})</h2>
         ${formatItems(expiringDomains)}
@@ -220,6 +220,6 @@ export function getDailyReportEmail(
         </p>
       </div>
     `,
-    text: `Dnevni izveštaj - ${new Date().toLocaleDateString('sr-RS')}\n\nDomeni: ${expiringDomains.length}\nWeb Hosting: ${expiringHosting.length}\nMail Hosting: ${expiringMail.length}`,
+    text: `Daily Report - ${new Date().toLocaleDateString('en-US')}\n\nDomeni: ${expiringDomains.length}\nWeb Hosting: ${expiringHosting.length}\nMail Hosting: ${expiringMail.length}`,
   };
 }

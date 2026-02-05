@@ -224,7 +224,7 @@ export async function getRecentActivity(limit: number = 10) {
 const statusColors: Record<DomainStatus, { bg: string; text: string; label: string }> = {
   green: { bg: '#dcfce7', text: '#166534', label: 'OK' },
   yellow: { bg: '#fef9c3', text: '#854d0e', label: 'Upozorenje' },
-  orange: { bg: '#ffedd5', text: '#c2410c', label: 'Kritično' },
+  orange: { bg: '#ffedd5', text: '#c2410c', label: 'Critical' },
   red: { bg: '#fee2e2', text: '#dc2626', label: 'Isteklo' },
   forDeletion: { bg: '#f3e8ff', text: '#7c3aed', label: 'Za brisanje' },
   deleted: { bg: '#f3f4f6', text: '#6b7280', label: 'Obrisano' },

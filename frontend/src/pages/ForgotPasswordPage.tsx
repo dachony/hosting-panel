@@ -63,22 +63,22 @@ export default function ForgotPasswordPage() {
                 </svg>
               </div>
               <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                Proverite vaš email
+                Check your email
               </h2>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Ako nalog sa tom email adresom postoji, poslaćemo vam link za reset lozinke.
+                If an account with that email exists, we will send you a password reset link.
               </p>
               <Link
                 to="/login"
                 className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
               >
-                Nazad na prijavu
+                Back to login
               </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Unesite vašu email adresu i poslaćemo vam link za reset lozinke.
+                Enter your email address and we will send you a password reset link.
               </p>
 
               <div>
@@ -98,7 +98,7 @@ export default function ForgotPasswordPage() {
                 className="btn btn-primary w-full"
                 disabled={isLoading}
               >
-                {isLoading ? 'Slanje...' : 'Pošalji link za reset'}
+                {isLoading ? 'Sending...' : 'Send reset link'}
               </button>
 
               <div className="text-center">
@@ -106,7 +106,7 @@ export default function ForgotPasswordPage() {
                   to="/login"
                   className="text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
                 >
-                  Nazad na prijavu
+                  Back to login
                 </Link>
               </div>
             </form>

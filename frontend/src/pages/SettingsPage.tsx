@@ -243,7 +243,7 @@ export default function SettingsPage() {
     subject: '',
     title: '',
     body: '',
-    signature: 'Srdačan pozdrav,\nVaš tim',
+    signature: 'Best regards,\nYour team',
     isActive: true,
     showHeader: true,
     headerLogo: '' as string,
@@ -282,8 +282,8 @@ export default function SettingsPage() {
   const templateVariables = [
     { key: 'clientName', label: 'Client Name', description: 'Ime klijenta' },
     { key: 'domainName', label: 'Domain', description: 'Naziv domena' },
-    { key: 'expiryDate', label: 'Expiry Date', description: 'Datum isteka' },
-    { key: 'daysUntilExpiry', label: 'Days Left', description: 'Dana do isteka' },
+    { key: 'expiryDate', label: 'Expiry Date', description: 'Expiry Date' },
+    { key: 'daysUntilExpiry', label: 'Days Left', description: 'Days until expiry' },
     { key: 'packageName', label: 'Package', description: 'Naziv paketa' },
     { key: 'companyName', label: 'Company', description: 'Naziv firme' },
     { key: 'hostingStatus', label: 'Hosting Status', description: 'Status hostinga (Enabled/Disabled)' },
@@ -474,7 +474,7 @@ export default function SettingsPage() {
     // Get all paragraphs (excluding those in signature)
     const signatureDiv = contentDiv.querySelector('div[style*="border-top"]');
     let body = '';
-    let signature = 'Srdačan pozdrav,\nVaš tim';
+    let signature = 'Best regards,\nYour team';
     let showSignature = false;
     let signatureLogo = '';
     let signatureImage = '';
@@ -563,7 +563,7 @@ export default function SettingsPage() {
         subject: '',
         title: '',
         body: '',
-        signature: 'Srdačan pozdrav,\nVaš tim',
+        signature: 'Best regards,\nYour team',
         isActive: true,
         showHeader: true,
         headerLogo: '',
@@ -1090,8 +1090,8 @@ export default function SettingsPage() {
 
   const saveTestEmailMutation = useMutation({
     mutationFn: (email: string) => api.put('/api/settings/testEmail', { value: email }),
-    onSuccess: () => toast.success('Test email sačuvan'),
-    onError: () => toast.error('Greška pri čuvanju'),
+    onSuccess: () => toast.success('Test email saved'),
+    onError: () => toast.error('Error saving'),
   });
 
   const testNotificationMutation = useMutation({
@@ -1145,15 +1145,15 @@ export default function SettingsPage() {
     onSuccess: (data: { inviteSent?: boolean }) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       if (data?.inviteSent) {
-        toast.success('Korisnik kreiran i pozivnica poslata');
+        toast.success('User created i pozivnica poslata');
       } else {
-        toast.success(selectedUser ? 'Korisnik ažuriran' : 'Korisnik kreiran');
+        toast.success(selectedUser ? 'User updated' : 'User created');
       }
       setUserModalOpen(false);
       setSelectedUser(null);
     },
     onError: (error: Error & { response?: { data?: { error?: string; details?: string[] } } }) => {
-      const msg = error.response?.data?.error || 'Greška pri čuvanju';
+      const msg = error.response?.data?.error || 'Error saving';
       const details = error.response?.data?.details;
       if (details && details.length > 0) {
         toast.error(`${msg}: ${details.join(', ')}`);
@@ -1167,9 +1167,9 @@ export default function SettingsPage() {
     mutationFn: (userId: number) => api.patch(`/api/users/${userId}/toggle-active`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('Status korisnika promenjen');
+      toast.success('User status changed');
     },
-    onError: () => toast.error('Greška pri promeni statusa'),
+    onError: () => toast.error('Error changing status'),
   });
 
   const resendInviteMutation = useMutation({
@@ -1177,7 +1177,7 @@ export default function SettingsPage() {
     onSuccess: () => {
       toast.success('Pozivnica ponovo poslata');
     },
-    onError: () => toast.error('Greška pri slanju pozivnice'),
+    onError: () => toast.error('Error sending invitation'),
   });
 
   // Mail server mutations
@@ -1403,7 +1403,7 @@ export default function SettingsPage() {
       await api.download(`/api/backup/export?types=${types}&format=${format}`, filename);
       toast.success('Podaci eksportovani');
     } catch {
-      toast.error('Greška pri eksportovanju');
+      toast.error('Error exporting');
     }
   };
 
@@ -1412,7 +1412,7 @@ export default function SettingsPage() {
       await api.download(`/api/backup/template/${type}`, `${type}-template.csv`);
       toast.success('Template preuzet');
     } catch {
-      toast.error('Greška pri preuzimanju');
+      toast.error('Error downloading');
     }
   };
 
@@ -1491,12 +1491,12 @@ export default function SettingsPage() {
       const totalImported = Object.values(result.results).reduce((sum, r) => sum + r.imported, 0);
       const totalSkipped = Object.values(result.results).reduce((sum, r) => sum + r.skipped, 0);
 
-      toast.success(`Importovano: ${totalImported}, Preskočeno: ${totalSkipped}`);
+      toast.success(`Imported: ${totalImported}, Skipped: ${totalSkipped}`);
       queryClient.invalidateQueries();
       setImportData(null);
       setImportValidation(null);
     } catch {
-      toast.error('Greška pri importovanju');
+      toast.error('Error importing');
     }
   };
 
@@ -1656,7 +1656,7 @@ export default function SettingsPage() {
 
     const parts: string[] = [];
     if (before.length > 0) parts.push(`${before.join(', ')}d pre`);
-    if (dayOf) parts.push('dan isteka');
+    if (dayOf) parts.push('day expiring');
     if (after.length > 0) parts.push(`${after.join(', ')}d posle`);
 
     return parts.join(' | ') || 'No schedule';
@@ -3536,7 +3536,7 @@ export default function SettingsPage() {
                       if (testEmail) {
                         testNotificationMutation.mutate({ id: setting.id, email: testEmail });
                       } else {
-                        toast.error('Unesite test email u SMTP podešavanjima');
+                        toast.error('Enter test email in SMTP settings');
                       }
                     }}
                     disabled={testNotificationMutation.isPending}
@@ -3656,7 +3656,7 @@ export default function SettingsPage() {
                           if (testEmail) {
                             testTemplateMutation.mutate({ id: tmpl.id, email: testEmail });
                           } else {
-                            toast.error('Unesite test email u SMTP podešavanjima');
+                            toast.error('Enter test email in SMTP settings');
                           }
                         }}
                         disabled={testTemplateMutation.isPending}
@@ -3742,7 +3742,7 @@ export default function SettingsPage() {
                     <Download className="w-3 h-3" />
                     Preuzmi {importType}-template.csv
                   </button>
-                  <p className="text-[10px] text-blue-500 mt-1">Popunite template sa vašim podacima i importujte</p>
+                  <p className="text-[10px] text-blue-500 mt-1">Fill the template with your data and import</p>
                 </div>
               )}
 
@@ -3768,10 +3768,10 @@ export default function SettingsPage() {
               {importValidation && (
                 <div className={`rounded-lg p-3 ${importValidation.valid ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
                   <div className={`text-xs font-medium mb-2 ${importValidation.valid ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
-                    {importValidation.valid ? '✓ Validacija uspešna' : '✗ Greške u validaciji'}
+                    {importValidation.valid ? '✓ Validation successful' : '✗ Validation errors'}
                   </div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">
-                    Ukupno redova: {importValidation.totalRows} | Validno: {importValidation.validRows}
+                    Total rows: {importValidation.totalRows} | Valid: {importValidation.validRows}
                   </div>
 
                   {importValidation.errors.length > 0 && (
@@ -3782,7 +3782,7 @@ export default function SettingsPage() {
                         </div>
                       ))}
                       {importValidation.errors.length > 10 && (
-                        <div className="text-xs text-red-500">...i još {importValidation.errors.length - 10} grešaka</div>
+                        <div className="text-xs text-red-500">...and {importValidation.errors.length - 10} more errors</div>
                       )}
                     </div>
                   )}
@@ -3810,7 +3810,7 @@ export default function SettingsPage() {
             <div className="space-y-4">
               {/* Export Type Selection */}
               <div>
-                <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-2 block">Šta eksportovati</label>
+                <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-2 block">What to export</label>
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 cursor-pointer text-sm">
                     <input
@@ -3831,7 +3831,7 @@ export default function SettingsPage() {
                         { id: 'packages', label: 'Paketi' },
                         { id: 'templates', label: 'Email templejti' },
                         { id: 'scheduler', label: 'Scheduler' },
-                        { id: 'settings', label: 'Podešavanja' },
+                        { id: 'settings', label: 'Settings' },
                       ].map((item) => (
                         <label key={item.id} className="flex items-center gap-2 cursor-pointer text-sm">
                           <input
@@ -3877,7 +3877,7 @@ export default function SettingsPage() {
 
               {exportTypes.includes('all') && (
                 <p className="text-[10px] text-gray-400">
-                  Kompletan backup uključuje sve podatke i može se koristiti za restore.
+                  Complete backup includes all data and can be used for restore.
                 </p>
               )}
             </div>
@@ -3948,7 +3948,7 @@ export default function SettingsPage() {
                       </span>
                       {user.isActive === false && (
                         <span className="px-1.5 py-0.5 text-xs rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
-                          Neaktivan
+                          Inactive
                         </span>
                       )}
                       {user.mustChangePassword && (
@@ -3979,7 +3979,7 @@ export default function SettingsPage() {
                         onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setDeleteUserDialogOpen(true); }}
                         className="!text-xs !py-1 !px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
                       >
-                        Obriši
+                        Delete
                       </button>
                     </div>
                   </div>
@@ -3994,7 +3994,7 @@ export default function SettingsPage() {
       <Modal
         isOpen={userModalOpen}
         onClose={() => { setUserModalOpen(false); setSelectedUser(null); }}
-        title={selectedUser ? 'Uredi korisnika' : 'Novi korisnik'}
+        title={selectedUser ? 'Edit user' : 'New user'}
       >
         <form onSubmit={handleUserSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -4045,7 +4045,7 @@ export default function SettingsPage() {
                   className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
                 >
                   <Send className="w-3 h-3" />
-                  {resendInviteMutation.isPending ? 'Šaljem...' : 'Pošalji pozivnicu'}
+                  {resendInviteMutation.isPending ? 'Sending...' : 'Send invitation'}
                 </button>
               </div>
             ) : (
@@ -4057,7 +4057,7 @@ export default function SettingsPage() {
                     id="sendInvite"
                     className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                   />
-                  <span className="text-gray-700 dark:text-gray-300">Pošalji pozivnicu emailom</span>
+                  <span className="text-gray-700 dark:text-gray-300">Send invitation by email</span>
                 </label>
               </div>
             )}
@@ -4065,28 +4065,28 @@ export default function SettingsPage() {
           {!selectedUser && (
             <div id="passwordFieldsContainer">
               <label className="text-[11px] text-gray-500 dark:text-gray-400">
-                Lozinka <span id="passwordRequired">*</span>
+                Password <span id="passwordRequired">*</span>
               </label>
               <input
                 name="password"
                 type="password"
                 className="input !py-1.5 !text-sm"
                 id="passwordField"
-                placeholder="Ako pošaljete pozivnicu, lozinka će biti generisana automatski"
+                placeholder="If you send an invitation, the password will be generated automatically"
               />
               <p className="text-[10px] text-gray-400 mt-1">
-                Ako čekirate &quot;Pošalji pozivnicu&quot;, privremena lozinka će biti generisana i poslata korisniku.
+                If you check &quot;Send invitation&quot;, a temporary password will be generated and sent to the user.
               </p>
             </div>
           )}
           {selectedUser && (
             <div>
-              <label className="text-[11px] text-gray-500 dark:text-gray-400">Nova lozinka</label>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400">New password</label>
               <input
                 name="password"
                 type="password"
                 className="input !py-1.5 !text-sm"
-                placeholder="Ostavite prazno da zadržite trenutnu"
+                placeholder="Leave blank to keep current"
               />
             </div>
           )}
@@ -4095,7 +4095,7 @@ export default function SettingsPage() {
               Odustani
             </button>
             <button type="submit" className="btn btn-primary !py-1.5 !px-4 !text-sm" disabled={saveUserMutation.isPending}>
-              {saveUserMutation.isPending ? 'Čuvam...' : 'Sačuvaj'}
+              {saveUserMutation.isPending ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>
@@ -4539,7 +4539,7 @@ export default function SettingsPage() {
               value={templateForm.subject}
               onChange={(e) => setTemplateForm(prev => ({ ...prev, subject: e.target.value }))}
               className="input !py-1.5 !text-sm"
-              placeholder="e.g. Obaveštenje: Domen {{domainName}} ističe za {{daysUntilExpiry}} dana"
+              placeholder="e.g. Notification: Domain {{domainName}} expires in {{daysUntilExpiry}} days"
               required
             />
           </div>
@@ -4709,7 +4709,7 @@ export default function SettingsPage() {
                   value={templateForm.title}
                   onChange={(e) => setTemplateForm(prev => ({ ...prev, title: e.target.value }))}
                   className="input !py-1.5 !text-sm"
-                  placeholder="e.g. Obaveštenje o isteku domena"
+                  placeholder="e.g. Domain expiry notification"
                 />
               </div>
 
@@ -4757,15 +4757,15 @@ export default function SettingsPage() {
                   onChange={(e) => setTemplateForm(prev => ({ ...prev, body: e.target.value }))}
                   className="input !py-1.5 !text-sm"
                   rows={6}
-                  placeholder="Obaveštavamo Vas da domen {{domainName}} ističe dana {{expiryDate}}.
+                  placeholder="We notify you that domain {{domainName}} expires on {{expiryDate}}.
 
-Molimo Vas da na vreme izvršite produženje kako bi izbegli prekid u radu.
+Please renew on time to avoid service interruption.
 
 Za sva pitanja stojimo Vam na raspolaganju."
                   required
                 />
                 <p className="text-[10px] text-gray-400 mt-1">
-                  Tip: Kliknite na dugmiće iznad da biste ubacili varijable. Varijable će biti zamenjene stvarnim podacima prilikom slanja.
+                  Tip: Click the buttons above to insert variables. Variables will be replaced with actual data when sending.
                 </p>
               </div>
 
@@ -4869,7 +4869,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                 </label>
 
                 <p className="text-[10px] text-gray-400">
-                  Tip: Dodajte {'{{hostingList}}'} u Message Body da biste uključili generisanu tabelu sa listom hostinga.
+                  Tip: Add {'{{hostingList}}'} to Message Body to include the generated hosting list table.
                 </p>
               </div>
             </div>
@@ -4937,7 +4937,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                 </div>
 
                 <p className="text-[10px] text-gray-400">
-                  Tip: Dodajte {'{{systemInfo}}'} u Message Body da biste uključili sistemske informacije.
+                  Tip: Add {'{{systemInfo}}'} to Message Body to include system information.
                 </p>
               </div>
             </div>
@@ -4968,8 +4968,8 @@ Za sva pitanja stojimo Vam na raspolaganju."
                     onChange={(e) => setTemplateForm(prev => ({ ...prev, signature: e.target.value }))}
                     className="input !py-1.5 !text-sm"
                     rows={2}
-                    placeholder="Srdačan pozdrav,
-Vaš tim"
+                    placeholder="Best regards,
+Your team"
                   />
                 </div>
 
@@ -5190,7 +5190,7 @@ Vaš tim"
                   {templateForm.showSignature && (
                     <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700">
                       <div className="whitespace-pre-wrap text-xs">
-                        {templateForm.signature || 'Srdačan pozdrav,\nVaš tim'}
+                        {templateForm.signature || 'Best regards,\nYour team'}
                       </div>
                       {(templateForm.useCompanyLogoInSignature || templateForm.signatureLogo) && (
                         <div className="mt-2">

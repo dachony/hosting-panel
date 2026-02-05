@@ -231,7 +231,7 @@ audit.get('/export', superAdminMiddleware, async (c) => {
     .orderBy(desc(schema.auditLogs.createdAt));
 
   if (format === 'csv') {
-    const headers = ['ID', 'Datum', 'Korisnik', 'Email', 'Akcija', 'Tip', 'Entitet', 'IP Adresa', 'Detalji'];
+    const headers = ['ID', 'Date', 'User', 'Email', 'Action', 'Type', 'Entity', 'IP Address', 'Details'];
     const rows = logs.map(log => [
       log.id,
       log.createdAt,

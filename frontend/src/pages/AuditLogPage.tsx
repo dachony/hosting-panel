@@ -41,10 +41,10 @@ interface PaginatedResponse {
 
 const actionLabels: Record<string, string> = {
   create: 'Kreiranje',
-  update: 'Izmena',
-  delete: 'Brisanje',
-  login: 'Prijava',
-  logout: 'Odjava',
+  update: 'Update',
+  delete: 'Delete',
+  login: 'Login',
+  logout: 'Logout',
 };
 
 const actionColors: Record<string, string> = {
@@ -60,7 +60,7 @@ const entityLabels: Record<string, string> = {
   domain: 'Domen',
   hosting: 'Hosting',
   mail: 'Mail',
-  user: 'Korisnik',
+  user: 'User',
   template: 'Template',
   package: 'Paket',
   notification: 'Notifikacija',
@@ -81,9 +81,9 @@ function generateDescription(log: AuditLog): string {
     case 'delete':
       return `Obrisan ${entity.toLowerCase()} ${name}`.trim();
     case 'login':
-      return 'Uspešna prijava na sistem';
+      return 'Successful system login';
     case 'logout':
-      return 'Odjava sa sistema';
+      return 'System logout';
     default:
       return `${log.action} ${entity.toLowerCase()} ${name}`.trim();
   }
@@ -133,10 +133,10 @@ function generateDetailedDescription(log: AuditLog): string {
       if (details?.clientName) description += ` (klijent: ${details.clientName})`;
       break;
     case 'login':
-      description = `Korisnik ${log.userName} se uspešno prijavio na sistem`;
+      description = `User ${log.userName} successfully logged in`;
       break;
     case 'logout':
-      description = `Korisnik ${log.userName} se odjavio sa sistema`;
+      description = `User ${log.userName} logged out`;
       break;
     default:
       description = `${log.action} ${entity.toLowerCase()} ${name}`;
@@ -303,7 +303,7 @@ export default function AuditLogPage() {
               type="text"
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-              placeholder="Pretraga..."
+              placeholder="Search..."
               className="input !py-1 !text-xs w-full pl-7"
             />
           </div>
@@ -377,7 +377,7 @@ export default function AuditLogPage() {
                       </div>
                     </th>
                     <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400 relative" style={{ width: columnWidths.user }}>
-                      Korisnik
+                      User
                       <div
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary-400 group"
                         onMouseDown={(e) => handleResizeStart('user', e)}
@@ -504,7 +504,7 @@ export default function AuditLogPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="font-medium text-gray-900 dark:text-gray-100">Detalji događaja</h3>
+              <h3 className="font-medium text-gray-900 dark:text-gray-100">Event details</h3>
               <button
                 onClick={() => setSelectedLog(null)}
                 className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -537,7 +537,7 @@ export default function AuditLogPage() {
                 <div className="flex items-start gap-2">
                   <User className="w-4 h-4 text-gray-400 mt-0.5" />
                   <div>
-                    <div className="text-gray-500 text-xs">Korisnik</div>
+                    <div className="text-gray-500 text-xs">User</div>
                     <div className="text-gray-900 dark:text-gray-100">{selectedLog.userName}</div>
                     <div className="text-gray-500 text-xs">{selectedLog.userEmail}</div>
                   </div>

@@ -45,7 +45,7 @@ export default function EmailLogPage() {
       queryClient.invalidateQueries({ queryKey: ['email-logs'] });
       toast.success('Svi emailovi obrisani');
     },
-    onError: () => toast.error('Greška pri brisanju'),
+    onError: () => toast.error('Error deleting'),
   });
 
   const formatDate = (dateStr: string) => {
@@ -98,7 +98,7 @@ export default function EmailLogPage() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Pretraga..."
+                placeholder="Search..."
                 className="input !py-1.5 !text-sm w-full pl-8"
               />
             </div>
@@ -107,7 +107,7 @@ export default function EmailLogPage() {
               className="btn btn-secondary !py-1.5 !px-3 !text-sm flex items-center gap-1"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              Osveži
+              Refresh
             </button>
           </div>
           <div className="flex items-center gap-3">
@@ -122,7 +122,7 @@ export default function EmailLogPage() {
             </a>
             <button
               onClick={() => {
-                if (confirm('Da li ste sigurni da želite da obrišete sve emailove?')) {
+                if (confirm('Are you sure you want to delete all emails?')) {
                   deleteAllMutation.mutate();
                 }
               }}
@@ -130,7 +130,7 @@ export default function EmailLogPage() {
               className="btn !py-1.5 !px-3 !text-sm flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Obriši sve
+              Delete all
             </button>
           </div>
         </div>
@@ -175,11 +175,11 @@ export default function EmailLogPage() {
 
                     {selectedEmail?.ID === email.ID && (
                       <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
-                        <div className="font-medium mb-2">Sadržaj:</div>
+                        <div className="font-medium mb-2">Content:</div>
                         <div
                           className="prose prose-sm dark:prose-invert max-w-none overflow-auto max-h-96"
                           dangerouslySetInnerHTML={{
-                            __html: email.Content?.Body || '(prazan sadržaj)'
+                            __html: email.Content?.Body || '(empty content)'
                           }}
                         />
                       </div>
@@ -195,7 +195,7 @@ export default function EmailLogPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700">
             <div className="text-sm text-gray-500">
-              Ukupno: {data?.total || 0} emailova
+              Total: {data?.total || 0} emails
             </div>
             <div className="flex items-center gap-2">
               <button

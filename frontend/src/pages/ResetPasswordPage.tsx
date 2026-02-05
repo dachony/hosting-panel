@@ -37,7 +37,7 @@ export default function ResetPasswordPage() {
     }
 
     if (password.length < 6) {
-      toast.error('Lozinka mora imati najmanje 6 karaktera');
+      toast.error('Password must be at least 6 characters');
       return;
     }
 
@@ -46,7 +46,7 @@ export default function ResetPasswordPage() {
     try {
       await api.post('/api/auth/reset-password', { token, password });
       setSuccess(true);
-      toast.success('Lozinka je uspešno promenjena');
+      toast.success('Password successfully changed');
       setTimeout(() => navigate('/login'), 3000);
     } catch {
       toast.error('Link za reset je istekao ili nije validan');
@@ -85,7 +85,7 @@ export default function ResetPasswordPage() {
               to="/forgot-password"
               className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
             >
-              Zatraži novi link
+              Request new link
             </Link>
           </div>
         </div>
@@ -105,7 +105,7 @@ export default function ResetPasswordPage() {
             />
           )}
           <h1 className="text-3xl font-bold text-primary-600">{branding.systemName}</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Nova lozinka</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">New password</p>
         </div>
 
         <div className="card">
@@ -117,22 +117,22 @@ export default function ResetPasswordPage() {
                 </svg>
               </div>
               <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                Lozinka je promenjena
+                Password changed
               </h2>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Bićete preusmereni na stranicu za prijavu...
+                You will be redirected to the login page...
               </p>
               <Link
                 to="/login"
                 className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
               >
-                Prijavi se odmah
+                Login now
               </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="label">Nova lozinka</label>
+                <label className="label">New password</label>
                 <input
                   type="password"
                   value={password}
@@ -168,7 +168,7 @@ export default function ResetPasswordPage() {
                   to="/login"
                   className="text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
                 >
-                  Nazad na prijavu
+                  Back to login
                 </Link>
               </div>
             </form>

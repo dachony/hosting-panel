@@ -98,9 +98,9 @@ async function seed() {
       {
         name: 'Domain Expiry Notification',
         type: 'client',
-        subject: '{{urgency}}Domen {{domainName}} ističe za {{daysUntilExpiry}} dana',
+        subject: '{{urgency}}Domain {{domainName}} expires in {{daysUntilExpiry}} days',
         htmlContent: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  <h2 style="color: {{urgencyColor}};">Domen uskoro ističe</h2>
+  <h2 style="color: {{urgencyColor}};">Domain expiring soon</h2>
   <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
     <tr>
       <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Domen:</strong></td>
@@ -119,14 +119,14 @@ async function seed() {
       <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; color: {{urgencyColor}}; font-weight: bold;">{{daysUntilExpiry}}</td>
     </tr>
   </table>
-  <p style="color: #6b7280; font-size: 14px;">Molimo vas da preduzmete odgovarajuće akcije pre isteka.</p>
+  <p style="color: #6b7280; font-size: 14px;">Please take appropriate action before expiry.</p>
   <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
   <p style="color: #9ca3af; font-size: 12px;">Ova poruka je automatski generisana od strane Hosting Panel sistema.</p>
 </div>`,
         pdfTemplate: `<html>
 <head><style>body{font-family:Arial,sans-serif;padding:40px;}h1{color:#1f2937;}table{width:100%;border-collapse:collapse;}td{padding:10px;border:1px solid #e5e7eb;}</style></head>
 <body>
-  <h1>Obaveštenje o isteku domena</h1>
+  <h1>Domain expiry notification</h1>
   <table>
     <tr><td><strong>Domen:</strong></td><td>{{domainName}}</td></tr>
     <tr><td><strong>Klijent:</strong></td><td>{{clientName}}</td></tr>
@@ -141,9 +141,9 @@ async function seed() {
       {
         name: 'Hosting Expiry Notification',
         type: 'client',
-        subject: '{{urgency}}Web hosting {{hostingName}} ističe za {{daysUntilExpiry}} dana',
+        subject: '{{urgency}}Web hosting {{hostingName}} expires in {{daysUntilExpiry}} days',
         htmlContent: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  <h2 style="color: {{urgencyColor}};">Web Hosting uskoro ističe</h2>
+  <h2 style="color: {{urgencyColor}};">Web Hosting expiring soon</h2>
   <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
     <tr>
       <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Hosting:</strong></td>
@@ -162,7 +162,7 @@ async function seed() {
       <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; color: {{urgencyColor}}; font-weight: bold;">{{daysUntilExpiry}}</td>
     </tr>
   </table>
-  <p style="color: #6b7280; font-size: 14px;">Molimo vas da preduzmete odgovarajuće akcije pre isteka.</p>
+  <p style="color: #6b7280; font-size: 14px;">Please take appropriate action before expiry.</p>
 </div>`,
         variables: ['hostingName', 'clientName', 'expiryDate', 'daysUntilExpiry', 'urgency', 'urgencyColor'],
         isActive: true,
@@ -170,10 +170,10 @@ async function seed() {
       {
         name: 'Daily Report',
         type: 'reports',
-        subject: 'Hosting Panel - Dnevni izveštaj ({{date}})',
+        subject: 'Hosting Panel - Daily Report ({{date}})',
         htmlContent: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
-  <h1 style="color: #1f2937;">Dnevni izveštaj</h1>
-  <p style="color: #6b7280;">Pregled usluga koje ističu u narednih 7 dana</p>
+  <h1 style="color: #1f2937;">Daily Report</h1>
+  <p style="color: #6b7280;">Overview of services expiring in the next 7 days</p>
 
   <h2 style="color: #2563eb; margin-top: 30px;">Domeni ({{domainsCount}})</h2>
   {{domainsTable}}

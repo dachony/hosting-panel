@@ -336,16 +336,16 @@ notifications.post('/settings/:id/test', adminMiddleware, async (c) => {
 
     if (!htmlContent) {
       const typeLabels = { domain: 'Domen', hosting: 'Web Hosting', mail: 'Mail Hosting' };
-      subject = `[TEST] ${setting.name || typeLabels[setting.type]} - Obaveštenje o isteku`;
+      subject = `[TEST] ${setting.name || typeLabels[setting.type]} - Expiry notification`;
       htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2563eb;">Test Notifikacija</h2>
-          <p>Ovo je test notifikacija za podešavanje: <strong>${setting.name || typeLabels[setting.type]}</strong></p>
+          <p>This is a test notification for setting: <strong>${setting.name || typeLabels[setting.type]}</strong></p>
           <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
             <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Tip:</strong></td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${typeLabels[setting.type]}</td></tr>
-            <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Dana pre isteka:</strong></td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${setting.daysBefore.join(', ')}</td></tr>
+            <tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><strong>Days before expiry:</strong></td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${setting.daysBefore.join(', ')}</td></tr>
           </table>
-          <p style="color: #6b7280; font-size: 14px;">Ovo je test email. U produkciji, primićete pravu notifikaciju sa podacima o klijentu i domenu.</p>
+          <p style="color: #6b7280; font-size: 14px;">This is a test email. In production, you will receive real notifications with client and domain data.</p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
           <p style="color: #9ca3af; font-size: 12px;">Hosting Panel - Test</p>
         </div>

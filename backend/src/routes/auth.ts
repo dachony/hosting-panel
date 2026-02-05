@@ -65,7 +65,7 @@ auth.post('/login', async (c) => {
 
     // Check if user is active
     if (user.isActive === false) {
-      return c.json({ error: 'Vaš nalog je deaktiviran. Kontaktirajte administratora.' }, 403);
+      return c.json({ error: 'Your account is deactivated. Contact your administrator.' }, 403);
     }
 
     // Get security settings for 2FA enforcement
@@ -466,19 +466,19 @@ auth.post('/change-password', authMiddleware, async (c) => {
     // Verify current password
     const validPassword = await bcrypt.compare(currentPassword, dbUser.passwordHash);
     if (!validPassword) {
-      return c.json({ error: 'Trenutna lozinka nije ispravna' }, 401);
+      return c.json({ error: 'Current password is incorrect' }, 401);
     }
 
     // Validate new password against policy
     const validation = await validatePassword(newPassword);
     if (!validation.valid) {
-      return c.json({ error: 'Nova lozinka ne ispunjava zahteve', details: validation.errors }, 400);
+      return c.json({ error: 'New password does not meet requirements', details: validation.errors }, 400);
     }
 
     // Check that new password is different from current
     const samePassword = await bcrypt.compare(newPassword, dbUser.passwordHash);
     if (samePassword) {
-      return c.json({ error: 'Nova lozinka mora biti drugačija od trenutne' }, 400);
+      return c.json({ error: 'New password must be different from current' }, 400);
     }
 
     // Update password
@@ -491,7 +491,7 @@ auth.post('/change-password', authMiddleware, async (c) => {
       })
       .where(eq(schema.users.id, user.id));
 
-    return c.json({ message: 'Lozinka uspešno promenjena' });
+    return c.json({ message: 'Password successfully changed' });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return c.json({ error: 'Invalid input', details: error.errors }, 400);
@@ -533,11 +533,11 @@ auth.post('/forgot-password', async (c) => {
 
     await sendEmail({
       to: user.email,
-      subject: 'Hosting Panel - Reset lozinke',
+      subject: 'Hosting Panel - Password Reset',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">Reset lozinke</h2>
-          <p>Primili smo zahtev za reset lozinke za vaš nalog.</p>
+          <h2 style="color: #2563eb;">Password Reset</h2>
+          <p>We received a password reset request for your account.</p>
           <p>Kliknite na link ispod da biste postavili novu lozinku:</p>
           <p style="margin: 20px 0;">
             <a href="${resetUrl}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
@@ -545,13 +545,13 @@ auth.post('/forgot-password', async (c) => {
             </a>
           </p>
           <p style="color: #6b7280; font-size: 14px;">
-            Link je validan 1 sat. Ako niste zahtevali reset lozinke, ignorišite ovaj email.
+            This link is valid for 1 hour. If you did not request a password reset, please ignore this email.
           </p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
           <p style="color: #9ca3af; font-size: 12px;">Hosting Panel</p>
         </div>
       `,
-      text: `Reset lozinke\n\nKliknite na link da resetujete lozinku: ${resetUrl}\n\nLink je validan 1 sat.`,
+      text: `Password Reset\n\nKliknite na link da resetujete lozinku: ${resetUrl}\n\nLink je validan 1 sat.`,
     });
 
     return c.json({ message: 'If the email exists, a reset link has been sent' });
