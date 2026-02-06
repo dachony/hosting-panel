@@ -6,14 +6,12 @@ import { api } from '../api/client';
 import { Hosting, ExpiryStatus, Client, Domain, Package } from '../types';
 import Modal from '../components/common/Modal';
 import DateInput from '../components/common/DateInput';
-import { Search, Filter, Plus, Globe, Loader2, Pencil, Trash2, LayoutList, LayoutGrid, Power, PowerOff, Server, Shield } from 'lucide-react';
+import { Search, Filter, Plus, Globe, Loader2, Pencil, Trash2, LayoutList, LayoutGrid, Server, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
 
 const ALL_STATUSES: ExpiryStatus[] = ['green', 'yellow', 'orange', 'red', 'forDeletion', 'deleted'];
-
-type EnabledStatus = 'enabled' | 'disabled';
 
 interface HostingWithDetails extends Hosting {
   daysUntilExpiry: number | null;
@@ -122,7 +120,6 @@ export default function HostingPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [domainToDelete, setDomainToDelete] = useState<{ domainId: number; domainName: string } | null>(null);
   const [statusFilters, setStatusFilters] = useState<Set<ExpiryStatus>>(new Set());
-  const [enabledFilter, setEnabledFilter] = useState<EnabledStatus | 'all'>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [addDomainModalOpen, setAddDomainModalOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<number | ''>('');
@@ -359,13 +356,6 @@ export default function HostingPage() {
       if (isUnhosted) return false; // unhosted only visible when "All"
       const status = getExpiryStatus(h.daysUntilExpiry!);
       if (!statusFilters.has(status)) return false;
-    }
-
-    // Enabled/disabled filter (uses domain-level isActive)
-    if (enabledFilter !== 'all') {
-      const isDomainActive = h.domainIsActive !== false;
-      if (enabledFilter === 'enabled' && !isDomainActive) return false;
-      if (enabledFilter === 'disabled' && isDomainActive) return false;
     }
 
     // Search filter

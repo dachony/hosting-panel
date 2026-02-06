@@ -187,17 +187,6 @@ export default function DomainDetailPage() {
     onError: () => toast.error(t('domains.errorUpdatingHosting')),
   });
 
-  // Toggle domain active status mutation
-  const toggleMutation = useMutation({
-    mutationFn: () => api.post(`/api/domains/${id}/toggle`, {}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['domain', id] });
-      queryClient.invalidateQueries({ queryKey: ['hosting'] });
-      toast.success(t('domains.statusUpdated'));
-    },
-    onError: () => toast.error(t('domains.errorUpdatingStatus')),
-  });
-
   // PDF mutations
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
