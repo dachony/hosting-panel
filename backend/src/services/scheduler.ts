@@ -688,7 +688,7 @@ export function startScheduler() {
 // Trigger a single client notification setting (used by manual "Trigger Now")
 // Unlike the scheduled check, this finds ALL items within the schedule range
 // and sends individual emails without checking notificationLog for duplicates.
-async function triggerClientNotification(setting: typeof schema.notificationSettings.$inferSelect): Promise<number> {
+async function triggerClientNotification(setting: typeof schema.notificationSettings.$inferSelect, domainId?: number): Promise<number> {
   const schedule = setting.schedule || [];
   if (schedule.length === 0) return 0;
 
@@ -710,6 +710,10 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
   let sentCount = 0;
 
   // --- Domains ---
+  const domainConditions = domainId
+    ? [eq(schema.domains.id, domainId)]
+    : [gte(schema.domains.expiryDate, rangeStart), lte(schema.domains.expiryDate, rangeEnd)];
+
   const domains = await db
     .select({
       id: schema.domains.id,
@@ -727,10 +731,7 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
     })
     .from(schema.domains)
     .leftJoin(schema.clients, eq(schema.domains.clientId, schema.clients.id))
-    .where(and(
-      gte(schema.domains.expiryDate, rangeStart),
-      lte(schema.domains.expiryDate, rangeEnd)
-    ));
+    .where(and(...domainConditions));
 
   for (const domain of domains) {
     if (!domain.clientEmail || !domain.expiryDate) continue;
@@ -793,10 +794,10 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
     .from(schema.webHosting)
     .leftJoin(schema.clients, eq(schema.webHosting.clientId, schema.clients.id))
     .leftJoin(schema.domains, eq(schema.webHosting.domainId, schema.domains.id))
-    .where(and(
-      gte(schema.webHosting.expiryDate, rangeStart),
-      lte(schema.webHosting.expiryDate, rangeEnd)
-    ));
+    .where(domainId
+      ? eq(schema.webHosting.domainId, domainId)
+      : and(gte(schema.webHosting.expiryDate, rangeStart), lte(schema.webHosting.expiryDate, rangeEnd))
+    );
 
   for (const item of hosting) {
     if (!item.clientEmail) continue;
@@ -865,10 +866,10 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
     .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
     .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
     .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
-    .where(and(
-      gte(schema.mailHosting.expiryDate, rangeStart),
-      lte(schema.mailHosting.expiryDate, rangeEnd)
-    ));
+    .where(domainId
+      ? eq(schema.mailHosting.domainId, domainId)
+      : and(gte(schema.mailHosting.expiryDate, rangeStart), lte(schema.mailHosting.expiryDate, rangeEnd))
+    );
 
   for (const item of mailHosting) {
     if (!item.clientEmail) continue;

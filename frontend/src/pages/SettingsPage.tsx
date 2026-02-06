@@ -212,6 +212,9 @@ export default function SettingsPage() {
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
   const [deleteNotificationDialogOpen, setDeleteNotificationDialogOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<NotificationSetting | null>(null);
+  const [triggerModalOpen, setTriggerModalOpen] = useState(false);
+  const [triggerDomainId, setTriggerDomainId] = useState<number | undefined>(undefined);
+  const [triggerDomainSearch, setTriggerDomainSearch] = useState('');
   const [notificationForm, setNotificationForm] = useState({
     name: '',
     type: 'client' as 'client' | 'service_request' | 'sales_request' | 'reports' | 'system',
@@ -783,6 +786,12 @@ export default function SettingsPage() {
     queryFn: () => api.get<{ settings: NotificationSetting[] }>('/api/notifications/settings'),
   });
 
+  const { data: triggerDomainsData } = useQuery({
+    queryKey: ['trigger-domains'],
+    queryFn: () => api.get<{ domains: Array<{ id: number; domainName: string; clientName?: string | null }> }>('/api/domains'),
+    enabled: triggerModalOpen,
+  });
+
   const { data: systemSettingsData, isLoading: systemSettingsLoading } = useQuery({
     queryKey: ['system-settings'],
     queryFn: () => api.get<{ settings: SystemSettings }>('/api/settings/system'),
@@ -1136,10 +1145,12 @@ export default function SettingsPage() {
   });
 
   const triggerNotificationMutation = useMutation({
-    mutationFn: (id: number) => api.post<{ message: string }>(`/api/notifications/settings/${id}/trigger`),
+    mutationFn: ({ id, domainId }: { id: number; domainId?: number }) =>
+      api.post<{ message: string }>(`/api/notifications/settings/${id}/trigger`, domainId ? { domainId } : {}),
     onSuccess: (data) => {
       toast.success(data.message || 'Notification triggered');
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
+      setTriggerModalOpen(false);
     },
     onError: (error: any) => toast.error(error?.response?.data?.error || 'Error triggering notification'),
   });
@@ -4830,12 +4841,15 @@ export default function SettingsPage() {
               {selectedNotification && (
                 <button
                   type="button"
-                  onClick={() => triggerNotificationMutation.mutate(selectedNotification.id)}
+                  onClick={() => {
+                    setTriggerDomainId(undefined);
+                    setTriggerDomainSearch('');
+                    setTriggerModalOpen(true);
+                  }}
                   className="!py-1.5 !px-3 !text-sm flex items-center gap-1 rounded bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-200 hover:border-amber-400 active:bg-amber-300 active:scale-[0.97] dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/50 dark:hover:bg-amber-500/40 dark:hover:border-amber-400/70 dark:active:bg-amber-500/50 transition-all duration-150"
-                  disabled={triggerNotificationMutation.isPending}
                 >
                   <Play className="w-3.5 h-3.5" />
-                  {triggerNotificationMutation.isPending ? 'Sending...' : 'Trigger Now'}
+                  Trigger Now
                 </button>
               )}
             </div>
@@ -4856,6 +4870,111 @@ export default function SettingsPage() {
                 {(updateNotificationMutation.isPending || createNotificationMutation.isPending) ? 'Saving...' : 'Save'}
               </button>
             </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Trigger Modal */}
+      <Modal
+        isOpen={triggerModalOpen}
+        onClose={() => setTriggerModalOpen(false)}
+        title="Trigger Notification"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Select a domain to send a test notification, or trigger for all matching domains.
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Domain</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={triggerDomainSearch}
+                onChange={(e) => {
+                  setTriggerDomainSearch(e.target.value);
+                  if (triggerDomainId) setTriggerDomainId(undefined);
+                }}
+                placeholder="Search domain..."
+                className="input w-full"
+              />
+              {triggerDomainSearch && !triggerDomainId && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {(triggerDomainsData?.domains || [])
+                    .filter(d => d.domainName.toLowerCase().includes(triggerDomainSearch.toLowerCase()) ||
+                      (d.clientName && d.clientName.toLowerCase().includes(triggerDomainSearch.toLowerCase())))
+                    .slice(0, 20)
+                    .map(d => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => {
+                          setTriggerDomainId(d.id);
+                          setTriggerDomainSearch(d.domainName);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+                      >
+                        <span className="font-medium">{d.domainName}</span>
+                        {d.clientName && <span className="text-gray-500 ml-2">({d.clientName})</span>}
+                      </button>
+                    ))}
+                  {(triggerDomainsData?.domains || []).filter(d =>
+                    d.domainName.toLowerCase().includes(triggerDomainSearch.toLowerCase()) ||
+                    (d.clientName && d.clientName.toLowerCase().includes(triggerDomainSearch.toLowerCase()))
+                  ).length === 0 && (
+                    <div className="px-3 py-2 text-sm text-gray-500">No domains found</div>
+                  )}
+                </div>
+              )}
+            </div>
+            {triggerDomainId && (
+              <button
+                type="button"
+                onClick={() => { setTriggerDomainId(undefined); setTriggerDomainSearch(''); }}
+                className="text-xs text-blue-600 hover:text-blue-800 mt-1"
+              >
+                Clear selection
+              </button>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setTriggerModalOpen(false)}
+              className="btn btn-secondary !py-1.5 !px-3 !text-sm"
+            >
+              Cancel
+            </button>
+            {!triggerDomainId && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedNotification) {
+                    triggerNotificationMutation.mutate({ id: selectedNotification.id });
+                  }
+                }}
+                className="!py-1.5 !px-3 !text-sm flex items-center gap-1 rounded bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-200 hover:border-amber-400 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/50 dark:hover:bg-amber-500/40 transition-all duration-150"
+                disabled={triggerNotificationMutation.isPending}
+              >
+                <Play className="w-3.5 h-3.5" />
+                {triggerNotificationMutation.isPending ? 'Sending...' : 'Trigger All'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                if (selectedNotification) {
+                  triggerNotificationMutation.mutate({ id: selectedNotification.id, domainId: triggerDomainId });
+                }
+              }}
+              className="btn btn-primary !py-1.5 !px-3 !text-sm flex items-center gap-1"
+              disabled={triggerNotificationMutation.isPending || (!triggerDomainId && false)}
+            >
+              <Send className="w-3.5 h-3.5" />
+              {triggerNotificationMutation.isPending ? 'Sending...' : triggerDomainId ? 'Send to Domain' : 'Send'}
+            </button>
           </div>
         </div>
       </Modal>
