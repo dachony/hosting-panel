@@ -4904,7 +4904,7 @@ export default function SettingsPage() {
                 onChange={(e) => setTemplateForm(prev => ({ ...prev, attachDomainPdf: e.target.checked }))}
                 className="w-4 h-4 rounded border-gray-300 text-primary-600"
               />
-              <span className="text-gray-700 dark:text-gray-300">{t('templates.attachDomainPdf')}</span>
+              <span className="text-gray-700 dark:text-gray-300">Attach domain PDF to email</span>
             </label>
           )}
 
