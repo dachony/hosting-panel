@@ -899,21 +899,11 @@ export default function ClientDetailPage() {
                     <div className="min-w-0 text-xs space-y-1">
                       <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                         <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.primaryContact')}</span>
-                        <span className="text-gray-400">{t('common.name')}:</span>
-                        <span>{domain.primaryContactName || client.contactPerson || '-'},</span>
-                        <span className="text-gray-400">{t('common.phone')}:</span>
-                        <span>{domain.primaryContactPhone || client.phone || '-'},</span>
-                        <span className="text-gray-400">{t('common.email')}:</span>
-                        <span className="truncate">{domain.primaryContactEmail || client.email1 || '-'}</span>
+                        <span className="truncate">{[domain.primaryContactName || client.contactPerson, domain.primaryContactPhone || client.phone, domain.primaryContactEmail || client.email1].filter(Boolean).join(', ') || '-'}</span>
                       </div>
                       <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                         <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.technicalContact')}</span>
-                        <span className="text-gray-400">{t('common.name')}:</span>
-                        <span>{domain.contactEmail1 || client.techContact || client.contactPerson || '-'},</span>
-                        <span className="text-gray-400">{t('common.phone')}:</span>
-                        <span>{domain.contactEmail2 || client.techPhone || client.phone || '-'},</span>
-                        <span className="text-gray-400">{t('common.email')}:</span>
-                        <span className="truncate">{domain.contactEmail3 || client.techEmail || client.email1 || '-'}</span>
+                        <span className="truncate">{[domain.contactEmail1 || client.techContact || client.contactPerson, domain.contactEmail2 || client.techPhone || client.phone, domain.contactEmail3 || client.techEmail || client.email1].filter(Boolean).join(', ') || '-'}</span>
                       </div>
                     </div>
 
@@ -983,38 +973,16 @@ export default function ClientDetailPage() {
                         {/* Primary Contact */}
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border dark:border-gray-700">
                           <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.primaryContact')}</span>
-                          <div className="mt-2 space-y-1 text-sm">
-                            <div className="flex">
-                              <span className="text-gray-500 dark:text-gray-400 w-16">{t('common.name')}:</span>
-                              <span>{domain.primaryContactName || client.contactPerson || '-'}</span>
-                            </div>
-                            <div className="flex">
-                              <span className="text-gray-500 dark:text-gray-400 w-16">{t('common.phone')}:</span>
-                              <span>{domain.primaryContactPhone || client.phone || '-'}</span>
-                            </div>
-                            <div className="flex">
-                              <span className="text-gray-500 dark:text-gray-400 w-16">{t('common.email')}:</span>
-                              <span>{domain.primaryContactEmail || client.email1 || '-'}</span>
-                            </div>
+                          <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 truncate">
+                            {[domain.primaryContactName || client.contactPerson, domain.primaryContactPhone || client.phone, domain.primaryContactEmail || client.email1].filter(Boolean).join(', ') || '-'}
                           </div>
                         </div>
 
                         {/* Technical Contact */}
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border dark:border-gray-700">
                           <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.technicalContact')}</span>
-                          <div className="mt-2 space-y-1 text-sm">
-                            <div className="flex">
-                              <span className="text-gray-500 dark:text-gray-400 w-16">{t('common.name')}:</span>
-                              <span>{domain.contactEmail1 || '-'}</span>
-                            </div>
-                            <div className="flex">
-                              <span className="text-gray-500 dark:text-gray-400 w-16">{t('common.phone')}:</span>
-                              <span>{domain.contactEmail2 || '-'}</span>
-                            </div>
-                            <div className="flex">
-                              <span className="text-gray-500 dark:text-gray-400 w-16">{t('common.email')}:</span>
-                              <span>{domain.contactEmail3 || '-'}</span>
-                            </div>
+                          <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 truncate">
+                            {[domain.contactEmail1 || client.techContact || client.contactPerson, domain.contactEmail2 || client.techPhone || client.phone, domain.contactEmail3 || client.techEmail || client.email1].filter(Boolean).join(', ') || '-'}
                           </div>
                         </div>
                       </div>
