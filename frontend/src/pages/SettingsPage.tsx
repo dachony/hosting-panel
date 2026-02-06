@@ -2518,7 +2518,6 @@ export default function SettingsPage() {
                           </div>
                         </div>
                       </div>
-                    </div>
 
                       {/* Storage Monitoring */}
                       <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
