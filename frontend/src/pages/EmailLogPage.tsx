@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import DOMPurify from 'dompurify';
 import { api } from '../api/client';
 import { Search, Loader2, Trash2, RefreshCw, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertTriangle, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -209,7 +210,7 @@ export default function EmailLogPage() {
                         <div
                           className="prose prose-sm dark:prose-invert max-w-none overflow-auto max-h-96 bg-white dark:bg-gray-900 p-3 rounded border border-gray-200 dark:border-gray-700"
                           dangerouslySetInnerHTML={{
-                            __html: email.htmlContent || t('emailLog.emptyContent')
+                            __html: DOMPurify.sanitize(email.htmlContent || t('emailLog.emptyContent'))
                           }}
                         />
                       </div>

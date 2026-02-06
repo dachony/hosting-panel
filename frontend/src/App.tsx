@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import Layout from './components/Layout/Layout';
 import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -75,6 +76,7 @@ function SetupRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <Routes>
       <Route path="/setup" element={<SetupRoute><SetupPage /></SetupRoute>} />
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
@@ -105,5 +107,6 @@ export default function App() {
         <Route path="templates" element={<Navigate to="/settings" replace />} />
       </Route>
     </Routes>
+    </ErrorBoundary>
   );
 }

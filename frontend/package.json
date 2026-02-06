@@ -20,9 +20,11 @@
     "react-hot-toast": "^2.4.1",
     "react-i18next": "^14.0.1",
     "react-router-dom": "^6.21.3",
+    "dompurify": "^3.0.8",
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/dompurify": "^3.0.5",
     "@hookform/resolvers": "^3.3.4",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
