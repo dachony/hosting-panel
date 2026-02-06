@@ -40,19 +40,13 @@ export default function DateInput({
         onChange={(e) => onChange(e.target.value)}
         required={required}
         onClick={handleClick}
-        className={`input w-full cursor-pointer
+        className={`input w-full cursor-pointer appearance-none
           bg-white dark:bg-gray-800
           border-gray-300 dark:border-gray-600
           text-gray-900 dark:text-gray-100
           [color-scheme:light] dark:[color-scheme:dark]
-          [&::-webkit-calendar-picker-indicator]:opacity-0
-          [&::-webkit-calendar-picker-indicator]:absolute
-          [&::-webkit-calendar-picker-indicator]:inset-0
-          [&::-webkit-calendar-picker-indicator]:w-full
-          [&::-webkit-calendar-picker-indicator]:h-full
-          [&::-webkit-calendar-picker-indicator]:cursor-pointer
+          [&::-webkit-calendar-picker-indicator]:hidden
           [&::-webkit-inner-spin-button]:hidden
-          [&::-moz-focus-inner]:border-0
           ${isSmall ? 'pr-8 text-xs py-1 px-1.5' : 'pr-12 text-base py-3'}`}
       />
       <CalendarDays
