@@ -72,6 +72,12 @@ interface SystemNotifications {
     backupFailed: boolean;
     sslCertExpiring: boolean;
     sslCertExpiringDays: number;
+    auditLogsThreshold: boolean;
+    auditLogsCount: number;
+    emailLogsThreshold: boolean;
+    emailLogsCount: number;
+    pdfSizeThreshold: boolean;
+    pdfSizeMb: number;
   };
 }
 
@@ -137,6 +143,12 @@ export default function SettingsPage() {
       backupFailed: true,
       sslCertExpiring: true,
       sslCertExpiringDays: 14,
+      auditLogsThreshold: false,
+      auditLogsCount: 10000,
+      emailLogsThreshold: false,
+      emailLogsCount: 5000,
+      pdfSizeThreshold: false,
+      pdfSizeMb: 500,
     },
   });
 
@@ -2503,6 +2515,92 @@ export default function SettingsPage() {
                               disabled={!systemNotifications.events.sslCertExpiring}
                             />
                             <span className="text-xs text-gray-500">days</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                      {/* Storage Monitoring */}
+                      <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
+                        <div className="text-xs font-medium text-purple-700 dark:text-purple-300 mb-2">📦 Storage Monitoring</div>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <label className="flex items-center text-xs cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={systemNotifications.events.auditLogsThreshold}
+                                onChange={(e) => setSystemNotifications(prev => ({
+                                  ...prev,
+                                  events: { ...prev.events, auditLogsThreshold: e.target.checked }
+                                }))}
+                                className="mr-2"
+                              />
+                              Audit logs &gt;
+                            </label>
+                            <input
+                              type="number"
+                              min="100"
+                              value={systemNotifications.events.auditLogsCount}
+                              onChange={(e) => setSystemNotifications(prev => ({
+                                ...prev,
+                                events: { ...prev.events, auditLogsCount: parseInt(e.target.value) || 10000 }
+                              }))}
+                              className="input !py-0.5 !px-2 !text-xs w-20"
+                              disabled={!systemNotifications.events.auditLogsThreshold}
+                            />
+                            <span className="text-xs text-gray-500">entries</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <label className="flex items-center text-xs cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={systemNotifications.events.emailLogsThreshold}
+                                onChange={(e) => setSystemNotifications(prev => ({
+                                  ...prev,
+                                  events: { ...prev.events, emailLogsThreshold: e.target.checked }
+                                }))}
+                                className="mr-2"
+                              />
+                              Email logs &gt;
+                            </label>
+                            <input
+                              type="number"
+                              min="100"
+                              value={systemNotifications.events.emailLogsCount}
+                              onChange={(e) => setSystemNotifications(prev => ({
+                                ...prev,
+                                events: { ...prev.events, emailLogsCount: parseInt(e.target.value) || 5000 }
+                              }))}
+                              className="input !py-0.5 !px-2 !text-xs w-20"
+                              disabled={!systemNotifications.events.emailLogsThreshold}
+                            />
+                            <span className="text-xs text-gray-500">entries</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <label className="flex items-center text-xs cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={systemNotifications.events.pdfSizeThreshold}
+                                onChange={(e) => setSystemNotifications(prev => ({
+                                  ...prev,
+                                  events: { ...prev.events, pdfSizeThreshold: e.target.checked }
+                                }))}
+                                className="mr-2"
+                              />
+                              PDF storage &gt;
+                            </label>
+                            <input
+                              type="number"
+                              min="10"
+                              value={systemNotifications.events.pdfSizeMb}
+                              onChange={(e) => setSystemNotifications(prev => ({
+                                ...prev,
+                                events: { ...prev.events, pdfSizeMb: parseInt(e.target.value) || 500 }
+                              }))}
+                              className="input !py-0.5 !px-2 !text-xs w-20"
+                              disabled={!systemNotifications.events.pdfSizeThreshold}
+                            />
+                            <span className="text-xs text-gray-500">MB</span>
                           </div>
                         </div>
                       </div>

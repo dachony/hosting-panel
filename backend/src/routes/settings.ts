@@ -88,6 +88,12 @@ const systemNotificationsSchema = z.object({
     backupFailed: z.boolean(),
     sslCertExpiring: z.boolean(),
     sslCertExpiringDays: z.number().min(1).max(90),
+    auditLogsThreshold: z.boolean(),
+    auditLogsCount: z.number().min(100),
+    emailLogsThreshold: z.boolean(),
+    emailLogsCount: z.number().min(100),
+    pdfSizeThreshold: z.boolean(),
+    pdfSizeMb: z.number().min(10),
   }),
 });
 
@@ -117,11 +123,22 @@ settings.get('/system-notifications', async (c) => {
       backupFailed: true,
       sslCertExpiring: true,
       sslCertExpiringDays: 14,
+      auditLogsThreshold: false,
+      auditLogsCount: 10000,
+      emailLogsThreshold: false,
+      emailLogsCount: 5000,
+      pdfSizeThreshold: false,
+      pdfSizeMb: 500,
     },
   };
 
   if (setting?.value) {
-    return c.json({ settings: { ...defaults, ...(setting.value as object) } });
+    const saved = setting.value as Record<string, unknown>;
+    return c.json({ settings: {
+      ...defaults,
+      ...saved,
+      events: { ...defaults.events, ...(saved.events as object || {}) },
+    } });
   }
 
   return c.json({ settings: defaults });
