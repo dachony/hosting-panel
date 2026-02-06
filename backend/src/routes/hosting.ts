@@ -4,6 +4,7 @@ import { eq, and, lte, gte, isNull } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp, formatDate, addDaysToDate, daysUntilExpiry } from '../utils/dates.js';
+import { parseId } from '../utils/validation.js';
 
 const hosting = new Hono();
 
@@ -163,7 +164,8 @@ hosting.get('/expiring', async (c) => {
 });
 
 hosting.get('/:id', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid hosting ID' }, 400);
 
   const hostingItem = await db
     .select({
@@ -224,7 +226,8 @@ hosting.post('/', async (c) => {
 
 hosting.put('/:id', async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid hosting ID' }, 400);
     const body = await c.req.json();
     const data = hostingSchema.partial().parse(body);
 
@@ -256,7 +259,8 @@ hosting.put('/:id', async (c) => {
 });
 
 hosting.delete('/:id', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid hosting ID' }, 400);
 
   const existing = await db.select().from(schema.mailHosting).where(eq(schema.mailHosting.id, id)).get();
   if (!existing) {
@@ -269,7 +273,8 @@ hosting.delete('/:id', async (c) => {
 });
 
 hosting.post('/:id/toggle', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid hosting ID' }, 400);
 
   const existing = await db.select().from(schema.mailHosting).where(eq(schema.mailHosting.id, id)).get();
   if (!existing) {
@@ -295,7 +300,8 @@ const extendSchema = z.object({
 
 hosting.post('/:id/extend', async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid hosting ID' }, 400);
     const body = await c.req.json();
     const { period, fromToday } = extendSchema.parse(body);
 
@@ -334,7 +340,8 @@ hosting.post('/:id/extend', async (c) => {
 
 // Set expiry to yesterday
 hosting.post('/:id/expire-now', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid hosting ID' }, 400);
 
   const existing = await db.select().from(schema.mailHosting).where(eq(schema.mailHosting.id, id)).get();
   if (!existing) return c.json({ error: 'Hosting not found' }, 404);

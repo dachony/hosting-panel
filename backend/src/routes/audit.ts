@@ -10,8 +10,8 @@ audit.use('*', authMiddleware);
 
 // Get audit logs with filtering and pagination
 audit.get('/', async (c) => {
-  const page = safeParseInt(c.req.query('page'), 1) ?? 1;
-  const limit = Math.min(safeParseInt(c.req.query('limit'), 50) ?? 50, 200);
+  const page = Math.max(1, safeParseInt(c.req.query('page'), 1) ?? 1);
+  const limit = Math.max(1, Math.min(safeParseInt(c.req.query('limit'), 50) ?? 50, 200));
   const search = c.req.query('search') || '';
   const entityType = c.req.query('entityType') || '';
   const action = c.req.query('action') || '';

@@ -9,13 +9,36 @@ const settings = new Hono();
 
 settings.use('*', authMiddleware);
 
+// Keys containing sensitive values that should be masked
+const SENSITIVE_FIELDS = ['password', 'secret', 'token', 'apiKey'];
+
+function maskSensitiveValues(obj: unknown): unknown {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === 'string') return obj;
+  if (typeof obj !== 'object') return obj;
+
+  if (Array.isArray(obj)) return obj.map(maskSensitiveValues);
+
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    if (SENSITIVE_FIELDS.some(f => key.toLowerCase().includes(f)) && typeof value === 'string' && value.length > 0) {
+      result[key] = '********';
+    } else if (typeof value === 'object' && value !== null) {
+      result[key] = maskSensitiveValues(value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 // Get all app settings
 settings.get('/', async (c) => {
   const allSettings = await db.select().from(schema.appSettings);
   const settingsMap: Record<string, unknown> = {};
 
   for (const setting of allSettings) {
-    settingsMap[setting.key] = setting.value;
+    settingsMap[setting.key] = maskSensitiveValues(setting.value);
   }
 
   return c.json({ settings: settingsMap });
