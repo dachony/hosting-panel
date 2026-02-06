@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +6,7 @@ import { api } from '../api/client';
 import { Client, Domain, Hosting, ExpiryStatus, ExtendPeriod, Package, MailServer, MailSecurity } from '../types';
 import Modal from '../components/common/Modal';
 import DateInput from '../components/common/DateInput';
-import { ArrowLeft, Globe, Server, Calendar, ChevronDown, ChevronRight, Lock, Unlock, Plus, Search, Pencil, Users, Shield } from 'lucide-react';
+import { ArrowLeft, Globe, Server, Calendar, ChevronDown, ChevronRight, Lock, Unlock, Plus, Search, Pencil, Users, Shield, AlertTriangle, FileText, Upload, Download, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface HostingWithPackage extends Hosting {
@@ -230,6 +230,52 @@ export default function ClientDetailPage() {
     },
     onError: () => toast.error(t('domains.errorUpdatingHosting')),
   });
+
+  const expireNowMutation = useMutation({
+    mutationFn: (hostingId: number) => api.post(`/api/hosting/${hostingId}/expire-now`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client', id] });
+      queryClient.invalidateQueries({ queryKey: ['hosting'] });
+      toast.success(t('common.saved'));
+      setExtendModalOpen(false);
+      setExtendItem(null);
+      setSelectedExtendPeriod('');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  // PDF mutations
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const [pdfUploadDomainId, setPdfUploadDomainId] = useState<number | null>(null);
+
+  const uploadPdfMutation = useMutation({
+    mutationFn: ({ domainId, file }: { domainId: number; file: File }) =>
+      api.uploadFile<{ pdfFilename: string }>(`/api/domains/${domainId}/pdf`, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client', id] });
+      queryClient.invalidateQueries({ queryKey: ['domains'] });
+      toast.success(t('domains.pdfUploaded'));
+    },
+    onError: (err: Error) => toast.error(err.message || t('domains.errorUploadingPdf')),
+  });
+
+  const deletePdfMutation = useMutation({
+    mutationFn: (domainId: number) => api.delete(`/api/domains/${domainId}/pdf`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client', id] });
+      queryClient.invalidateQueries({ queryKey: ['domains'] });
+      toast.success(t('domains.pdfDeleted'));
+    },
+    onError: () => toast.error(t('domains.errorDeletingPdf')),
+  });
+
+  const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && pdfUploadDomainId) {
+      uploadPdfMutation.mutate({ domainId: pdfUploadDomainId, file });
+    }
+    e.target.value = '';
+  };
 
   const addDomainMutation = useMutation({
     mutationFn: async (formData: typeof domainForm) => {
@@ -1061,6 +1107,44 @@ export default function ClientDetailPage() {
                             </div>
                           </>
                         )}
+                      {/* PDF Document */}
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border dark:border-gray-700">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-3.5 h-3.5 text-primary-600" />
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('domains.pdfDocument')}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {domain.pdfFilename ? (
+                              <>
+                                <span className="text-xs text-gray-600 dark:text-gray-400">{domain.pdfFilename}</span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); api.download(`/api/domains/${domain.id}/pdf`, domain.pdfFilename!); }}
+                                  className="p-1 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors"
+                                  title={t('common.download')}
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); deletePdfMutation.mutate(domain.id); }}
+                                  className="p-1 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded transition-colors"
+                                  title={t('common.delete')}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-xs text-gray-400">{t('domains.noPdf')}</span>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setPdfUploadDomainId(domain.id); pdfInputRef.current?.click(); }}
+                              className="btn btn-secondary !text-[11px] !py-0.5 !px-2 flex items-center gap-1"
+                            >
+                              <Upload className="w-3 h-3" />
+                              {t('domains.uploadPdf')}
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1070,6 +1154,15 @@ export default function ClientDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Hidden PDF input */}
+      <input
+        ref={pdfInputRef}
+        type="file"
+        accept=".pdf"
+        onChange={handlePdfUpload}
+        className="hidden"
+      />
 
       {/* Extend Modal */}
       <Modal
@@ -1133,35 +1226,50 @@ export default function ClientDetailPage() {
           </div>
 
           {/* Buttons */}
-          <div className="flex justify-end gap-2 pt-3 border-t dark:border-gray-700">
+          <div className="flex justify-between items-center pt-3 border-t dark:border-gray-700">
             <button
               type="button"
               onClick={() => {
-                setExtendModalOpen(false);
-                setExtendItem(null);
-                setSelectedExtendPeriod('');
-                setExtendModalFromToday(false);
-              }}
-              className="btn btn-secondary py-1.5 px-3 text-sm"
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (selectedExtendPeriod && extendItem) {
-                  extendMutation.mutate({
-                    hostingId: extendItem.id,
-                    period: selectedExtendPeriod,
-                    fromToday: extendModalFromToday,
-                  });
+                if (extendItem) {
+                  expireNowMutation.mutate(extendItem.id);
                 }
               }}
-              disabled={!selectedExtendPeriod || extendMutation.isPending}
-              className="btn btn-primary py-1.5 px-3 text-sm"
+              disabled={expireNowMutation.isPending}
+              className="!text-xs !py-1.5 !px-3 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
             >
-              {extendMutation.isPending ? t('common.saving') : t('common.save')}
+              <AlertTriangle className="w-3 h-3" />
+              {expireNowMutation.isPending ? t('common.saving') : t('common.expireNow')}
             </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setExtendModalOpen(false);
+                  setExtendItem(null);
+                  setSelectedExtendPeriod('');
+                  setExtendModalFromToday(false);
+                }}
+                className="btn btn-secondary py-1.5 px-3 text-sm"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedExtendPeriod && extendItem) {
+                    extendMutation.mutate({
+                      hostingId: extendItem.id,
+                      period: selectedExtendPeriod,
+                      fromToday: extendModalFromToday,
+                    });
+                  }
+                }}
+                disabled={!selectedExtendPeriod || extendMutation.isPending}
+                className="btn btn-primary py-1.5 px-3 text-sm"
+              >
+                {extendMutation.isPending ? t('common.saving') : t('common.save')}
+              </button>
+            </div>
           </div>
         </div>
       </Modal>
