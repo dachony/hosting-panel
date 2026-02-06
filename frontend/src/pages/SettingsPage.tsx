@@ -116,12 +116,12 @@ interface MailSettings {
 }
 
 const ACCENT_COLORS: { id: AccentColor; labelKey: string; swatch: string }[] = [
-  { id: 'blue', labelKey: 'appearance.blue', swatch: '#2563eb' },
-  { id: 'indigo', labelKey: 'appearance.indigo', swatch: '#4f46e5' },
-  { id: 'violet', labelKey: 'appearance.violet', swatch: '#7c3aed' },
-  { id: 'emerald', labelKey: 'appearance.emerald', swatch: '#059669' },
-  { id: 'amber', labelKey: 'appearance.amber', swatch: '#d97706' },
-  { id: 'rose', labelKey: 'appearance.rose', swatch: '#e11d48' },
+  { id: 'blue', labelKey: 'appearance.blue', swatch: '#4c6288' },
+  { id: 'indigo', labelKey: 'appearance.indigo', swatch: '#585485' },
+  { id: 'violet', labelKey: 'appearance.violet', swatch: '#6a5885' },
+  { id: 'emerald', labelKey: 'appearance.emerald', swatch: '#407362' },
+  { id: 'amber', labelKey: 'appearance.amber', swatch: '#896a3a' },
+  { id: 'rose', labelKey: 'appearance.rose', swatch: '#854c57' },
 ];
 
 function AppearanceTab() {
