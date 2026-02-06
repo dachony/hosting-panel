@@ -53,229 +53,14 @@ async function checkExpiringItems() {
     for (const days of schedule) {
       const targetDate = formatDate(addDaysToDate(today, days));
 
-      // For client-type notifications, check all service types
+      // For client-type notifications, check hosting expiry
       if (setting.type === 'client') {
-        await checkExpiringDomains(targetDate, days, setting);
-        await checkExpiringHosting(targetDate, days, setting);
         await checkExpiringMailHosting(targetDate, days, setting);
       }
     }
   }
 
   console.log('[Scheduler] Finished checking expiring items');
-}
-
-async function checkExpiringDomains(targetDate: string, daysRemaining: number, setting: typeof schema.notificationSettings.$inferSelect) {
-  const domains = await db
-    .select({
-      id: schema.domains.id,
-      domainName: schema.domains.domainName,
-      expiryDate: schema.domains.expiryDate,
-      pdfFilename: schema.domains.pdfFilename,
-      clientName: schema.clients.name,
-      clientEmail: schema.clients.email1,
-      primaryContactName: schema.domains.primaryContactName,
-      primaryContactPhone: schema.domains.primaryContactPhone,
-      primaryContactEmail: schema.domains.primaryContactEmail,
-      techContactName: schema.domains.contactEmail1,
-      techContactPhone: schema.domains.contactEmail2,
-      techContactEmail: schema.domains.contactEmail3,
-    })
-    .from(schema.domains)
-    .leftJoin(schema.clients, eq(schema.domains.clientId, schema.clients.id))
-    .where(and(eq(schema.domains.expiryDate, targetDate), eq(schema.domains.isActive, true)));
-
-  for (const domain of domains) {
-    const recipientEmail = setting.recipientType === 'custom'
-      ? setting.customEmail
-      : (domain.primaryContactEmail || domain.clientEmail);
-    if (!recipientEmail) continue;
-
-    const alreadySent = await db.select()
-      .from(schema.notificationLog)
-      .where(and(
-        eq(schema.notificationLog.type, 'domain'),
-        eq(schema.notificationLog.referenceId, domain.id),
-        eq(schema.notificationLog.recipient, recipientEmail)
-      ))
-      .get();
-
-    if (alreadySent) continue;
-
-    try {
-      let emailSubject: string;
-      let emailHtml: string;
-      let attachments: Array<{ filename: string; path: string }> = [];
-
-      if (setting.templateId) {
-        const template = await db.select()
-          .from(schema.emailTemplates)
-          .where(eq(schema.emailTemplates.id, setting.templateId))
-          .get();
-
-        if (template) {
-          const variables: Record<string, string> = {
-            clientName: domain.clientName || 'Nepoznat',
-            domainName: domain.domainName,
-            expiryDate: domain.expiryDate || '',
-            daysUntilExpiry: String(daysRemaining),
-            primaryContactName: domain.primaryContactName || '',
-            primaryContactPhone: domain.primaryContactPhone || '',
-            primaryContactEmail: domain.primaryContactEmail || '',
-            techContactName: domain.techContactName || '',
-            techContactPhone: domain.techContactPhone || '',
-            techContactEmail: domain.techContactEmail || '',
-          };
-
-          const result = applyTemplateVariables(template.subject, template.htmlContent, variables);
-          emailSubject = result.subject;
-          emailHtml = result.html;
-
-          if (template.attachDomainPdf) {
-            attachments = getDomainPdfAttachment(domain.id, domain.pdfFilename);
-          }
-        } else {
-          const emailOptions = getExpiryNotificationEmail('domain', domain.domainName, domain.clientName || 'Nepoznat', domain.expiryDate || '', daysRemaining);
-          emailSubject = emailOptions.subject;
-          emailHtml = emailOptions.html;
-        }
-      } else {
-        const emailOptions = getExpiryNotificationEmail('domain', domain.domainName, domain.clientName || 'Nepoznat', domain.expiryDate || '', daysRemaining);
-        emailSubject = emailOptions.subject;
-        emailHtml = emailOptions.html;
-      }
-
-      await sendEmail({ to: recipientEmail, subject: emailSubject, html: emailHtml, attachments: attachments.length > 0 ? attachments : undefined });
-
-      await db.insert(schema.notificationLog).values({
-        type: 'domain',
-        referenceId: domain.id,
-        recipient: recipientEmail,
-        status: 'sent',
-      });
-
-      console.log(`[Scheduler] Sent domain expiry notification for ${domain.domainName} to ${recipientEmail}`);
-    } catch (error) {
-      await db.insert(schema.notificationLog).values({
-        type: 'domain',
-        referenceId: domain.id,
-        recipient: recipientEmail,
-        status: 'failed',
-        error: String(error),
-      });
-
-      console.error(`[Scheduler] Failed to send notification for ${domain.domainName}:`, error);
-    }
-  }
-}
-
-async function checkExpiringHosting(targetDate: string, daysRemaining: number, setting: typeof schema.notificationSettings.$inferSelect) {
-  const hosting = await db
-    .select({
-      id: schema.webHosting.id,
-      packageName: schema.webHosting.packageName,
-      expiryDate: schema.webHosting.expiryDate,
-      clientName: schema.clients.name,
-      clientEmail: schema.clients.email1,
-      domainId: schema.domains.id,
-      domainName: schema.domains.domainName,
-      domainPdfFilename: schema.domains.pdfFilename,
-      primaryContactName: schema.domains.primaryContactName,
-      primaryContactPhone: schema.domains.primaryContactPhone,
-      primaryContactEmail: schema.domains.primaryContactEmail,
-      techContactName: schema.domains.contactEmail1,
-      techContactPhone: schema.domains.contactEmail2,
-      techContactEmail: schema.domains.contactEmail3,
-    })
-    .from(schema.webHosting)
-    .leftJoin(schema.clients, eq(schema.webHosting.clientId, schema.clients.id))
-    .leftJoin(schema.domains, eq(schema.webHosting.domainId, schema.domains.id))
-    .where(eq(schema.webHosting.expiryDate, targetDate));
-
-  for (const item of hosting) {
-    const recipientEmail = setting.recipientType === 'custom'
-      ? setting.customEmail
-      : (item.primaryContactEmail || item.clientEmail);
-    if (!recipientEmail) continue;
-
-    const alreadySent = await db.select()
-      .from(schema.notificationLog)
-      .where(and(
-        eq(schema.notificationLog.type, 'hosting'),
-        eq(schema.notificationLog.referenceId, item.id),
-        eq(schema.notificationLog.recipient, recipientEmail)
-      ))
-      .get();
-
-    if (alreadySent) continue;
-
-    try {
-      const itemName = item.domainName || item.packageName;
-      let emailSubject: string;
-      let emailHtml: string;
-      let hostingAttachments: Array<{ filename: string; path: string }> = [];
-
-      if (setting.templateId) {
-        const template = await db.select()
-          .from(schema.emailTemplates)
-          .where(eq(schema.emailTemplates.id, setting.templateId))
-          .get();
-
-        if (template) {
-          const variables: Record<string, string> = {
-            clientName: item.clientName || 'Nepoznat',
-            domainName: item.domainName || '',
-            expiryDate: item.expiryDate,
-            daysUntilExpiry: String(daysRemaining),
-            packageName: item.packageName,
-            primaryContactName: item.primaryContactName || '',
-            primaryContactPhone: item.primaryContactPhone || '',
-            primaryContactEmail: item.primaryContactEmail || '',
-            techContactName: item.techContactName || '',
-            techContactPhone: item.techContactPhone || '',
-            techContactEmail: item.techContactEmail || '',
-          };
-
-          const result = applyTemplateVariables(template.subject, template.htmlContent, variables);
-          emailSubject = result.subject;
-          emailHtml = result.html;
-
-          if (template.attachDomainPdf && item.domainId) {
-            hostingAttachments = getDomainPdfAttachment(item.domainId, item.domainPdfFilename);
-          }
-        } else {
-          const emailOptions = getExpiryNotificationEmail('hosting', itemName, item.clientName || 'Nepoznat', item.expiryDate, daysRemaining);
-          emailSubject = emailOptions.subject;
-          emailHtml = emailOptions.html;
-        }
-      } else {
-        const emailOptions = getExpiryNotificationEmail('hosting', itemName, item.clientName || 'Nepoznat', item.expiryDate, daysRemaining);
-        emailSubject = emailOptions.subject;
-        emailHtml = emailOptions.html;
-      }
-
-      await sendEmail({ to: recipientEmail, subject: emailSubject, html: emailHtml, attachments: hostingAttachments.length > 0 ? hostingAttachments : undefined });
-
-      await db.insert(schema.notificationLog).values({
-        type: 'hosting',
-        referenceId: item.id,
-        recipient: recipientEmail,
-        status: 'sent',
-      });
-
-      console.log(`[Scheduler] Sent hosting expiry notification for ${itemName} to ${recipientEmail}`);
-    } catch (error) {
-      await db.insert(schema.notificationLog).values({
-        type: 'hosting',
-        referenceId: item.id,
-        recipient: recipientEmail,
-        status: 'failed',
-        error: String(error),
-      });
-
-      console.error(`[Scheduler] Failed to send notification for ${item.packageName}:`, error);
-    }
-  }
 }
 
 async function checkExpiringMailHosting(targetDate: string, daysRemaining: number, setting: typeof schema.notificationSettings.$inferSelect) {
@@ -339,6 +124,7 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
             clientName: item.clientName || 'Nepoznat',
             domainName: item.domainName || '',
             expiryDate: item.expiryDate,
+            hostingExpiryDate: item.expiryDate,
             daysUntilExpiry: String(daysRemaining),
             packageName: item.packageName || '',
             packageDescription: item.packageDescription || '',
@@ -360,12 +146,12 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
             mailAttachments = getDomainPdfAttachment(item.domainId, item.domainPdfFilename);
           }
         } else {
-          const emailOptions = getExpiryNotificationEmail('mail', itemName, item.clientName || 'Nepoznat', item.expiryDate, daysRemaining);
+          const emailOptions = getExpiryNotificationEmail('hosting', itemName, item.clientName || 'Nepoznat', item.expiryDate, daysRemaining);
           emailSubject = emailOptions.subject;
           emailHtml = emailOptions.html;
         }
       } else {
-        const emailOptions = getExpiryNotificationEmail('mail', itemName, item.clientName || 'Nepoznat', item.expiryDate, daysRemaining);
+        const emailOptions = getExpiryNotificationEmail('hosting', itemName, item.clientName || 'Nepoznat', item.expiryDate, daysRemaining);
         emailSubject = emailOptions.subject;
         emailHtml = emailOptions.html;
       }
@@ -409,38 +195,7 @@ async function sendDailyReport() {
   const today = formatDate(new Date());
   const weekLater = addDaysToDate(new Date(), 7);
 
-  const expiringDomains = await db
-    .select({
-      id: schema.domains.id,
-      domainName: schema.domains.domainName,
-      expiryDate: schema.domains.expiryDate,
-      clientName: schema.clients.name,
-    })
-    .from(schema.domains)
-    .leftJoin(schema.clients, eq(schema.domains.clientId, schema.clients.id))
-    .where(and(
-      eq(schema.domains.isActive, true),
-      gte(schema.domains.expiryDate, today),
-      lte(schema.domains.expiryDate, weekLater)
-    ));
-
   const expiringHosting = await db
-    .select({
-      id: schema.webHosting.id,
-      packageName: schema.webHosting.packageName,
-      expiryDate: schema.webHosting.expiryDate,
-      clientName: schema.clients.name,
-      domainName: schema.domains.domainName,
-    })
-    .from(schema.webHosting)
-    .leftJoin(schema.clients, eq(schema.webHosting.clientId, schema.clients.id))
-    .leftJoin(schema.domains, eq(schema.webHosting.domainId, schema.domains.id))
-    .where(and(
-      gte(schema.webHosting.expiryDate, today),
-      lte(schema.webHosting.expiryDate, weekLater)
-    ));
-
-  const expiringMail = await db
     .select({
       id: schema.mailHosting.id,
       expiryDate: schema.mailHosting.expiryDate,
@@ -458,20 +213,10 @@ async function sendDailyReport() {
     ));
 
   const emailOptions = getDailyReportEmail(
-    expiringDomains.map(d => ({
-      name: d.domainName,
-      clientName: d.clientName || 'Nepoznat',
-      expiryDate: d.expiryDate || '',
-      daysUntilExpiry: daysUntilExpiry(d.expiryDate || ''),
-    })),
-    expiringHosting.map(h => ({
-      name: h.domainName || h.packageName,
-      clientName: h.clientName || 'Nepoznat',
-      expiryDate: h.expiryDate,
-      daysUntilExpiry: daysUntilExpiry(h.expiryDate),
-    })),
-    expiringMail.map(m => ({
-      name: m.domainName || m.packageName || 'Mail hosting',
+    [],
+    [],
+    expiringHosting.map(m => ({
+      name: m.domainName || m.packageName || 'Hosting',
       clientName: m.clientName || 'Nepoznat',
       expiryDate: m.expiryDate,
       daysUntilExpiry: daysUntilExpiry(m.expiryDate),
@@ -785,133 +530,7 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
 
   let sentCount = 0;
 
-  // --- Domains ---
-  const domainConditions = domainId
-    ? [eq(schema.domains.id, domainId)]
-    : [gte(schema.domains.expiryDate, rangeStart), lte(schema.domains.expiryDate, rangeEnd)];
-
-  const domains = await db
-    .select({
-      id: schema.domains.id,
-      domainName: schema.domains.domainName,
-      expiryDate: schema.domains.expiryDate,
-      pdfFilename: schema.domains.pdfFilename,
-      clientName: schema.clients.name,
-      clientEmail: schema.clients.email1,
-      primaryContactName: schema.domains.primaryContactName,
-      primaryContactPhone: schema.domains.primaryContactPhone,
-      primaryContactEmail: schema.domains.primaryContactEmail,
-      techContactName: schema.domains.contactEmail1,
-      techContactPhone: schema.domains.contactEmail2,
-      techContactEmail: schema.domains.contactEmail3,
-    })
-    .from(schema.domains)
-    .leftJoin(schema.clients, eq(schema.domains.clientId, schema.clients.id))
-    .where(and(...domainConditions));
-
-  for (const domain of domains) {
-    const recipientEmail = setting.recipientType === 'custom'
-      ? setting.customEmail
-      : (domain.primaryContactEmail || domain.clientEmail);
-    if (!recipientEmail || !domain.expiryDate) continue;
-
-    const daysLeft = daysUntilExpiry(domain.expiryDate);
-
-    try {
-      const variables: Record<string, string> = {
-        clientName: domain.clientName || 'Nepoznat',
-        domainName: domain.domainName,
-        expiryDate: domain.expiryDate,
-        daysUntilExpiry: String(daysLeft),
-        primaryContactName: domain.primaryContactName || '',
-        primaryContactPhone: domain.primaryContactPhone || '',
-        primaryContactEmail: domain.primaryContactEmail || '',
-        techContactName: domain.techContactName || '',
-        techContactPhone: domain.techContactPhone || '',
-        techContactEmail: domain.techContactEmail || '',
-      };
-
-      const { subject: emailSubject, html: emailHtml } = applyTemplateVariables(template.subject, template.htmlContent, variables);
-
-      let attachments: Array<{ filename: string; path: string }> = [];
-      if (template.attachDomainPdf) {
-        attachments = getDomainPdfAttachment(domain.id, domain.pdfFilename);
-      }
-
-      await sendEmail({ to: recipientEmail, subject: emailSubject, html: emailHtml, attachments: attachments.length > 0 ? attachments : undefined });
-      sentCount++;
-      console.log(`[Trigger] Sent domain notification for ${domain.domainName} to ${recipientEmail}`);
-    } catch (error) {
-      console.error(`[Trigger] Failed to send domain notification for ${domain.domainName}:`, error);
-    }
-  }
-
-  // --- Web Hosting ---
-  const hosting = await db
-    .select({
-      id: schema.webHosting.id,
-      packageName: schema.webHosting.packageName,
-      expiryDate: schema.webHosting.expiryDate,
-      clientName: schema.clients.name,
-      clientEmail: schema.clients.email1,
-      domainId: schema.domains.id,
-      domainName: schema.domains.domainName,
-      domainPdfFilename: schema.domains.pdfFilename,
-      primaryContactName: schema.domains.primaryContactName,
-      primaryContactPhone: schema.domains.primaryContactPhone,
-      primaryContactEmail: schema.domains.primaryContactEmail,
-      techContactName: schema.domains.contactEmail1,
-      techContactPhone: schema.domains.contactEmail2,
-      techContactEmail: schema.domains.contactEmail3,
-    })
-    .from(schema.webHosting)
-    .leftJoin(schema.clients, eq(schema.webHosting.clientId, schema.clients.id))
-    .leftJoin(schema.domains, eq(schema.webHosting.domainId, schema.domains.id))
-    .where(domainId
-      ? eq(schema.webHosting.domainId, domainId)
-      : and(gte(schema.webHosting.expiryDate, rangeStart), lte(schema.webHosting.expiryDate, rangeEnd))
-    );
-
-  for (const item of hosting) {
-    const recipientEmail = setting.recipientType === 'custom'
-      ? setting.customEmail
-      : (item.primaryContactEmail || item.clientEmail);
-    if (!recipientEmail) continue;
-
-    const daysLeft = daysUntilExpiry(item.expiryDate);
-    const itemName = item.domainName || item.packageName;
-
-    try {
-      const variables: Record<string, string> = {
-        clientName: item.clientName || 'Nepoznat',
-        domainName: item.domainName || '',
-        expiryDate: item.expiryDate,
-        daysUntilExpiry: String(daysLeft),
-        packageName: item.packageName,
-        primaryContactName: item.primaryContactName || '',
-        primaryContactPhone: item.primaryContactPhone || '',
-        primaryContactEmail: item.primaryContactEmail || '',
-        techContactName: item.techContactName || '',
-        techContactPhone: item.techContactPhone || '',
-        techContactEmail: item.techContactEmail || '',
-      };
-
-      const { subject: emailSubject, html: emailHtml } = applyTemplateVariables(template.subject, template.htmlContent, variables);
-
-      let attachments: Array<{ filename: string; path: string }> = [];
-      if (template.attachDomainPdf && item.domainId) {
-        attachments = getDomainPdfAttachment(item.domainId, item.domainPdfFilename);
-      }
-
-      await sendEmail({ to: recipientEmail, subject: emailSubject, html: emailHtml, attachments: attachments.length > 0 ? attachments : undefined });
-      sentCount++;
-      console.log(`[Trigger] Sent hosting notification for ${itemName} to ${recipientEmail}`);
-    } catch (error) {
-      console.error(`[Trigger] Failed to send hosting notification for ${itemName}:`, error);
-    }
-  }
-
-  // --- Mail Hosting ---
+  // --- Hosting (mail_hosting) ---
   const mailHosting = await db
     .select({
       id: schema.mailHosting.id,
@@ -955,6 +574,7 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
         clientName: item.clientName || 'Nepoznat',
         domainName: item.domainName || '',
         expiryDate: item.expiryDate,
+        hostingExpiryDate: item.expiryDate,
         daysUntilExpiry: String(daysLeft),
         packageName: item.packageName || '',
         packageDescription: item.packageDescription || '',
@@ -977,7 +597,7 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
 
       await sendEmail({ to: recipientEmail, subject: emailSubject, html: emailHtml, attachments: attachments.length > 0 ? attachments : undefined });
       sentCount++;
-      console.log(`[Trigger] Sent mail hosting notification for ${itemName} to ${recipientEmail}`);
+      console.log(`[Trigger] Sent hosting notification for ${itemName} to ${recipientEmail}`);
     } catch (error) {
       console.error(`[Trigger] Failed to send mail hosting notification for ${itemName}:`, error);
     }

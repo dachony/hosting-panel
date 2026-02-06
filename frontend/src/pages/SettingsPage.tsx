@@ -477,6 +477,7 @@ export default function SettingsPage() {
     { key: 'clientName', label: 'Client Name', description: 'Client name' },
     { key: 'domainName', label: 'Domain', description: 'Domain name' },
     { key: 'expiryDate', label: 'Expiry Date', description: 'Expiry date' },
+    { key: 'hostingExpiryDate', label: 'Hosting Expiry', description: 'Hosting package expiry date' },
     { key: 'daysUntilExpiry', label: 'Days Left', description: 'Days until expiry' },
     { key: 'packageName', label: 'Package', description: 'Package name' },
     { key: 'companyName', label: 'Company', description: 'Company name' },
@@ -2073,6 +2074,7 @@ export default function SettingsPage() {
           domainName: 'example.com',
           clientName: 'Test Client',
           expiryDate: '2024-12-31',
+          hostingExpiryDate: '2024-12-31',
           daysUntilExpiry: 7,
         },
       });
@@ -2177,6 +2179,7 @@ export default function SettingsPage() {
       .replace(/\{\{clientName\}\}/g, '[Client Name]')
       .replace(/\{\{domainName\}\}/g, '[Domain]')
       .replace(/\{\{expiryDate\}\}/g, '[Expiry Date]')
+      .replace(/\{\{hostingExpiryDate\}\}/g, '[Hosting Expiry]')
       .replace(/\{\{daysUntilExpiry\}\}/g, '[Days Left]')
       .replace(/\{\{packageName\}\}/g, '[Package]')
       .replace(/\{\{companyName\}\}/g, '[Company]')
