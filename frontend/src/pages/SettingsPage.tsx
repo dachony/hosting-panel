@@ -3791,7 +3791,7 @@ export default function SettingsPage() {
                   </span>
                   <span className="text-gray-400">|</span>
                   <span className="text-gray-500">
-                    {(setting.type === 'reports' || setting.type === 'system') ? (
+                    {(setting.type === 'reports' || setting.type === 'system' || setting.type === 'service_request' || setting.type === 'sales_request') ? (
                       <>
                         {(() => {
                           const freq = setting.frequency || 'daily';
@@ -4559,8 +4559,8 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* Schedule - different UI for reports/system vs expiry-based types */}
-          {(notificationForm.type === 'reports' || notificationForm.type === 'system') ? (
+          {/* Schedule - different UI for frequency-based vs expiry-based types */}
+          {(notificationForm.type === 'reports' || notificationForm.type === 'system' || notificationForm.type === 'service_request' || notificationForm.type === 'sales_request') ? (
             <div className="space-y-3">
               <label className="text-[11px] text-gray-500 dark:text-gray-400 uppercase">Frequency</label>
 

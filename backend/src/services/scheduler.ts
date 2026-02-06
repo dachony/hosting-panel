@@ -687,6 +687,63 @@ async function sendSystemNotifications() {
   }
 }
 
+// Send service_request/sales_request notifications using templates
+async function sendScheduledNotifications(type: 'service_request' | 'sales_request') {
+  const settings = await db.select()
+    .from(schema.notificationSettings)
+    .where(and(
+      eq(schema.notificationSettings.enabled, true),
+      eq(schema.notificationSettings.type, type)
+    ));
+
+  for (const setting of settings) {
+    if (!setting.templateId) continue;
+    if (!setting.frequency) continue;
+    if (!shouldRunNow(setting)) continue;
+
+    const template = await db.select()
+      .from(schema.emailTemplates)
+      .where(eq(schema.emailTemplates.id, setting.templateId))
+      .get();
+
+    if (!template || !template.isActive) continue;
+
+    let recipient: string | null = null;
+    if (setting.recipientType === 'custom' && setting.customEmail) {
+      recipient = setting.customEmail;
+    }
+
+    if (!recipient) continue;
+
+    const companyInfo = await db.select().from(schema.companyInfo).get();
+
+    const variables: Record<string, string> = {
+      companyName: companyInfo?.name || 'Hosting Panel',
+      companyLogo: companyInfo?.logo || '',
+    };
+
+    let html = template.htmlContent;
+    let subject = template.subject;
+
+    for (const [key, value] of Object.entries(variables)) {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      html = html.replace(regex, value);
+      subject = subject.replace(regex, value);
+    }
+
+    try {
+      await sendEmail({ to: recipient, subject, html });
+      console.log(`[Scheduler] Sent ${type} notification "${setting.name}" to ${recipient}`);
+
+      await db.update(schema.notificationSettings)
+        .set({ lastSent: new Date().toISOString() })
+        .where(eq(schema.notificationSettings.id, setting.id));
+    } catch (error) {
+      console.error(`[Scheduler] Failed to send ${type} notification "${setting.name}" to ${recipient}:`, error);
+    }
+  }
+}
+
 export function startScheduler() {
   // Check expiring items every day at 8:00 AM
   cron.schedule('0 8 * * *', checkExpiringItems);
@@ -699,6 +756,10 @@ export function startScheduler() {
 
   // Check system notifications every minute (shouldRunNow handles timing)
   cron.schedule('* * * * *', sendSystemNotifications);
+
+  // Check service_request/sales_request notifications every minute
+  cron.schedule('* * * * *', () => sendScheduledNotifications('service_request'));
+  cron.schedule('* * * * *', () => sendScheduledNotifications('sales_request'));
 
   console.log('[Scheduler] Started notification scheduler');
 
