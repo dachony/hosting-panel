@@ -7,6 +7,7 @@ import { getCurrentTimestamp } from '../utils/dates.js';
 import { sendEmail } from '../services/email.js';
 import { generateHostingListHtml } from '../services/reports.js';
 import { generateSystemInfoHtml } from '../services/system.js';
+import { parseId } from '../utils/validation.js';
 
 const templates = new Hono();
 
@@ -20,7 +21,8 @@ templates.get('/', async (c) => {
 
 // Get single template
 templates.get('/:id', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid template ID' }, 400);
   const template = await db.select().from(schema.emailTemplates).where(eq(schema.emailTemplates.id, id)).get();
 
   if (!template) {
@@ -106,7 +108,8 @@ templates.post('/', adminMiddleware, async (c) => {
 // Update template
 templates.put('/:id', adminMiddleware, async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid template ID' }, 400);
     const body = await c.req.json();
     const data = templateSchema.partial().parse(body);
 
@@ -131,7 +134,8 @@ templates.put('/:id', adminMiddleware, async (c) => {
 
 // Delete template
 templates.delete('/:id', adminMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid template ID' }, 400);
 
   const existing = await db.select().from(schema.emailTemplates).where(eq(schema.emailTemplates.id, id)).get();
   if (!existing) {
@@ -145,7 +149,8 @@ templates.delete('/:id', adminMiddleware, async (c) => {
 
 // Preview template with sample data
 templates.post('/:id/preview', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid template ID' }, 400);
   const body = await c.req.json();
   const { variables = {} } = body;
 
@@ -200,7 +205,8 @@ templates.post('/:id/preview', async (c) => {
 // Test template - send email with sample data
 templates.post('/:id/test', adminMiddleware, async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid template ID' }, 400);
     const body = await c.req.json();
     const { email } = z.object({ email: z.string().email() }).parse(body);
 

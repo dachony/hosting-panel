@@ -1,9 +1,10 @@
 import { Hono } from 'hono';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
+import { parseId } from '../utils/validation.js';
 
 const company = new Hono();
 
@@ -47,7 +48,7 @@ company.get('/info', async (c) => {
 });
 
 // Create or update company info (upsert)
-company.put('/info', async (c) => {
+company.put('/info', adminMiddleware, async (c) => {
   try {
     const body = await c.req.json();
     const data = companyInfoSchema.parse(body);
@@ -78,7 +79,7 @@ company.put('/info', async (c) => {
 });
 
 // Upload logo
-company.post('/logo', async (c) => {
+company.post('/logo', adminMiddleware, async (c) => {
   try {
     const body = await c.req.json();
     const { logo } = body; // Base64 encoded image
@@ -104,7 +105,7 @@ company.post('/logo', async (c) => {
 });
 
 // Delete logo
-company.delete('/logo', async (c) => {
+company.delete('/logo', adminMiddleware, async (c) => {
   const existing = await db.select().from(schema.companyInfo).get();
 
   if (existing) {
@@ -123,7 +124,7 @@ company.get('/bank-accounts', async (c) => {
 });
 
 // Add bank account
-company.post('/bank-accounts', async (c) => {
+company.post('/bank-accounts', adminMiddleware, async (c) => {
   try {
     const body = await c.req.json();
     const data = bankAccountSchema.parse(body);
@@ -148,9 +149,10 @@ company.post('/bank-accounts', async (c) => {
 });
 
 // Update bank account
-company.put('/bank-accounts/:id', async (c) => {
+company.put('/bank-accounts/:id', adminMiddleware, async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid bank account ID' }, 400);
     const body = await c.req.json();
     const data = bankAccountSchema.partial().parse(body);
 
@@ -185,8 +187,9 @@ company.put('/bank-accounts/:id', async (c) => {
 });
 
 // Delete bank account
-company.delete('/bank-accounts/:id', async (c) => {
-  const id = parseInt(c.req.param('id'));
+company.delete('/bank-accounts/:id', adminMiddleware, async (c) => {
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid bank account ID' }, 400);
 
   const existing = await db.select().from(schema.bankAccounts)
     .where(eq(schema.bankAccounts.id, id)).get();
@@ -201,8 +204,9 @@ company.delete('/bank-accounts/:id', async (c) => {
 });
 
 // Set default bank account
-company.post('/bank-accounts/:id/set-default', async (c) => {
-  const id = parseInt(c.req.param('id'));
+company.post('/bank-accounts/:id/set-default', adminMiddleware, async (c) => {
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid bank account ID' }, 400);
 
   const existing = await db.select().from(schema.bankAccounts)
     .where(eq(schema.bankAccounts.id, id)).get();

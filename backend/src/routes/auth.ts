@@ -32,6 +32,16 @@ const loginSchema = z.object({
 // Temporary tokens for 2FA pending sessions (in production, use Redis)
 const pending2FASessions = new Map<string, { userId: number; email: string; name: string; role: string; expiresAt: number }>();
 
+// Cleanup expired 2FA sessions every 10 minutes to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, session] of pending2FASessions) {
+    if (session.expiresAt < now) {
+      pending2FASessions.delete(key);
+    }
+  }
+}, 10 * 60 * 1000);
+
 auth.post('/login', async (c) => {
   const ipAddress = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown';
   const userAgent = c.req.header('user-agent') || 'unknown';

@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
+import { parseId } from '../utils/validation.js';
 
 const mailSecurity = new Hono();
 
@@ -22,7 +23,8 @@ mailSecurity.get('/', async (c) => {
 });
 
 mailSecurity.get('/:id', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid mail security ID' }, 400);
   const service = await db.select().from(schema.mailSecurity).where(eq(schema.mailSecurity.id, id)).get();
 
   if (!service) {
@@ -57,7 +59,8 @@ mailSecurity.post('/', async (c) => {
 
 mailSecurity.put('/:id', async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid mail security ID' }, 400);
     const body = await c.req.json();
     const data = mailSecuritySchema.partial().parse(body);
 
@@ -88,7 +91,8 @@ mailSecurity.put('/:id', async (c) => {
 });
 
 mailSecurity.delete('/:id', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid mail security ID' }, 400);
 
   const existing = await db.select().from(schema.mailSecurity).where(eq(schema.mailSecurity.id, id)).get();
   if (!existing) {
@@ -101,7 +105,8 @@ mailSecurity.delete('/:id', async (c) => {
 });
 
 mailSecurity.post('/:id/set-default', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid mail security ID' }, 400);
 
   const existing = await db.select().from(schema.mailSecurity).where(eq(schema.mailSecurity.id, id)).get();
   if (!existing) {

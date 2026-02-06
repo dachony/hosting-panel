@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
+import { parseId } from '../utils/validation.js';
 
 const mailServers = new Hono();
 
@@ -54,7 +55,8 @@ mailServers.post('/', adminMiddleware, async (c) => {
 // Update mail server
 mailServers.put('/:id', adminMiddleware, async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid mail server ID' }, 400);
     const body = await c.req.json();
     const data = mailServerSchema.partial().parse(body);
 
@@ -85,7 +87,8 @@ mailServers.put('/:id', adminMiddleware, async (c) => {
 
 // Delete mail server
 mailServers.delete('/:id', adminMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid mail server ID' }, 400);
 
   const existing = await db.select().from(schema.mailServers).where(eq(schema.mailServers.id, id)).get();
   if (!existing) {
@@ -99,7 +102,8 @@ mailServers.delete('/:id', adminMiddleware, async (c) => {
 
 // Set mail server as default
 mailServers.post('/:id/set-default', adminMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid mail server ID' }, 400);
 
   const existing = await db.select().from(schema.mailServers).where(eq(schema.mailServers.id, id)).get();
   if (!existing) {

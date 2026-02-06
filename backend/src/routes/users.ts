@@ -8,6 +8,7 @@ import { getCurrentTimestamp } from '../utils/dates.js';
 import { notifySuperadminPasswordChange, notifyAdminPasswordChange } from '../services/systemNotifications.js';
 import { validatePassword, generateTemporaryPassword } from '../services/security.js';
 import { sendEmail } from '../services/email.js';
+import { parseId } from '../utils/validation.js';
 
 const users = new Hono<AppEnv>();
 
@@ -185,7 +186,8 @@ users.post('/', async (c) => {
 // Update user
 users.put('/:id', async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid user ID' }, 400);
     const body = await c.req.json();
     const data = updateUserSchema.parse(body);
     const currentUser = c.get('user');
@@ -268,7 +270,8 @@ users.put('/:id', async (c) => {
 
 // Toggle user active status
 users.patch('/:id/toggle-active', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid user ID' }, 400);
   const currentUser = c.get('user');
 
   if (currentUser.id === id) {
@@ -300,7 +303,8 @@ users.patch('/:id/toggle-active', async (c) => {
 
 // Resend invite
 users.post('/:id/resend-invite', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid user ID' }, 400);
 
   const existing = await db.select().from(schema.users).where(eq(schema.users.id, id)).get();
   if (!existing) {
@@ -371,7 +375,8 @@ users.post('/:id/resend-invite', async (c) => {
 
 // Delete user
 users.delete('/:id', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid user ID' }, 400);
   const currentUser = c.get('user');
 
   if (currentUser.id === id) {

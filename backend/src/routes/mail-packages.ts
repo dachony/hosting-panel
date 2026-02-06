@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { authMiddleware, salesAdminMiddleware, packageEditMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
+import { parseId } from '../utils/validation.js';
 
 const mailPackages = new Hono();
 
@@ -46,7 +47,8 @@ mailPackages.get('/', salesAdminMiddleware, async (c) => {
 
 // GET single package - salesadmin and above can view
 mailPackages.get('/:id', salesAdminMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid package ID' }, 400);
 
   const pkg = await db.select().from(schema.mailPackages).where(eq(schema.mailPackages.id, id)).get();
 
@@ -77,7 +79,8 @@ mailPackages.post('/', salesAdminMiddleware, async (c) => {
 // PUT update package - only admin and superadmin (not salesadmin)
 mailPackages.put('/:id', packageEditMiddleware, async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid package ID' }, 400);
     const body = await c.req.json();
     const data = packageSchema.partial().parse(body);
 
@@ -102,7 +105,8 @@ mailPackages.put('/:id', packageEditMiddleware, async (c) => {
 
 // DELETE package - only admin and superadmin (not salesadmin)
 mailPackages.delete('/:id', packageEditMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid package ID' }, 400);
 
   const existing = await db.select().from(schema.mailPackages).where(eq(schema.mailPackages.id, id)).get();
   if (!existing) {

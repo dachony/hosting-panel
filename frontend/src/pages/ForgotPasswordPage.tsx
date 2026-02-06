@@ -22,7 +22,7 @@ export default function ForgotPasswordPage() {
     fetch('/api/public/branding')
       .then(res => res.json())
       .then(data => setBranding(data))
-      .catch(() => {});
+      .catch((e) => console.warn('Failed to load branding', e));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

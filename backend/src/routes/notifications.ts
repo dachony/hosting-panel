@@ -9,6 +9,7 @@ import { generateHostingListHtml } from '../services/reports.js';
 import { generateSystemInfoHtml } from '../services/system.js';
 import { triggerClientNotification } from '../services/scheduler.js';
 import type { ReportConfig, SystemConfig } from '../db/schema.js';
+import { parseId } from '../utils/validation.js';
 
 const mailSettingsSchema = z.object({
   host: z.string().min(1),
@@ -93,7 +94,8 @@ notifications.post('/settings', adminMiddleware, async (c) => {
 
 notifications.put('/settings/:id', adminMiddleware, async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid setting ID' }, 400);
     const body = await c.req.json();
     const data = notificationSettingsSchema.partial().parse(body);
 
@@ -117,7 +119,8 @@ notifications.put('/settings/:id', adminMiddleware, async (c) => {
 });
 
 notifications.delete('/settings/:id', adminMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid setting ID' }, 400);
 
   const existing = await db.select().from(schema.notificationSettings).where(eq(schema.notificationSettings.id, id)).get();
   if (!existing) {
@@ -153,7 +156,8 @@ notifications.post('/reports', adminMiddleware, async (c) => {
 
 notifications.put('/reports/:id', adminMiddleware, async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid report ID' }, 400);
     const body = await c.req.json();
     const data = reportSettingsSchema.partial().parse(body);
 
@@ -177,7 +181,8 @@ notifications.put('/reports/:id', adminMiddleware, async (c) => {
 });
 
 notifications.delete('/reports/:id', adminMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid report ID' }, 400);
 
   const existing = await db.select().from(schema.reportSettings).where(eq(schema.reportSettings.id, id)).get();
   if (!existing) {
@@ -299,7 +304,8 @@ notifications.post('/smtp/test', adminMiddleware, async (c) => {
 // Test notification setting
 notifications.post('/settings/:id/test', adminMiddleware, async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid setting ID' }, 400);
     const body = await c.req.json();
     const { email } = z.object({ email: z.string().email() }).parse(body);
 
@@ -394,7 +400,8 @@ notifications.post('/settings/:id/test', adminMiddleware, async (c) => {
 // Trigger notification now (send as configured)
 notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid setting ID' }, 400);
 
     const setting = await db.select()
       .from(schema.notificationSettings)

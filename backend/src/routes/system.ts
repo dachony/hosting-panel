@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { db, schema } from '../db/index.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { sql, eq, or, like, desc, isNotNull } from 'drizzle-orm';
+import { safeParseInt, parseId, escapeLike } from '../utils/validation.js';
 import os from 'os';
 import fs from 'fs';
 import path from 'path';
@@ -115,19 +116,20 @@ system.get('/status', async (c) => {
 // Get email logs from database
 system.get('/emails', async (c) => {
   try {
-    const page = parseInt(c.req.query('page') || '1');
-    const limit = parseInt(c.req.query('limit') || '30');
+    const page = Math.max(1, safeParseInt(c.req.query('page'), 1) ?? 1);
+    const limit = Math.max(1, Math.min(safeParseInt(c.req.query('limit'), 30) ?? 30, 200));
     const search = c.req.query('search') || '';
     const offset = (page - 1) * limit;
 
     let query = db.select().from(schema.emailLogs);
 
     if (search) {
+      const escaped = escapeLike(search);
       query = query.where(
         or(
-          like(schema.emailLogs.toEmail, `%${search}%`),
-          like(schema.emailLogs.subject, `%${search}%`),
-          like(schema.emailLogs.fromEmail, `%${search}%`)
+          like(schema.emailLogs.toEmail, `%${escaped}%`),
+          like(schema.emailLogs.subject, `%${escaped}%`),
+          like(schema.emailLogs.fromEmail, `%${escaped}%`)
         )
       ) as typeof query;
     }
@@ -137,11 +139,12 @@ system.get('/emails', async (c) => {
     // Count total
     let countQuery = db.select({ count: sql<number>`count(*)` }).from(schema.emailLogs);
     if (search) {
+      const escaped = escapeLike(search);
       countQuery = countQuery.where(
         or(
-          like(schema.emailLogs.toEmail, `%${search}%`),
-          like(schema.emailLogs.subject, `%${search}%`),
-          like(schema.emailLogs.fromEmail, `%${search}%`)
+          like(schema.emailLogs.toEmail, `%${escaped}%`),
+          like(schema.emailLogs.subject, `%${escaped}%`),
+          like(schema.emailLogs.fromEmail, `%${escaped}%`)
         )
       ) as typeof countQuery;
     }
@@ -188,7 +191,8 @@ system.get('/emails/stats', async (c) => {
 // Get single email by ID
 system.get('/emails/:id', async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid email ID' }, 400);
     const email = await db.select().from(schema.emailLogs).where(eq(schema.emailLogs.id, id)).get();
 
     if (!email) {
