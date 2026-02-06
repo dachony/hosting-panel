@@ -100,83 +100,32 @@ export async function getExpiringItems(days: number = 30): Promise<ExpiringItem[
   const today = formatDate(new Date());
   const futureDate = addDaysToDate(new Date(), days);
 
-  const [domains, hosting, mail] = await Promise.all([
-    db.select({
-      id: schema.domains.id,
-      domainName: schema.domains.domainName,
-      expiryDate: schema.domains.expiryDate,
-      clientName: schema.clients.name,
-    })
-    .from(schema.domains)
-    .leftJoin(schema.clients, eq(schema.domains.clientId, schema.clients.id))
-    .where(and(
-      gte(schema.domains.expiryDate, today),
-      lte(schema.domains.expiryDate, futureDate)
-    )),
+  const mail = await db.select({
+    id: schema.mailHosting.id,
+    domainId: schema.mailHosting.domainId,
+    expiryDate: schema.mailHosting.expiryDate,
+    clientName: schema.clients.name,
+    domainName: schema.domains.domainName,
+    packageName: schema.mailPackages.name,
+  })
+  .from(schema.mailHosting)
+  .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
+  .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
+  .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
+  .where(and(
+    gte(schema.mailHosting.expiryDate, today),
+    lte(schema.mailHosting.expiryDate, futureDate)
+  ));
 
-    db.select({
-      id: schema.webHosting.id,
-      domainId: schema.webHosting.domainId,
-      packageName: schema.webHosting.packageName,
-      expiryDate: schema.webHosting.expiryDate,
-      clientName: schema.clients.name,
-      domainName: schema.domains.domainName,
-    })
-    .from(schema.webHosting)
-    .leftJoin(schema.clients, eq(schema.webHosting.clientId, schema.clients.id))
-    .leftJoin(schema.domains, eq(schema.webHosting.domainId, schema.domains.id))
-    .where(and(
-      gte(schema.webHosting.expiryDate, today),
-      lte(schema.webHosting.expiryDate, futureDate)
-    )),
-
-    db.select({
-      id: schema.mailHosting.id,
-      domainId: schema.mailHosting.domainId,
-      expiryDate: schema.mailHosting.expiryDate,
-      clientName: schema.clients.name,
-      domainName: schema.domains.domainName,
-      packageName: schema.mailPackages.name,
-    })
-    .from(schema.mailHosting)
-    .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
-    .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
-    .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
-    .where(and(
-      gte(schema.mailHosting.expiryDate, today),
-      lte(schema.mailHosting.expiryDate, futureDate)
-    )),
-  ]);
-
-  const items: ExpiringItem[] = [
-    ...domains.map(d => ({
-      id: d.id,
-      domainId: d.id,
-      type: 'domain' as const,
-      name: d.domainName,
-      clientName: d.clientName,
-      expiryDate: d.expiryDate || '',
-      daysUntilExpiry: daysUntilExpiry(d.expiryDate || ''),
-    })),
-    ...hosting.filter(h => h.domainId != null).map(h => ({
-      id: h.id,
-      domainId: h.domainId,
-      type: 'hosting' as const,
-      name: h.domainName || h.packageName,
-      clientName: h.clientName,
-      expiryDate: h.expiryDate,
-      daysUntilExpiry: daysUntilExpiry(h.expiryDate),
-    })),
-    ...mail.filter(m => m.domainId != null).map(m => ({
-      id: m.id,
-      domainId: m.domainId,
-      type: 'mail' as const,
-      name: m.domainName || m.packageName || 'Mail hosting',
-      clientName: m.clientName,
-      expiryDate: m.expiryDate,
-      daysUntilExpiry: daysUntilExpiry(m.expiryDate),
-    })),
-  ];
+  const items: ExpiringItem[] = mail.filter(m => m.domainId != null).map(m => ({
+    id: m.id,
+    domainId: m.domainId,
+    type: 'mail' as const,
+    name: m.domainName || m.packageName || 'Hosting',
+    clientName: m.clientName,
+    expiryDate: m.expiryDate,
+    daysUntilExpiry: daysUntilExpiry(m.expiryDate),
+  }));
 
   return items.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
 }
@@ -185,55 +134,29 @@ export async function getExpiredItems(): Promise<ExpiringItem[]> {
   const today = formatDate(new Date());
   const sevenDaysAgo = addDaysToDate(new Date(), -7);
 
-  const [hosting, mail] = await Promise.all([
-    db.select({
-      id: schema.webHosting.id,
-      domainId: schema.webHosting.domainId,
-      packageName: schema.webHosting.packageName,
-      expiryDate: schema.webHosting.expiryDate,
-      clientName: schema.clients.name,
-      domainName: schema.domains.domainName,
-    })
-    .from(schema.webHosting)
-    .leftJoin(schema.clients, eq(schema.webHosting.clientId, schema.clients.id))
-    .leftJoin(schema.domains, eq(schema.webHosting.domainId, schema.domains.id))
-    .where(and(lt(schema.webHosting.expiryDate, today), gt(schema.webHosting.expiryDate, sevenDaysAgo))),
+  const mail = await db.select({
+    id: schema.mailHosting.id,
+    domainId: schema.mailHosting.domainId,
+    expiryDate: schema.mailHosting.expiryDate,
+    clientName: schema.clients.name,
+    domainName: schema.domains.domainName,
+    packageName: schema.mailPackages.name,
+  })
+  .from(schema.mailHosting)
+  .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
+  .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
+  .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
+  .where(and(lt(schema.mailHosting.expiryDate, today), gt(schema.mailHosting.expiryDate, sevenDaysAgo)));
 
-    db.select({
-      id: schema.mailHosting.id,
-      domainId: schema.mailHosting.domainId,
-      expiryDate: schema.mailHosting.expiryDate,
-      clientName: schema.clients.name,
-      domainName: schema.domains.domainName,
-      packageName: schema.mailPackages.name,
-    })
-    .from(schema.mailHosting)
-    .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
-    .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
-    .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
-    .where(and(lt(schema.mailHosting.expiryDate, today), gt(schema.mailHosting.expiryDate, sevenDaysAgo))),
-  ]);
-
-  const items: ExpiringItem[] = [
-    ...hosting.filter(h => h.domainId != null).map(h => ({
-      id: h.id,
-      domainId: h.domainId,
-      type: 'hosting' as const,
-      name: h.domainName || h.packageName,
-      clientName: h.clientName,
-      expiryDate: h.expiryDate,
-      daysUntilExpiry: daysUntilExpiry(h.expiryDate),
-    })),
-    ...mail.filter(m => m.domainId != null).map(m => ({
-      id: m.id,
-      domainId: m.domainId,
-      type: 'mail' as const,
-      name: m.domainName || m.packageName || 'Mail hosting',
-      clientName: m.clientName,
-      expiryDate: m.expiryDate,
-      daysUntilExpiry: daysUntilExpiry(m.expiryDate),
-    })),
-  ];
+  const items: ExpiringItem[] = mail.filter(m => m.domainId != null).map(m => ({
+    id: m.id,
+    domainId: m.domainId,
+    type: 'mail' as const,
+    name: m.domainName || m.packageName || 'Hosting',
+    clientName: m.clientName,
+    expiryDate: m.expiryDate,
+    daysUntilExpiry: daysUntilExpiry(m.expiryDate),
+  }));
 
   return items.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
 }
@@ -242,55 +165,29 @@ export async function getForDeletionItems(): Promise<ExpiringItem[]> {
   const sevenDaysAgo = addDaysToDate(new Date(), -7);
   const sixtyDaysAgo = addDaysToDate(new Date(), -60);
 
-  const [hosting, mail] = await Promise.all([
-    db.select({
-      id: schema.webHosting.id,
-      domainId: schema.webHosting.domainId,
-      packageName: schema.webHosting.packageName,
-      expiryDate: schema.webHosting.expiryDate,
-      clientName: schema.clients.name,
-      domainName: schema.domains.domainName,
-    })
-    .from(schema.webHosting)
-    .leftJoin(schema.clients, eq(schema.webHosting.clientId, schema.clients.id))
-    .leftJoin(schema.domains, eq(schema.webHosting.domainId, schema.domains.id))
-    .where(and(lte(schema.webHosting.expiryDate, sevenDaysAgo), gt(schema.webHosting.expiryDate, sixtyDaysAgo))),
+  const mail = await db.select({
+    id: schema.mailHosting.id,
+    domainId: schema.mailHosting.domainId,
+    expiryDate: schema.mailHosting.expiryDate,
+    clientName: schema.clients.name,
+    domainName: schema.domains.domainName,
+    packageName: schema.mailPackages.name,
+  })
+  .from(schema.mailHosting)
+  .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
+  .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
+  .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
+  .where(and(lte(schema.mailHosting.expiryDate, sevenDaysAgo), gt(schema.mailHosting.expiryDate, sixtyDaysAgo)));
 
-    db.select({
-      id: schema.mailHosting.id,
-      domainId: schema.mailHosting.domainId,
-      expiryDate: schema.mailHosting.expiryDate,
-      clientName: schema.clients.name,
-      domainName: schema.domains.domainName,
-      packageName: schema.mailPackages.name,
-    })
-    .from(schema.mailHosting)
-    .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
-    .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
-    .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
-    .where(and(lte(schema.mailHosting.expiryDate, sevenDaysAgo), gt(schema.mailHosting.expiryDate, sixtyDaysAgo))),
-  ]);
-
-  const items: ExpiringItem[] = [
-    ...hosting.filter(h => h.domainId != null).map(h => ({
-      id: h.id,
-      domainId: h.domainId,
-      type: 'hosting' as const,
-      name: h.domainName || h.packageName,
-      clientName: h.clientName,
-      expiryDate: h.expiryDate,
-      daysUntilExpiry: daysUntilExpiry(h.expiryDate),
-    })),
-    ...mail.filter(m => m.domainId != null).map(m => ({
-      id: m.id,
-      domainId: m.domainId,
-      type: 'mail' as const,
-      name: m.domainName || m.packageName || 'Mail hosting',
-      clientName: m.clientName,
-      expiryDate: m.expiryDate,
-      daysUntilExpiry: daysUntilExpiry(m.expiryDate),
-    })),
-  ];
+  const items: ExpiringItem[] = mail.filter(m => m.domainId != null).map(m => ({
+    id: m.id,
+    domainId: m.domainId,
+    type: 'mail' as const,
+    name: m.domainName || m.packageName || 'Hosting',
+    clientName: m.clientName,
+    expiryDate: m.expiryDate,
+    daysUntilExpiry: daysUntilExpiry(m.expiryDate),
+  }));
 
   return items.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
 }
@@ -298,55 +195,29 @@ export async function getForDeletionItems(): Promise<ExpiringItem[]> {
 export async function getWillBeDeletedItems(): Promise<ExpiringItem[]> {
   const sixtyDaysAgo = addDaysToDate(new Date(), -60);
 
-  const [hosting, mail] = await Promise.all([
-    db.select({
-      id: schema.webHosting.id,
-      domainId: schema.webHosting.domainId,
-      packageName: schema.webHosting.packageName,
-      expiryDate: schema.webHosting.expiryDate,
-      clientName: schema.clients.name,
-      domainName: schema.domains.domainName,
-    })
-    .from(schema.webHosting)
-    .leftJoin(schema.clients, eq(schema.webHosting.clientId, schema.clients.id))
-    .leftJoin(schema.domains, eq(schema.webHosting.domainId, schema.domains.id))
-    .where(lte(schema.webHosting.expiryDate, sixtyDaysAgo)),
+  const mail = await db.select({
+    id: schema.mailHosting.id,
+    domainId: schema.mailHosting.domainId,
+    expiryDate: schema.mailHosting.expiryDate,
+    clientName: schema.clients.name,
+    domainName: schema.domains.domainName,
+    packageName: schema.mailPackages.name,
+  })
+  .from(schema.mailHosting)
+  .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
+  .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
+  .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
+  .where(lte(schema.mailHosting.expiryDate, sixtyDaysAgo));
 
-    db.select({
-      id: schema.mailHosting.id,
-      domainId: schema.mailHosting.domainId,
-      expiryDate: schema.mailHosting.expiryDate,
-      clientName: schema.clients.name,
-      domainName: schema.domains.domainName,
-      packageName: schema.mailPackages.name,
-    })
-    .from(schema.mailHosting)
-    .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
-    .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
-    .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
-    .where(lte(schema.mailHosting.expiryDate, sixtyDaysAgo)),
-  ]);
-
-  const items: ExpiringItem[] = [
-    ...hosting.filter(h => h.domainId != null).map(h => ({
-      id: h.id,
-      domainId: h.domainId,
-      type: 'hosting' as const,
-      name: h.domainName || h.packageName,
-      clientName: h.clientName,
-      expiryDate: h.expiryDate,
-      daysUntilExpiry: daysUntilExpiry(h.expiryDate),
-    })),
-    ...mail.filter(m => m.domainId != null).map(m => ({
-      id: m.id,
-      domainId: m.domainId,
-      type: 'mail' as const,
-      name: m.domainName || m.packageName || 'Mail hosting',
-      clientName: m.clientName,
-      expiryDate: m.expiryDate,
-      daysUntilExpiry: daysUntilExpiry(m.expiryDate),
-    })),
-  ];
+  const items: ExpiringItem[] = mail.filter(m => m.domainId != null).map(m => ({
+    id: m.id,
+    domainId: m.domainId,
+    type: 'mail' as const,
+    name: m.domainName || m.packageName || 'Hosting',
+    clientName: m.clientName,
+    expiryDate: m.expiryDate,
+    daysUntilExpiry: daysUntilExpiry(m.expiryDate),
+  }));
 
   // Sort by expiry date ascending (most overdue first, which is most negative daysUntilExpiry)
   return items.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);

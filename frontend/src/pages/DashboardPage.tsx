@@ -163,9 +163,6 @@ export default function DashboardPage() {
                   className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0 text-xs">
-                    <span className={`px-1.5 py-0.5 text-[10px] rounded ${item.type === 'hosting' ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300' : item.type === 'mail' ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300'}`}>
-                      {item.type === 'hosting' ? t('common.web') : item.type === 'mail' ? t('common.mail') : t('common.domain')}
-                    </span>
                     <span className="font-medium truncate">{item.name}</span>
                     <span className="text-gray-500 dark:text-gray-400 truncate hidden sm:inline">{item.clientName || '-'}</span>
                   </div>
@@ -203,9 +200,6 @@ export default function DashboardPage() {
                   className="flex items-center justify-between px-3 py-2 bg-red-50/30 dark:bg-red-900/10 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/20 transition-colors"
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0 text-xs">
-                    <span className={`px-1.5 py-0.5 text-[10px] rounded ${item.type === 'hosting' ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'}`}>
-                      {item.type === 'hosting' ? t('common.web') : t('common.mail')}
-                    </span>
                     <span className="font-medium truncate">{item.name}</span>
                     <span className="text-gray-500 dark:text-gray-400 truncate hidden sm:inline">{item.clientName || '-'}</span>
                   </div>
@@ -245,9 +239,6 @@ export default function DashboardPage() {
                   className="flex items-center justify-between px-3 py-2 bg-purple-50/30 dark:bg-purple-900/10 cursor-pointer hover:bg-purple-100/50 dark:hover:bg-purple-900/20 transition-colors"
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0 text-xs">
-                    <span className={`px-1.5 py-0.5 text-[10px] rounded ${item.type === 'hosting' ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'}`}>
-                      {item.type === 'hosting' ? t('common.web') : t('common.mail')}
-                    </span>
                     <span className="font-medium truncate">{item.name}</span>
                     <span className="text-gray-500 dark:text-gray-400 truncate hidden sm:inline">{item.clientName || '-'}</span>
                   </div>
@@ -287,9 +278,6 @@ export default function DashboardPage() {
                   className="flex items-center justify-between px-3 py-2 bg-gray-50/50 dark:bg-gray-800/50 cursor-pointer hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors"
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0 text-xs">
-                    <span className={`px-1.5 py-0.5 text-[10px] rounded ${item.type === 'hosting' ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'}`}>
-                      {item.type === 'hosting' ? t('common.web') : t('common.mail')}
-                    </span>
                     <span className="font-medium truncate">{item.name}</span>
                     <span className="text-gray-500 dark:text-gray-400 truncate hidden sm:inline">{item.clientName || '-'}</span>
                   </div>
