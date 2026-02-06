@@ -287,4 +287,68 @@ hosting.post('/:id/toggle', async (c) => {
   return c.json({ hosting: updated });
 });
 
+// Extend hosting expiry
+const extendSchema = z.object({
+  period: z.enum(['1month', '1year', '2years', '3years', '5years', 'unlimited']),
+  fromToday: z.boolean().optional(),
+});
+
+hosting.post('/:id/extend', async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'));
+    const body = await c.req.json();
+    const { period, fromToday } = extendSchema.parse(body);
+
+    const daysToAdd: Record<string, number> = {
+      '1month': 30,
+      '1year': 365,
+      '2years': 730,
+      '3years': 365 * 3,
+      '5years': 365 * 5,
+      'unlimited': 36500,
+    };
+
+    const existing = await db.select().from(schema.mailHosting).where(eq(schema.mailHosting.id, id)).get();
+    if (!existing) return c.json({ error: 'Hosting not found' }, 404);
+
+    let baseDate: string;
+    if (fromToday) {
+      baseDate = formatDate(new Date());
+    } else {
+      const currentExpiryDays = daysUntilExpiry(existing.expiryDate);
+      baseDate = currentExpiryDays > 0 ? existing.expiryDate : formatDate(new Date());
+    }
+    const newExpiryDate = addDaysToDate(baseDate, daysToAdd[period]);
+
+    await db.update(schema.mailHosting)
+      .set({ expiryDate: newExpiryDate, updatedAt: getCurrentTimestamp() })
+      .where(eq(schema.mailHosting.id, id));
+
+    return c.json({ message: 'Hosting extended', newExpiryDate });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: 'Invalid input', details: error.errors }, 400);
+    }
+    throw error;
+  }
+});
+
+// Set expiry to yesterday
+hosting.post('/:id/expire-now', async (c) => {
+  const id = parseInt(c.req.param('id'));
+
+  const existing = await db.select().from(schema.mailHosting).where(eq(schema.mailHosting.id, id)).get();
+  if (!existing) return c.json({ error: 'Hosting not found' }, 404);
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const newExpiryDate = formatDate(yesterday);
+
+  await db.update(schema.mailHosting)
+    .set({ expiryDate: newExpiryDate, updatedAt: getCurrentTimestamp() })
+    .where(eq(schema.mailHosting.id, id));
+
+  return c.json({ message: 'Hosting expired', newExpiryDate });
+});
+
 export default hosting;
