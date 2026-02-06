@@ -39,20 +39,20 @@ interface HostingWithDetails extends Hosting {
   mailSecurityName?: string | null;
 }
 
-const statusColors: Record<ExpiryStatus, { border: string; bg: string; text: string; label: string; dot: string }> = {
-  green: { border: 'border-green-500', bg: 'bg-green-500/20', text: 'text-green-600 dark:text-green-400', label: 'OK', dot: 'bg-green-500' },
-  yellow: { border: 'border-yellow-500', bg: 'bg-yellow-500/20', text: 'text-yellow-600 dark:text-yellow-400', label: 'Warning', dot: 'bg-yellow-500' },
-  orange: { border: 'border-orange-500', bg: 'bg-orange-500/20', text: 'text-orange-600 dark:text-orange-400', label: 'Critical', dot: 'bg-orange-500' },
-  red: { border: 'border-red-500', bg: 'bg-red-500/20', text: 'text-red-600 dark:text-red-400', label: 'Expired', dot: 'bg-red-500' },
-  forDeletion: { border: 'border-purple-500', bg: 'bg-purple-500/20', text: 'text-purple-600 dark:text-purple-400', label: 'For Deletion', dot: 'bg-purple-500' },
-  deleted: { border: 'border-gray-500', bg: 'bg-gray-500/20', text: 'text-gray-600 dark:text-gray-400', label: 'Deleted', dot: 'bg-gray-500' },
+const statusColors: Record<ExpiryStatus, { border: string; bg: string; text: string; labelKey: string; dot: string }> = {
+  green: { border: 'border-green-500', bg: 'bg-green-500/20', text: 'text-green-600 dark:text-green-400', labelKey: 'common.statusOk', dot: 'bg-green-500' },
+  yellow: { border: 'border-yellow-500', bg: 'bg-yellow-500/20', text: 'text-yellow-600 dark:text-yellow-400', labelKey: 'common.statusWarning', dot: 'bg-yellow-500' },
+  orange: { border: 'border-orange-500', bg: 'bg-orange-500/20', text: 'text-orange-600 dark:text-orange-400', labelKey: 'common.statusCritical', dot: 'bg-orange-500' },
+  red: { border: 'border-red-500', bg: 'bg-red-500/20', text: 'text-red-600 dark:text-red-400', labelKey: 'common.statusExpired', dot: 'bg-red-500' },
+  forDeletion: { border: 'border-purple-500', bg: 'bg-purple-500/20', text: 'text-purple-600 dark:text-purple-400', labelKey: 'common.statusForDeletion', dot: 'bg-purple-500' },
+  deleted: { border: 'border-gray-500', bg: 'bg-gray-500/20', text: 'text-gray-600 dark:text-gray-400', labelKey: 'common.statusDeleted', dot: 'bg-gray-500' },
 };
 
 const periodButtons = [
   { years: 1, label: '+1' },
   { years: 2, label: '+2' },
   { years: 3, label: '+3' },
-  { years: 100, label: 'Unlim.' },
+  { years: 100, labelKey: 'common.periodShortUnlimited' },
 ];
 
 function getTodayDate(): string {
@@ -143,10 +143,10 @@ export default function HostingPage() {
   const [extendFromToday, setExtendFromToday] = useState(false);
 
   const extendOptions: { value: ExtendPeriod; label: string }[] = [
-    { value: '1year', label: '1 year' },
-    { value: '2years', label: '2 years' },
-    { value: '3years', label: '3 years' },
-    { value: 'unlimited', label: 'Unlimited' },
+    { value: '1year', label: t('common.period1Year') },
+    { value: '2years', label: t('common.period2Years') },
+    { value: '3years', label: t('common.period3Years') },
+    { value: 'unlimited', label: t('common.periodUnlimited') },
   ];
 
   const statusLabels: Record<ExpiryStatus, string> = {
@@ -908,7 +908,7 @@ export default function HostingPage() {
                     }))}
                     className="btn btn-secondary text-xs py-1 px-2"
                   >
-                    {btn.label}
+                    {'labelKey' in btn ? t(btn.labelKey as string) : btn.label}
                   </button>
                 ))}
               </div>

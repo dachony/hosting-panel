@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import i18next from 'i18next';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -108,6 +108,7 @@ interface MailSettings {
 }
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const { isAdmin, isSalesAdmin, canManageSystem, canManageContent, canEditPackages } = useAuth();
   const queryClient = useQueryClient();
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -649,7 +650,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 1 * 1024 * 1024) {
-        toast.error('Logo must be less than 1MB');
+        toast.error(t('settings.logoMustBeLess1Mb'));
         return;
       }
       const reader = new FileReader();
@@ -665,7 +666,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        toast.error('Image must be less than 2MB');
+        toast.error(t('settings.imageMustBeLess2Mb'));
         return;
       }
       const reader = new FileReader();
@@ -681,7 +682,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 1 * 1024 * 1024) {
-        toast.error('Logo must be less than 1MB');
+        toast.error(t('settings.logoMustBeLess1Mb'));
         return;
       }
       const reader = new FileReader();
@@ -697,7 +698,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        toast.error('Image must be less than 2MB');
+        toast.error(t('settings.imageMustBeLess2Mb'));
         return;
       }
       const reader = new FileReader();
@@ -713,7 +714,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        toast.error('Image must be less than 2MB');
+        toast.error(t('settings.imageMustBeLess2Mb'));
         return;
       }
       const reader = new FileReader();
@@ -956,35 +957,35 @@ export default function SettingsPage() {
       api.put(`/api/notifications/settings/${id}`, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
-      toast.success('Settings saved');
+      toast.success(t('settings.saved'));
       if (variables.closeModal) {
         setNotificationModalOpen(false);
         resetNotificationForm();
       }
     },
-    onError: () => toast.error('Error saving'),
+    onError: () => toast.error(t('settings.errorSaving')),
   });
 
   const createNotificationMutation = useMutation({
     mutationFn: (data: typeof notificationForm) => api.post('/api/notifications/settings', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
-      toast.success('Notification created');
+      toast.success(t('settings.notificationCreated'));
       setNotificationModalOpen(false);
       resetNotificationForm();
     },
-    onError: () => toast.error('Error creating'),
+    onError: () => toast.error(t('settings.errorCreating')),
   });
 
   const deleteNotificationMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/api/notifications/settings/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
-      toast.success('Notification deleted');
+      toast.success(t('settings.notificationDeleted'));
       setDeleteNotificationDialogOpen(false);
       setSelectedNotification(null);
     },
-    onError: () => toast.error('Error deleting'),
+    onError: () => toast.error(t('settings.errorDeleting')),
   });
 
   const copyNotificationMutation = useMutation({
@@ -1004,54 +1005,54 @@ export default function SettingsPage() {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
-      toast.success('Notification copied');
+      toast.success(t('settings.notificationCopied'));
     },
-    onError: () => toast.error('Error copying notification'),
+    onError: () => toast.error(t('settings.errorCopying')),
   });
 
   const saveSystemSettingsMutation = useMutation({
     mutationFn: (settings: SystemSettings) => api.put<{ settings: SystemSettings }>('/api/settings/system', settings),
     onSuccess: (data) => {
       queryClient.setQueryData(['system-settings'], data);
-      toast.success('System settings saved');
+      toast.success(t('settings.systemSettingsSaved'));
     },
-    onError: () => toast.error('Error saving'),
+    onError: () => toast.error(t('settings.errorSaving')),
   });
 
   const saveSecuritySettingsMutation = useMutation({
     mutationFn: (settings: SecuritySettings) => api.put<{ settings: SecuritySettings }>('/api/security/settings', settings),
     onSuccess: (data) => {
       queryClient.setQueryData(['security-settings'], data);
-      toast.success('Security settings saved');
+      toast.success(t('settings.securitySettingsSaved'));
     },
-    onError: () => toast.error('Error saving security settings'),
+    onError: () => toast.error(t('settings.errorSavingSecuritySettings')),
   });
 
   const saveSystemNotificationsMutation = useMutation({
     mutationFn: (settings: SystemNotifications) => api.put<{ settings: SystemNotifications }>('/api/settings/system-notifications', settings),
     onSuccess: (data) => {
       queryClient.setQueryData(['system-notifications'], data);
-      toast.success('System notifications saved');
+      toast.success(t('settings.systemNotificationsSaved'));
     },
-    onError: () => toast.error('Error saving system notifications'),
+    onError: () => toast.error(t('settings.errorSavingSystemNotifications')),
   });
 
   const unblockIpMutation = useMutation({
     mutationFn: (ip: string) => api.delete(`/api/security/blocked-ips/${encodeURIComponent(ip)}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['blocked-ips'] });
-      toast.success('IP unblocked');
+      toast.success(t('settings.ipUnblocked'));
     },
-    onError: () => toast.error('Error unblocking IP'),
+    onError: () => toast.error(t('settings.errorUnblockingIp')),
   });
 
   const unlockUserMutation = useMutation({
     mutationFn: (userId: number) => api.post(`/api/security/unlock-user/${userId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['locked-users'] });
-      toast.success('User unlocked');
+      toast.success(t('settings.userUnlocked'));
     },
-    onError: () => toast.error('Error unlocking user'),
+    onError: () => toast.error(t('settings.errorUnlockingUser')),
   });
 
   // 2FA Setup mutations
@@ -1059,9 +1060,9 @@ export default function SettingsPage() {
     mutationFn: () => api.post('/api/security/2fa/setup/email'),
     onSuccess: () => {
       setSetup2FAStep('verify');
-      toast.success('Verification code sent to your email');
+      toast.success(t('settings.verificationCodeSent'));
     },
-    onError: () => toast.error('Failed to send verification code'),
+    onError: () => toast.error(t('settings.failedSendVerificationCode')),
   });
 
   const verifyEmail2FAMutation = useMutation({
@@ -1070,9 +1071,9 @@ export default function SettingsPage() {
       refetchMy2FA();
       setSetup2FAModalOpen(false);
       resetSetup2FAState();
-      toast.success('Email 2FA enabled successfully');
+      toast.success(t('settings.email2faEnabled'));
     },
-    onError: () => toast.error('Invalid verification code'),
+    onError: () => toast.error(t('settings.invalidVerificationCode')),
   });
 
   const setupTOTP2FAMutation = useMutation({
@@ -1081,7 +1082,7 @@ export default function SettingsPage() {
       setTotpSetupData(data);
       setSetup2FAStep('verify');
     },
-    onError: () => toast.error('Failed to setup TOTP'),
+    onError: () => toast.error(t('settings.failedSetupTotp')),
   });
 
   const verifyTOTP2FAMutation = useMutation({
@@ -1094,9 +1095,9 @@ export default function SettingsPage() {
         setSetup2FAModalOpen(false);
         resetSetup2FAState();
       }
-      toast.success('Authenticator 2FA enabled successfully');
+      toast.success(t('settings.authenticator2faEnabled'));
     },
-    onError: () => toast.error('Invalid verification code'),
+    onError: () => toast.error(t('settings.invalidVerificationCode')),
   });
 
   const disable2FAMutation = useMutation({
@@ -1105,18 +1106,18 @@ export default function SettingsPage() {
       refetchMy2FA();
       setDisable2FAModalOpen(false);
       setDisablePassword('');
-      toast.success('2FA disabled');
+      toast.success(t('settings.twoFaDisabledSuccess'));
     },
-    onError: () => toast.error('Invalid password'),
+    onError: () => toast.error(t('settings.invalidPassword')),
   });
 
   const regenerateBackupCodesMutation = useMutation({
     mutationFn: () => api.post<{ backupCodes: string[] }>('/api/security/2fa/backup-codes/regenerate'),
     onSuccess: (data) => {
       setBackupCodesToShow(data.backupCodes);
-      toast.success('New backup codes generated');
+      toast.success(t('settings.backupCodesGenerated'));
     },
-    onError: () => toast.error('Failed to regenerate backup codes'),
+    onError: () => toast.error(t('settings.failedRegenerateBackupCodes')),
   });
 
   const resetSetup2FAState = () => {
@@ -1131,63 +1132,63 @@ export default function SettingsPage() {
     mutationFn: (settings: MailSettings) => api.put('/api/notifications/mail-settings', settings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mail-settings'] });
-      toast.success('Mail settings saved');
+      toast.success(t('settings.mailSettingsSaved'));
     },
-    onError: () => toast.error('Error saving'),
+    onError: () => toast.error(t('settings.errorSaving')),
   });
 
   const verifySmtpMutation = useMutation({
     mutationFn: () => api.post('/api/notifications/smtp/verify', {}),
-    onSuccess: () => toast.success('SMTP connection successful'),
-    onError: () => toast.error('SMTP connection failed'),
+    onSuccess: () => toast.success(t('settings.smtpConnectionSuccess')),
+    onError: () => toast.error(t('settings.smtpConnectionFailed')),
   });
 
   const verifyImapMutation = useMutation({
     mutationFn: () => api.post('/api/notifications/imap/verify', {}),
-    onSuccess: () => toast.success('IMAP connection successful'),
-    onError: () => toast.error('IMAP connection failed'),
+    onSuccess: () => toast.success(t('settings.imapConnectionSuccess')),
+    onError: () => toast.error(t('settings.imapConnectionFailed')),
   });
 
   const testSmtpMutation = useMutation({
     mutationFn: (email: string) => api.post('/api/notifications/smtp/test', { email }),
-    onSuccess: () => toast.success('Test email sent'),
-    onError: () => toast.error('Error sending'),
+    onSuccess: () => toast.success(t('settings.testEmailSent')),
+    onError: () => toast.error(t('settings.errorSending')),
   });
 
   const saveTestEmailMutation = useMutation({
     mutationFn: (email: string) => api.put('/api/settings/testEmail', { value: email }),
-    onSuccess: () => toast.success('Test email saved'),
-    onError: () => toast.error('Error saving'),
+    onSuccess: () => toast.success(t('settings.testEmailSaved')),
+    onError: () => toast.error(t('settings.errorSaving')),
   });
 
   const testNotificationMutation = useMutation({
     mutationFn: ({ id, email }: { id: number; email: string }) => api.post(`/api/notifications/settings/${id}/test`, { email }),
-    onSuccess: () => toast.success('Test notification sent'),
-    onError: () => toast.error('Error sending test notification'),
+    onSuccess: () => toast.success(t('settings.testNotificationSent')),
+    onError: () => toast.error(t('settings.errorSendingTestNotification')),
   });
 
   const triggerNotificationMutation = useMutation({
     mutationFn: ({ id, domainId }: { id: number; domainId?: number }) =>
       api.post<{ message: string }>(`/api/notifications/settings/${id}/trigger`, domainId ? { domainId } : {}),
     onSuccess: (data) => {
-      toast.success(data.message || 'Notification triggered');
+      toast.success(data.message || t('settings.notificationTriggered'));
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
       setTriggerModalOpen(false);
     },
-    onError: (error: any) => toast.error(error?.message || 'Error triggering notification'),
+    onError: (error: any) => toast.error(error?.message || t('settings.errorTriggeringNotification')),
   });
 
   const testTemplateMutation = useMutation({
     mutationFn: ({ id, email }: { id: number; email: string }) => api.post(`/api/templates/${id}/test`, { email }),
-    onSuccess: () => toast.success('Test template sent'),
-    onError: () => toast.error('Error sending test template'),
+    onSuccess: () => toast.success(t('settings.testTemplateSent')),
+    onError: () => toast.error(t('settings.errorSendingTestTemplate')),
   });
 
   const deleteUserMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/api/users/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('User deleted');
+      toast.success(t('settings.userDeleted'));
       setDeleteUserDialogOpen(false);
       setSelectedUser(null);
     },
@@ -1213,15 +1214,15 @@ export default function SettingsPage() {
     onSuccess: (data: { inviteSent?: boolean }) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       if (data?.inviteSent) {
-        toast.success('User created and invitation sent');
+        toast.success(t('settings.userCreatedInvitationSent'));
       } else {
-        toast.success(selectedUser ? 'User updated' : 'User created');
+        toast.success(selectedUser ? t('settings.userUpdated') : t('settings.userCreated'));
       }
       setUserModalOpen(false);
       setSelectedUser(null);
     },
     onError: (error: Error & { details?: string[] }) => {
-      const msg = error.message || 'Error saving';
+      const msg = error.message || t('settings.errorSaving');
       const details = error.details;
       if (details && details.length > 0) {
         toast.error(`${msg}: ${details.join(', ')}`);
@@ -1235,17 +1236,17 @@ export default function SettingsPage() {
     mutationFn: (userId: number) => api.patch(`/api/users/${userId}/toggle-active`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('User status changed');
+      toast.success(t('settings.userStatusChanged'));
     },
-    onError: () => toast.error('Error changing status'),
+    onError: () => toast.error(t('settings.errorChangingStatus')),
   });
 
   const resendInviteMutation = useMutation({
     mutationFn: (userId: number) => api.post(`/api/users/${userId}/resend-invite`, {}),
     onSuccess: () => {
-      toast.success('Invitation resent');
+      toast.success(t('settings.invitationResent'));
     },
-    onError: () => toast.error('Error sending invitation'),
+    onError: () => toast.error(t('settings.errorSendingInvitation')),
   });
 
   // Mail server mutations
@@ -1258,31 +1259,31 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mail-servers'] });
-      toast.success(selectedMailServer ? 'Mail server updated' : 'Mail server created');
+      toast.success(selectedMailServer ? t('settings.mailServerUpdated') : t('settings.mailServerCreated'));
       setMailServerModalOpen(false);
       setSelectedMailServer(null);
     },
-    onError: () => toast.error('Error saving'),
+    onError: () => toast.error(t('settings.errorSaving')),
   });
 
   const deleteMailServerMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/api/mail-servers/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mail-servers'] });
-      toast.success('Mail server deleted');
+      toast.success(t('settings.mailServerDeleted'));
       setDeleteMailServerDialogOpen(false);
       setSelectedMailServer(null);
     },
-    onError: () => toast.error('Error deleting'),
+    onError: () => toast.error(t('settings.errorDeleting')),
   });
 
   const setDefaultMailServerMutation = useMutation({
     mutationFn: (id: number) => api.post(`/api/mail-servers/${id}/set-default`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mail-servers'] });
-      toast.success('Default mail server set');
+      toast.success(t('settings.defaultMailServerSet'));
     },
-    onError: () => toast.error('Error setting default'),
+    onError: () => toast.error(t('settings.errorSettingDefault')),
   });
 
   // Mail security mutations
@@ -1295,31 +1296,31 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mail-security'] });
-      toast.success(selectedMailSecurity ? 'Mail security updated' : 'Mail security created');
+      toast.success(selectedMailSecurity ? t('settings.mailSecurityUpdated') : t('settings.mailSecurityCreated'));
       setMailSecurityModalOpen(false);
       setSelectedMailSecurity(null);
     },
-    onError: () => toast.error('Error saving'),
+    onError: () => toast.error(t('settings.errorSaving')),
   });
 
   const deleteMailSecurityMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/api/mail-security/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mail-security'] });
-      toast.success('Mail security deleted');
+      toast.success(t('settings.mailSecurityDeleted'));
       setDeleteMailSecurityDialogOpen(false);
       setSelectedMailSecurity(null);
     },
-    onError: () => toast.error('Error deleting'),
+    onError: () => toast.error(t('settings.errorDeleting')),
   });
 
   const setDefaultMailSecurityMutation = useMutation({
     mutationFn: (id: number) => api.post(`/api/mail-security/${id}/set-default`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mail-security'] });
-      toast.success('Default mail security set');
+      toast.success(t('settings.defaultMailSecuritySet'));
     },
-    onError: () => toast.error('Error setting default'),
+    onError: () => toast.error(t('settings.errorSettingDefault')),
   });
 
   // Template mutations
@@ -1332,22 +1333,22 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] });
-      toast.success(selectedTemplate ? 'Template updated' : 'Template created');
+      toast.success(selectedTemplate ? t('settings.templateUpdated') : t('settings.templateCreated'));
       setTemplateModalOpen(false);
       setSelectedTemplate(null);
     },
-    onError: () => toast.error('Error saving'),
+    onError: () => toast.error(t('settings.errorSaving')),
   });
 
   const deleteTemplateMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/api/templates/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] });
-      toast.success('Template deleted');
+      toast.success(t('settings.templateDeleted'));
       setDeleteTemplateDialogOpen(false);
       setSelectedTemplate(null);
     },
-    onError: () => toast.error('Error deleting'),
+    onError: () => toast.error(t('settings.errorDeleting')),
   });
 
   const copyTemplateMutation = useMutation({
@@ -1362,9 +1363,9 @@ export default function SettingsPage() {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] });
-      toast.success('Template copied');
+      toast.success(t('settings.templateCopied'));
     },
-    onError: () => toast.error('Error copying template'),
+    onError: () => toast.error(t('settings.errorCopyingTemplate')),
   });
 
   // Package mutations
@@ -1377,22 +1378,22 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['packages'] });
-      toast.success(selectedPackage ? 'Package updated' : 'Package created');
+      toast.success(selectedPackage ? t('settings.packageUpdated') : t('settings.packageCreated'));
       setPackageModalOpen(false);
       setSelectedPackage(null);
     },
-    onError: () => toast.error('Error saving'),
+    onError: () => toast.error(t('settings.errorSaving')),
   });
 
   const deletePackageMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/api/packages/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['packages'] });
-      toast.success('Package deleted');
+      toast.success(t('settings.packageDeleted'));
       setDeletePackageDialogOpen(false);
       setSelectedPackage(null);
     },
-    onError: () => toast.error('Error deleting'),
+    onError: () => toast.error(t('settings.errorDeleting')),
   });
 
   // Company info mutations
@@ -1400,18 +1401,18 @@ export default function SettingsPage() {
     mutationFn: (data: Partial<CompanyInfo>) => api.put('/api/company/info', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-info'] });
-      toast.success('Company info saved');
+      toast.success(t('settings.companyInfoSaved'));
     },
-    onError: () => toast.error('Error saving'),
+    onError: () => toast.error(t('settings.errorSaving')),
   });
 
   const uploadLogoMutation = useMutation({
     mutationFn: (logo: string) => api.post('/api/company/logo', { logo }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-info'] });
-      toast.success('Logo uploaded');
+      toast.success(t('settings.logoUploaded'));
     },
-    onError: () => toast.error('Error uploading logo'),
+    onError: () => toast.error(t('settings.errorUploadingLogo')),
   });
 
   const deleteLogoMutation = useMutation({
@@ -1419,9 +1420,9 @@ export default function SettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-info'] });
       setCompanyInfo(prev => ({ ...prev, logo: null }));
-      toast.success('Logo deleted');
+      toast.success(t('settings.logoDeleted'));
     },
-    onError: () => toast.error('Error deleting logo'),
+    onError: () => toast.error(t('settings.errorDeletingLogo')),
   });
 
   // Bank account mutations
@@ -1434,31 +1435,31 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
-      toast.success(selectedBankAccount ? 'Bank account updated' : 'Bank account added');
+      toast.success(selectedBankAccount ? t('settings.bankAccountUpdated') : t('settings.bankAccountAdded'));
       setBankAccountModalOpen(false);
       setSelectedBankAccount(null);
     },
-    onError: () => toast.error('Error saving'),
+    onError: () => toast.error(t('settings.errorSaving')),
   });
 
   const deleteBankAccountMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/api/company/bank-accounts/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
-      toast.success('Bank account deleted');
+      toast.success(t('settings.bankAccountDeleted'));
       setDeleteBankAccountDialogOpen(false);
       setSelectedBankAccount(null);
     },
-    onError: () => toast.error('Error deleting'),
+    onError: () => toast.error(t('settings.errorDeleting')),
   });
 
   const setDefaultBankAccountMutation = useMutation({
     mutationFn: (id: number) => api.post(`/api/company/bank-accounts/${id}/set-default`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
-      toast.success('Default bank account set');
+      toast.success(t('settings.defaultBankAccountSet'));
     },
-    onError: () => toast.error('Error setting default'),
+    onError: () => toast.error(t('settings.errorSettingDefault')),
   });
 
   // Handlers
@@ -1590,7 +1591,7 @@ export default function SettingsPage() {
     }
 
     if (Object.keys(filteredData).length === 0) {
-      toast.error('No items selected');
+      toast.error(t('settings.noItemsSelected'));
       return;
     }
 
@@ -1613,7 +1614,7 @@ export default function SettingsPage() {
       setImportSelections({});
       setImportExpandedSections(new Set());
     } catch {
-      toast.error('Error importing');
+      toast.error(t('settings.errorImporting'));
     }
   };
 
@@ -1633,7 +1634,7 @@ export default function SettingsPage() {
     }
 
     if (Object.keys(filteredData).length === 0) {
-      toast.error('No items selected');
+      toast.error(t('settings.noItemsSelected'));
       return;
     }
 
@@ -1653,7 +1654,7 @@ export default function SettingsPage() {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
 
-    toast.success('Export downloaded');
+    toast.success(t('settings.exportDownloaded'));
     setExportPreviewOpen(false);
     setExportPreviewData(null);
     setExportSelections({});
@@ -1674,7 +1675,7 @@ export default function SettingsPage() {
           setExportPreviewOpen(true);
         }
       } catch {
-        toast.error('Error loading export data');
+        toast.error(t('settings.errorLoadingExport'));
       } finally {
         setExportLoading(false);
       }
@@ -1684,9 +1685,9 @@ export default function SettingsPage() {
         const types = exportTypes.join(',');
         const filename = `${exportTypes[0]}-export-${new Date().toISOString().split('T')[0]}.csv`;
         await api.download(`/api/backup/export?types=${types}&format=csv`, filename);
-        toast.success('Data exported');
+        toast.success(t('settings.dataExported'));
       } catch {
-        toast.error('Error exporting');
+        toast.error(t('settings.errorExporting'));
       }
     }
   };
@@ -1694,9 +1695,9 @@ export default function SettingsPage() {
   const handleDownloadTemplate = async (type: string) => {
     try {
       await api.download(`/api/backup/template/${type}`, `${type}-template.csv`);
-      toast.success('Template downloaded');
+      toast.success(t('settings.templateDownloaded'));
     } catch {
-      toast.error('Error downloading');
+      toast.error(t('settings.errorDownloading'));
     }
   };
 
@@ -1757,7 +1758,7 @@ export default function SettingsPage() {
         valid: false,
         totalRows: 0,
         validRows: 0,
-        errors: [{ row: 0, field: '', message: 'Invalid file format' }],
+        errors: [{ row: 0, field: '', message: t('settings.invalidFileFormat') }],
         preview: [],
       });
     }
@@ -1791,7 +1792,7 @@ export default function SettingsPage() {
       setImportData(null);
       setImportValidation(null);
     } catch {
-      toast.error('Error importing');
+      toast.error(t('settings.errorImporting'));
     }
   };
 
@@ -1799,7 +1800,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        toast.error('Logo must be less than 2MB');
+        toast.error(t('settings.logoMustBeLess2Mb'));
         return;
       }
       const reader = new FileReader();
@@ -1924,7 +1925,7 @@ export default function SettingsPage() {
       setPreviewHtml(response.html);
       setTemplatePreviewModalOpen(true);
     } catch {
-      toast.error('Error loading preview');
+      toast.error(t('settings.errorLoadingPreview'));
     }
   };
 
@@ -2034,29 +2035,29 @@ export default function SettingsPage() {
   // - SalesAdmin: only Account and Packages
   const tabs = [
     // SuperAdmin only: System settings
-    ...(canManageSystem ? [{ id: 'system' as const, label: 'System', icon: Server }] : []),
+    ...(canManageSystem ? [{ id: 'system' as const, label: t('settings.system'), icon: Server }] : []),
     // SuperAdmin only: Security settings
-    ...(canManageSystem ? [{ id: 'security' as const, label: 'Security', icon: Lock }] : []),
+    ...(canManageSystem ? [{ id: 'security' as const, label: t('settings.security'), icon: Lock }] : []),
     // All users: My Account (2FA settings)
-    { id: 'my-account' as const, label: 'Account', icon: UserIcon },
+    { id: 'my-account' as const, label: t('settings.account'), icon: UserIcon },
     // Admin+: Company info
-    ...(canManageContent ? [{ id: 'owner' as const, label: 'Company', icon: Building2 }] : []),
+    ...(canManageContent ? [{ id: 'owner' as const, label: t('settings.company'), icon: Building2 }] : []),
     // SuperAdmin only: Email settings (SMTP/IMAP)
-    ...(canManageSystem ? [{ id: 'smtp' as const, label: 'Email', icon: Mail }] : []),
+    ...(canManageSystem ? [{ id: 'smtp' as const, label: t('settings.email'), icon: Mail }] : []),
     // Admin+: Mail servers
-    ...(canManageContent ? [{ id: 'mail-servers' as const, label: 'Servers', icon: HardDrive }] : []),
+    ...(canManageContent ? [{ id: 'mail-servers' as const, label: t('settings.servers'), icon: HardDrive }] : []),
     // Admin+: Mail security/filters
-    ...(canManageContent ? [{ id: 'mail-security' as const, label: 'Mail Security', icon: Shield }] : []),
+    ...(canManageContent ? [{ id: 'mail-security' as const, label: t('settings.mailSecurity'), icon: Shield }] : []),
     // SalesAdmin+: Packages (salesadmin can add, admin can edit/delete)
-    ...(isSalesAdmin ? [{ id: 'packages' as const, label: 'Packages', icon: PackageIcon }] : []),
+    ...(isSalesAdmin ? [{ id: 'packages' as const, label: t('settings.packages'), icon: PackageIcon }] : []),
     // Admin+: Notifications
-    ...(canManageContent ? [{ id: 'notifications' as const, label: 'Scheduler', icon: Bell }] : []),
+    ...(canManageContent ? [{ id: 'notifications' as const, label: t('settings.scheduler'), icon: Bell }] : []),
     // Admin+: Templates
-    ...(canManageContent ? [{ id: 'templates' as const, label: 'Templates', icon: FileText }] : []),
+    ...(canManageContent ? [{ id: 'templates' as const, label: t('settings.templates'), icon: FileText }] : []),
     // Admin+: Backup
-    ...(canManageContent ? [{ id: 'import-export' as const, label: 'Import/Export', icon: Database }] : []),
+    ...(canManageContent ? [{ id: 'import-export' as const, label: t('settings.importExport'), icon: Database }] : []),
     // SuperAdmin only: Users
-    ...(canManageSystem ? [{ id: 'users' as const, label: 'Users', icon: Users }] : []),
+    ...(canManageSystem ? [{ id: 'users' as const, label: t('settings.users'), icon: Users }] : []),
   ];
 
   // Filter functions
@@ -2987,9 +2988,9 @@ export default function SettingsPage() {
                   onClick={async () => {
                     try {
                       await navigator.clipboard.writeText(backupCodesToShow.join('\n'));
-                      toast.success(i18next.t('auth.backupCodesCopied'));
+                      toast.success(t('auth.backupCodesCopied'));
                     } catch {
-                      toast.error(i18next.t('common.clipboardFailed'));
+                      toast.error(t('common.clipboardFailed'));
                     }
                   }}
                   className="btn btn-secondary !py-1.5 !px-3 !text-sm flex items-center gap-2"
@@ -3133,9 +3134,9 @@ export default function SettingsPage() {
                 onClick={async () => {
                   try {
                     await navigator.clipboard.writeText(backupCodesToShow.join('\n'));
-                    toast.success(i18next.t('auth.backupCodesCopied'));
+                    toast.success(t('auth.backupCodesCopied'));
                   } catch {
-                    toast.error(i18next.t('common.clipboardFailed'));
+                    toast.error(t('common.clipboardFailed'));
                   }
                 }}
                 className="btn btn-secondary flex-1 flex items-center justify-center gap-2"
@@ -3941,7 +3942,7 @@ export default function SettingsPage() {
                       if (testEmail) {
                         testNotificationMutation.mutate({ id: setting.id, email: testEmail });
                       } else {
-                        toast.error('Enter test email in SMTP settings');
+                        toast.error(t('settings.enterTestEmail'));
                       }
                     }}
                     disabled={testNotificationMutation.isPending}
@@ -4061,7 +4062,7 @@ export default function SettingsPage() {
                           if (testEmail) {
                             testTemplateMutation.mutate({ id: tmpl.id, email: testEmail });
                           } else {
-                            toast.error('Enter test email in SMTP settings');
+                            toast.error(t('settings.enterTestEmail'));
                           }
                         }}
                         disabled={testTemplateMutation.isPending}

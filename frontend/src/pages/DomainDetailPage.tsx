@@ -23,7 +23,7 @@ const periodButtons = [
   { years: 1, label: '+1' },
   { years: 2, label: '+2' },
   { years: 3, label: '+3' },
-  { years: 100, label: 'Unlim.' },
+  { years: 100, labelKey: 'common.periodShortUnlimited' },
 ];
 
 // Format date for display: YYYY-MM-DD -> DD.MM.YYYY
@@ -86,10 +86,10 @@ export default function DomainDetailPage() {
   const [extendFromToday, setExtendFromToday] = useState(false);
 
   const extendOptions: { value: ExtendPeriod; label: string }[] = [
-    { value: '1year', label: '1 year' },
-    { value: '2years', label: '2 years' },
-    { value: '3years', label: '3 years' },
-    { value: 'unlimited', label: 'Unlimited' },
+    { value: '1year', label: t('common.period1Year') },
+    { value: '2years', label: t('common.period2Years') },
+    { value: '3years', label: t('common.period3Years') },
+    { value: 'unlimited', label: t('common.periodUnlimited') },
   ];
 
   const [domainForm, setDomainForm] = useState({
@@ -738,7 +738,7 @@ export default function DomainDetailPage() {
                             })}
                             className="btn btn-secondary !text-[11px] !py-0.5 !px-1"
                           >
-                            {btn.label}
+                            {'labelKey' in btn ? t(btn.labelKey as string) : btn.label}
                           </button>
                         ))}
                       </div>

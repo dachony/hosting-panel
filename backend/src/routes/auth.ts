@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { db, schema } from '../db/index.js';
 import { eq, and, gt, count } from 'drizzle-orm';
 import { generateToken, authMiddleware, AppEnv } from '../middleware/auth.js';
+import { rateLimit } from '../middleware/rateLimit.js';
 import { z } from 'zod';
 import { sendEmail } from '../services/email.js';
 import { getCurrentTimestamp } from '../utils/dates.js';
@@ -42,7 +43,8 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000);
 
-auth.post('/login', async (c) => {
+// Rate limit: 10 login attempts per minute per IP
+auth.post('/login', rateLimit('login', 10, 60 * 1000), async (c) => {
   const ipAddress = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown';
   const userAgent = c.req.header('user-agent') || 'unknown';
 
@@ -184,7 +186,8 @@ auth.post('/login', async (c) => {
 });
 
 // Verify 2FA code and complete login
-auth.post('/login/verify-2fa', async (c) => {
+// Rate limit: 5 attempts per minute per IP
+auth.post('/login/verify-2fa', rateLimit('verify-2fa', 5, 60 * 1000), async (c) => {
   const ipAddress = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown';
   const userAgent = c.req.header('user-agent') || 'unknown';
 
@@ -353,7 +356,8 @@ auth.post('/login/setup-2fa', async (c) => {
 });
 
 // Verify 2FA setup and complete login
-auth.post('/login/verify-2fa-setup', async (c) => {
+// Rate limit: 5 attempts per minute per IP
+auth.post('/login/verify-2fa-setup', rateLimit('verify-2fa-setup', 5, 60 * 1000), async (c) => {
   const ipAddress = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown';
   const userAgent = c.req.header('user-agent') || 'unknown';
 
@@ -516,7 +520,8 @@ const forgotPasswordSchema = z.object({
   email: z.string().email(),
 });
 
-auth.post('/forgot-password', async (c) => {
+// Rate limit: 3 requests per 15 minutes per IP
+auth.post('/forgot-password', rateLimit('forgot-password', 3, 15 * 60 * 1000), async (c) => {
   try {
     const body = await c.req.json();
     const { email } = forgotPasswordSchema.parse(body);
@@ -581,7 +586,8 @@ const resetPasswordSchema = z.object({
   password: z.string().min(8),
 });
 
-auth.post('/reset-password', async (c) => {
+// Rate limit: 5 attempts per 15 minutes per IP
+auth.post('/reset-password', rateLimit('reset-password', 5, 15 * 60 * 1000), async (c) => {
   try {
     const body = await c.req.json();
     const { token, password } = resetPasswordSchema.parse(body);

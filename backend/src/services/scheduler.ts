@@ -5,10 +5,34 @@ import { sendEmail, getExpiryNotificationEmail, getDailyReportEmail } from './em
 import { formatDate, addDaysToDate, daysUntilExpiry } from '../utils/dates.js';
 import { generateHostingListHtml } from './reports.js';
 import { generateSystemInfoHtml } from './system.js';
+import { escapeHtml } from '../utils/validation.js';
 import fs from 'fs';
 import path from 'path';
 
 const PDF_DIR = '/app/data/pdfs';
+
+// Keys that contain pre-rendered HTML and should NOT be escaped
+const HTML_VARIABLE_KEYS = new Set(['hostingList', 'systemInfo', 'companyLogo']);
+
+/** Escape text variables for safe HTML insertion, skip known HTML variables */
+function escapeVariables(variables: Record<string, string>): Record<string, string> {
+  const escaped: Record<string, string> = {};
+  for (const [key, value] of Object.entries(variables)) {
+    escaped[key] = HTML_VARIABLE_KEYS.has(key) ? value : escapeHtml(value);
+  }
+  return escaped;
+}
+
+/** Replace {{key}} placeholders in template subject/html with escaped variables */
+function applyTemplateVariables(subject: string, html: string, variables: Record<string, string>): { subject: string; html: string } {
+  const escaped = escapeVariables(variables);
+  for (const [key, value] of Object.entries(escaped)) {
+    const regex = new RegExp(`{{${key}}}`, 'g');
+    subject = subject.replace(regex, value);
+    html = html.replace(regex, value);
+  }
+  return { subject, html };
+}
 
 function getDomainPdfAttachment(domainId: number, pdfFilename: string | null): Array<{ filename: string; path: string }> {
   if (!pdfFilename) return [];
@@ -103,13 +127,9 @@ async function checkExpiringDomains(targetDate: string, daysRemaining: number, s
             techContactEmail: domain.techContactEmail || '',
           };
 
-          emailSubject = template.subject;
-          emailHtml = template.htmlContent;
-          for (const [key, value] of Object.entries(variables)) {
-            const regex = new RegExp(`{{${key}}}`, 'g');
-            emailSubject = emailSubject.replace(regex, value);
-            emailHtml = emailHtml.replace(regex, value);
-          }
+          const result = applyTemplateVariables(template.subject, template.htmlContent, variables);
+          emailSubject = result.subject;
+          emailHtml = result.html;
 
           if (template.attachDomainPdf) {
             attachments = getDomainPdfAttachment(domain.id, domain.pdfFilename);
@@ -216,13 +236,9 @@ async function checkExpiringHosting(targetDate: string, daysRemaining: number, s
             techContactEmail: item.techContactEmail || '',
           };
 
-          emailSubject = template.subject;
-          emailHtml = template.htmlContent;
-          for (const [key, value] of Object.entries(variables)) {
-            const regex = new RegExp(`{{${key}}}`, 'g');
-            emailSubject = emailSubject.replace(regex, value);
-            emailHtml = emailHtml.replace(regex, value);
-          }
+          const result = applyTemplateVariables(template.subject, template.htmlContent, variables);
+          emailSubject = result.subject;
+          emailHtml = result.html;
 
           if (template.attachDomainPdf && item.domainId) {
             hostingAttachments = getDomainPdfAttachment(item.domainId, item.domainPdfFilename);
@@ -336,13 +352,9 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
             techContactEmail: item.techContactEmail || '',
           };
 
-          emailSubject = template.subject;
-          emailHtml = template.htmlContent;
-          for (const [key, value] of Object.entries(variables)) {
-            const regex = new RegExp(`{{${key}}}`, 'g');
-            emailSubject = emailSubject.replace(regex, value);
-            emailHtml = emailHtml.replace(regex, value);
-          }
+          const result = applyTemplateVariables(template.subject, template.htmlContent, variables);
+          emailSubject = result.subject;
+          emailHtml = result.html;
 
           if (template.attachDomainPdf && item.domainId) {
             mailAttachments = getDomainPdfAttachment(item.domainId, item.domainPdfFilename);
@@ -587,14 +599,7 @@ async function sendReportNotifications() {
     }
 
     // Replace variables in template
-    let html = template.htmlContent;
-    let subject = template.subject;
-
-    for (const [key, value] of Object.entries(variables)) {
-      const regex = new RegExp(`{{${key}}}`, 'g');
-      html = html.replace(regex, value);
-      subject = subject.replace(regex, value);
-    }
+    const { subject, html } = applyTemplateVariables(template.subject, template.htmlContent, variables);
 
     try {
       await sendEmail({
@@ -661,14 +666,7 @@ async function sendSystemNotifications() {
     }
 
     // Replace variables in template
-    let html = template.htmlContent;
-    let subject = template.subject;
-
-    for (const [key, value] of Object.entries(variables)) {
-      const regex = new RegExp(`{{${key}}}`, 'g');
-      html = html.replace(regex, value);
-      subject = subject.replace(regex, value);
-    }
+    const { subject, html } = applyTemplateVariables(template.subject, template.htmlContent, variables);
 
     try {
       await sendEmail({
@@ -723,14 +721,7 @@ async function sendScheduledNotifications(type: 'service_request' | 'sales_reque
       companyLogo: companyInfo?.logo || '',
     };
 
-    let html = template.htmlContent;
-    let subject = template.subject;
-
-    for (const [key, value] of Object.entries(variables)) {
-      const regex = new RegExp(`{{${key}}}`, 'g');
-      html = html.replace(regex, value);
-      subject = subject.replace(regex, value);
-    }
+    const { subject, html } = applyTemplateVariables(template.subject, template.htmlContent, variables);
 
     try {
       await sendEmail({ to: recipient, subject, html });
@@ -840,13 +831,7 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
         techContactEmail: domain.techContactEmail || '',
       };
 
-      let emailSubject = template.subject;
-      let emailHtml = template.htmlContent;
-      for (const [key, value] of Object.entries(variables)) {
-        const regex = new RegExp(`{{${key}}}`, 'g');
-        emailSubject = emailSubject.replace(regex, value);
-        emailHtml = emailHtml.replace(regex, value);
-      }
+      const { subject: emailSubject, html: emailHtml } = applyTemplateVariables(template.subject, template.htmlContent, variables);
 
       let attachments: Array<{ filename: string; path: string }> = [];
       if (template.attachDomainPdf) {
@@ -911,13 +896,7 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
         techContactEmail: item.techContactEmail || '',
       };
 
-      let emailSubject = template.subject;
-      let emailHtml = template.htmlContent;
-      for (const [key, value] of Object.entries(variables)) {
-        const regex = new RegExp(`{{${key}}}`, 'g');
-        emailSubject = emailSubject.replace(regex, value);
-        emailHtml = emailHtml.replace(regex, value);
-      }
+      const { subject: emailSubject, html: emailHtml } = applyTemplateVariables(template.subject, template.htmlContent, variables);
 
       let attachments: Array<{ filename: string; path: string }> = [];
       if (template.attachDomainPdf && item.domainId) {
@@ -989,13 +968,7 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
         techContactEmail: item.techContactEmail || '',
       };
 
-      let emailSubject = template.subject;
-      let emailHtml = template.htmlContent;
-      for (const [key, value] of Object.entries(variables)) {
-        const regex = new RegExp(`{{${key}}}`, 'g');
-        emailSubject = emailSubject.replace(regex, value);
-        emailHtml = emailHtml.replace(regex, value);
-      }
+      const { subject: emailSubject, html: emailHtml } = applyTemplateVariables(template.subject, template.htmlContent, variables);
 
       let attachments: Array<{ filename: string; path: string }> = [];
       if (template.attachDomainPdf && item.domainId) {

@@ -33,13 +33,13 @@ const statusColors: Record<ExpiryStatus, string> = {
   deleted: 'bg-gray-400',
 };
 
-const statusFilters: Record<ExpiryStatus, { border: string; bg: string; text: string; label: string }> = {
-  green: { border: 'border-green-500', bg: 'bg-green-500/20', text: 'text-green-600 dark:text-green-400', label: 'OK (>31d)' },
-  yellow: { border: 'border-yellow-500', bg: 'bg-yellow-500/20', text: 'text-yellow-600 dark:text-yellow-400', label: 'Warning' },
-  orange: { border: 'border-orange-500', bg: 'bg-orange-500/20', text: 'text-orange-600 dark:text-orange-400', label: 'Critical' },
-  red: { border: 'border-red-500', bg: 'bg-red-500/20', text: 'text-red-600 dark:text-red-400', label: 'Expired' },
-  forDeletion: { border: 'border-purple-500', bg: 'bg-purple-500/20', text: 'text-purple-600 dark:text-purple-400', label: 'For Deletion' },
-  deleted: { border: 'border-gray-500', bg: 'bg-gray-500/20', text: 'text-gray-600 dark:text-gray-400', label: 'Deleted' },
+const statusFilters: Record<ExpiryStatus, { border: string; bg: string; text: string; labelKey: string }> = {
+  green: { border: 'border-green-500', bg: 'bg-green-500/20', text: 'text-green-600 dark:text-green-400', labelKey: 'common.statusOkShort' },
+  yellow: { border: 'border-yellow-500', bg: 'bg-yellow-500/20', text: 'text-yellow-600 dark:text-yellow-400', labelKey: 'common.statusWarning' },
+  orange: { border: 'border-orange-500', bg: 'bg-orange-500/20', text: 'text-orange-600 dark:text-orange-400', labelKey: 'common.statusCritical' },
+  red: { border: 'border-red-500', bg: 'bg-red-500/20', text: 'text-red-600 dark:text-red-400', labelKey: 'common.statusExpired' },
+  forDeletion: { border: 'border-purple-500', bg: 'bg-purple-500/20', text: 'text-purple-600 dark:text-purple-400', labelKey: 'common.statusForDeletion' },
+  deleted: { border: 'border-gray-500', bg: 'bg-gray-500/20', text: 'text-gray-600 dark:text-gray-400', labelKey: 'common.statusDeleted' },
 };
 
 const getExpiryStatus = (days: number): ExpiryStatus => {
@@ -49,11 +49,11 @@ const getExpiryStatus = (days: number): ExpiryStatus => {
   return 'green';
 };
 
-const extendOptions: { value: ExtendPeriod; label: string }[] = [
-  { value: '1year', label: '1 year' },
-  { value: '2years', label: '2 years' },
-  { value: '3years', label: '3 years' },
-  { value: 'unlimited', label: 'Unlimited' },
+const extendOptions: { value: ExtendPeriod; labelKey: string }[] = [
+  { value: '1year', labelKey: 'common.period1Year' },
+  { value: '2years', labelKey: 'common.period2Years' },
+  { value: '3years', labelKey: 'common.period3Years' },
+  { value: 'unlimited', labelKey: 'common.periodUnlimited' },
 ];
 
 function getTodayDate(): string {
@@ -82,7 +82,7 @@ const periodButtons = [
   { years: 1, label: '+1' },
   { years: 2, label: '+2' },
   { years: 3, label: '+3' },
-  { years: 100, label: 'Unlim.' },
+  { years: 100, labelKey: 'common.periodShortUnlimited' },
 ];
 
 export default function ClientDetailPage() {
@@ -888,7 +888,7 @@ export default function ClientDetailPage() {
                   : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
-              All
+              {t('common.all')}
             </button>
             {(['green', 'yellow', 'orange', 'red'] as ExpiryStatus[]).map((status) => (
               <button
@@ -901,7 +901,7 @@ export default function ClientDetailPage() {
                 }`}
               >
                 <span className={`w-2 h-2 rounded-full ${statusColors[status]}`}></span>
-                {status === 'green' ? 'OK' : status === 'yellow' ? 'Warning' : status === 'orange' ? 'Critical' : 'Expired'}
+                {t(statusFilters[status].labelKey)}
               </button>
             ))}
           </div>
@@ -1221,7 +1221,7 @@ export default function ClientDetailPage() {
                   onChange={() => setSelectedExtendPeriod(option.value)}
                   className="w-4 h-4 text-primary-600"
                 />
-                <span className="font-medium">{option.label}</span>
+                <span className="font-medium">{t(option.labelKey)}</span>
               </label>
             ))}
           </div>
@@ -1486,7 +1486,7 @@ export default function ClientDetailPage() {
                           })}
                           className="btn btn-secondary text-xs py-1 px-2"
                         >
-                          {btn.label}
+                          {'labelKey' in btn ? t(btn.labelKey as string) : btn.label}
                         </button>
                       ))}
                     </div>
@@ -1971,7 +1971,7 @@ export default function ClientDetailPage() {
                         })}
                         className="btn btn-secondary text-xs py-1 px-2"
                       >
-                        {btn.label}
+                        {'labelKey' in btn ? t(btn.labelKey as string) : btn.label}
                       </button>
                     ))}
                   </div>

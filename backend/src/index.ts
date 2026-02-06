@@ -81,6 +81,10 @@ app.route('/api/security', security);
 
 // Error handler
 app.onError((err, c) => {
+  // Return 400 for malformed JSON requests (e.g. from bots/scanners)
+  if (err instanceof SyntaxError && err.message.includes('JSON')) {
+    return c.json({ error: 'Invalid JSON in request body' }, 400);
+  }
   console.error('Error:', err);
   // Send notification for application errors (async, don't await)
   notifyApplicationError(err.message).catch(() => {});
