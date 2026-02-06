@@ -1470,7 +1470,14 @@ export default function SettingsPage() {
       case 'packages': return [item.maxMailboxes && `${item.maxMailboxes} mailboxes`, item.storageGb && `${item.storageGb} GB`, item.price && `${item.price} RSD`].filter(Boolean).join(' · ') || null;
       case 'templates': return [item.type, item.subject].filter(Boolean).join(' · ') || null;
       case 'notificationSettings': return [item.type, item.enabled ? 'Enabled' : 'Disabled'].filter(Boolean).join(' · ') || null;
-      case 'appSettings': return (item.value as string) || null;
+      case 'appSettings': {
+        const val = item.value;
+        if (val == null) return null;
+        if (typeof val === 'string') {
+          try { const parsed = JSON.parse(val); return typeof parsed === 'object' ? Object.keys(parsed).join(', ') : String(parsed); } catch { return val; }
+        }
+        return typeof val === 'object' ? Object.keys(val).join(', ') : String(val);
+      }
       case 'companyInfo': return [item.address, item.phone, item.email].filter(Boolean).join(' · ') || null;
       case 'bankAccounts': return [item.accountNumber, item.swift].filter(Boolean).join(' · ') || null;
       case 'mailServers': return [item.hostname, item.port && `port ${item.port}`].filter(Boolean).join(' · ') || null;
