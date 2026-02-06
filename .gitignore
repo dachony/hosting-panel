@@ -23,6 +23,9 @@ Thumbs.db
 # Local config
 .claude/
 
+# Docs (local only)
+docs/
+
 # Logs
 *.log
 
