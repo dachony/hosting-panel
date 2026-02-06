@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { Domain, Hosting, Package, Client, ExpiryStatus, MailServer, MailSecurity } from '../types';
 import DateInput from '../components/common/DateInput';
-import { ArrowLeft, Globe, Package as PackageIcon, ChevronDown, ChevronRight, Pencil, Lock, Unlock, Server, Shield, FileText, Upload, Download, Trash2 } from 'lucide-react';
+import { ArrowLeft, Globe, Package as PackageIcon, ChevronDown, ChevronRight, Pencil, Lock, Unlock, Server, Shield, FileText, Upload, Download, Trash2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface DomainWithDetails extends Domain {
@@ -208,6 +208,16 @@ export default function DomainDetailPage() {
       toast.success(t('domains.pdfDeleted'));
     },
     onError: () => toast.error(t('domains.errorDeletingPdf')),
+  });
+
+  const expireNowMutation = useMutation({
+    mutationFn: (hostingId: number) => api.post(`/api/hosting/${hostingId}/expire-now`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['domain-hosting', id] });
+      queryClient.invalidateQueries({ queryKey: ['hosting'] });
+      toast.success(t('common.saved'));
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -707,6 +717,17 @@ export default function DomainDetailPage() {
                           </button>
                         ))}
                       </div>
+                    )}
+                    {hosting && isDomainLocked && (
+                      <button
+                        type="button"
+                        onClick={() => expireNowMutation.mutate(hosting.id!)}
+                        disabled={expireNowMutation.isPending}
+                        className="!text-[11px] !py-0.5 !px-2 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150 ml-auto"
+                      >
+                        <AlertTriangle className="w-3 h-3" />
+                        {expireNowMutation.isPending ? t('common.saving') : t('common.expireNow')}
+                      </button>
                     )}
                   </div>
                 )}
