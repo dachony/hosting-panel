@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db, schema } from '../db/index.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
 import { sql, eq, or, like, desc, isNotNull } from 'drizzle-orm';
 import { safeParseInt, parseId, escapeLike } from '../utils/validation.js';
 import os from 'os';
@@ -12,7 +12,7 @@ const system = new Hono();
 system.use('*', authMiddleware);
 
 // Get system status
-system.get('/status', async (c) => {
+system.get('/status', adminMiddleware, async (c) => {
   try {
     // CPU info
     const cpus = os.cpus();
@@ -209,7 +209,11 @@ system.get('/emails/:id', async (c) => {
 // Delete email logs (all or older than X days)
 system.delete('/emails', async (c) => {
   try {
-    const days = parseInt(c.req.query('days') || '0');
+    const days = safeParseInt(c.req.query('days'), 0) ?? 0;
+
+    if (days < 0) {
+      return c.json({ error: 'Invalid days parameter' }, 400);
+    }
 
     if (days === 0) {
       await db.delete(schema.emailLogs);
@@ -267,7 +271,11 @@ system.get('/pdfs/stats', async (c) => {
 // Delete old PDF documents
 system.delete('/pdfs', async (c) => {
   try {
-    const days = parseInt(c.req.query('days') || '0');
+    const days = safeParseInt(c.req.query('days'), 0) ?? 0;
+
+    if (days < 0) {
+      return c.json({ error: 'Invalid days parameter' }, 400);
+    }
 
     if (!fs.existsSync(PDF_DIR)) {
       return c.json({ message: 'No PDF directory', deleted: 0 });

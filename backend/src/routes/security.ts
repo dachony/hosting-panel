@@ -18,6 +18,7 @@ import {
   verifyBackupCode,
 } from '../services/security.js';
 import { sendEmail } from '../services/email.js';
+import { parseId, safeParseInt } from '../utils/validation.js';
 
 const security = new Hono<AppEnv>();
 
@@ -81,7 +82,7 @@ security.delete('/blocked-ips/:ip', superAdminMiddleware, async (c) => {
 
 // Get login attempts (admin only)
 security.get('/login-attempts', superAdminMiddleware, async (c) => {
-  const limit = parseInt(c.req.query('limit') || '100');
+  const limit = Math.max(1, Math.min(safeParseInt(c.req.query('limit'), 100) ?? 100, 1000));
   const attempts = await getLoginAttempts(limit);
   return c.json({ attempts });
 });
@@ -109,7 +110,8 @@ security.get('/locked-users', superAdminMiddleware, async (c) => {
 
 // Unlock a user (admin only)
 security.post('/unlock-user/:id', superAdminMiddleware, async (c) => {
-  const userId = parseInt(c.req.param('id'));
+  const userId = parseId(c.req.param('id'));
+  if (userId === null) return c.json({ error: 'Invalid user ID' }, 400);
 
   await db.update(schema.users)
     .set({

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { parseId } from '../utils/validation.js';
@@ -34,7 +34,7 @@ mailSecurity.get('/:id', async (c) => {
   return c.json({ service });
 });
 
-mailSecurity.post('/', async (c) => {
+mailSecurity.post('/', adminMiddleware, async (c) => {
   try {
     const body = await c.req.json();
     const data = mailSecuritySchema.parse(body);
@@ -57,7 +57,7 @@ mailSecurity.post('/', async (c) => {
   }
 });
 
-mailSecurity.put('/:id', async (c) => {
+mailSecurity.put('/:id', adminMiddleware, async (c) => {
   try {
     const id = parseId(c.req.param('id'));
     if (id === null) return c.json({ error: 'Invalid mail security ID' }, 400);
@@ -90,7 +90,7 @@ mailSecurity.put('/:id', async (c) => {
   }
 });
 
-mailSecurity.delete('/:id', async (c) => {
+mailSecurity.delete('/:id', adminMiddleware, async (c) => {
   const id = parseId(c.req.param('id'));
   if (id === null) return c.json({ error: 'Invalid mail security ID' }, 400);
 
@@ -104,7 +104,7 @@ mailSecurity.delete('/:id', async (c) => {
   return c.json({ message: 'Mail security service deleted' });
 });
 
-mailSecurity.post('/:id/set-default', async (c) => {
+mailSecurity.post('/:id/set-default', adminMiddleware, async (c) => {
   const id = parseId(c.req.param('id'));
   if (id === null) return c.json({ error: 'Invalid mail security ID' }, 400);
 

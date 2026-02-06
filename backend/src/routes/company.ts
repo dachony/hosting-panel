@@ -84,8 +84,13 @@ company.post('/logo', adminMiddleware, async (c) => {
     const body = await c.req.json();
     const { logo } = body; // Base64 encoded image
 
-    if (!logo) {
+    if (!logo || typeof logo !== 'string') {
       return c.json({ error: 'No logo provided' }, 400);
+    }
+
+    // Limit logo size to ~2MB (base64 is ~33% larger than binary)
+    if (logo.length > 2.67 * 1024 * 1024) {
+      return c.json({ error: 'Logo too large (max 2MB)' }, 400);
     }
 
     const existing = await db.select().from(schema.companyInfo).get();

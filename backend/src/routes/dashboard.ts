@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
 import { getDashboardStats, getExpiringItems, getExpiredItems, getForDeletionItems, getWillBeDeletedItems, getRecentActivity } from '../services/reports.js';
+import { safeParseInt } from '../utils/validation.js';
 
 const dashboard = new Hono();
 
@@ -12,7 +13,7 @@ dashboard.get('/stats', async (c) => {
 });
 
 dashboard.get('/expiring', async (c) => {
-  const days = parseInt(c.req.query('days') || '30');
+  const days = Math.max(1, safeParseInt(c.req.query('days'), 30) ?? 30);
   const items = await getExpiringItems(days);
   return c.json({ items });
 });
@@ -33,7 +34,7 @@ dashboard.get('/will-be-deleted', async (c) => {
 });
 
 dashboard.get('/activity', async (c) => {
-  const limit = parseInt(c.req.query('limit') || '10');
+  const limit = Math.max(1, Math.min(safeParseInt(c.req.query('limit'), 10) ?? 10, 100));
   const activity = await getRecentActivity(limit);
   return c.json({ activity });
 });

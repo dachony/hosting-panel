@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import i18next from 'i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -2983,9 +2984,13 @@ export default function SettingsPage() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(backupCodesToShow.join('\n'));
-                    toast.success('Backup codes copied');
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(backupCodesToShow.join('\n'));
+                      toast.success(i18next.t('auth.backupCodesCopied'));
+                    } catch {
+                      toast.error(i18next.t('common.clipboardFailed'));
+                    }
                   }}
                   className="btn btn-secondary !py-1.5 !px-3 !text-sm flex items-center gap-2"
                 >
@@ -3125,9 +3130,13 @@ export default function SettingsPage() {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(backupCodesToShow.join('\n'));
-                  toast.success('Backup codes copied');
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(backupCodesToShow.join('\n'));
+                    toast.success(i18next.t('auth.backupCodesCopied'));
+                  } catch {
+                    toast.error(i18next.t('common.clipboardFailed'));
+                  }
                 }}
                 className="btn btn-secondary flex-1 flex items-center justify-center gap-2"
               >

@@ -144,12 +144,16 @@ export default function LoginPage() {
     }
   };
 
-  const copyBackupCodes = () => {
-    const codesText = backupCodes.join('\n');
-    navigator.clipboard.writeText(codesText);
-    setCopiedCodes(true);
-    toast.success(t('auth.backupCodesCopied'));
-    setTimeout(() => setCopiedCodes(false), 2000);
+  const copyBackupCodes = async () => {
+    try {
+      const codesText = backupCodes.join('\n');
+      await navigator.clipboard.writeText(codesText);
+      setCopiedCodes(true);
+      toast.success(t('auth.backupCodesCopied'));
+      setTimeout(() => setCopiedCodes(false), 2000);
+    } catch {
+      toast.error(t('common.clipboardFailed'));
+    }
   };
 
   const handleBackupCodesComplete = () => {
