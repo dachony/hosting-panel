@@ -14,11 +14,21 @@ RUN npm run build
 
 # === Production ===
 FROM node:20-alpine AS production
+RUN apk add --no-cache su-exec
 WORKDIR /app
 COPY --from=build /app/package*.json ./
 RUN npm install --omit=dev
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/src/db/migrations ./src/db/migrations
-RUN mkdir -p /app/data
+
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+    && mkdir -p /app/data \
+    && chown -R appuser:appgroup /app
+
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 EXPOSE 8080
-CMD ["sh", "-c", "node dist/db/migrate.js && node dist/index.js"]
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["node", "dist/index.js"]
