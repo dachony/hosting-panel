@@ -56,6 +56,7 @@ export const domains = sqliteTable('domains', {
   contactEmail2: text('contact_email2'),
   contactEmail3: text('contact_email3'),
   notes: text('notes'),
+  pdfFilename: text('pdf_filename'),
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -178,6 +179,7 @@ export const emailTemplates = sqliteTable('email_templates', {
   variables: text('variables', { mode: 'json' }).$type<string[]>(),
   reportConfig: text('report_config', { mode: 'json' }).$type<ReportConfig | null>(),
   systemConfig: text('system_config', { mode: 'json' }).$type<SystemConfig | null>(),
+  attachDomainPdf: integer('attach_domain_pdf', { mode: 'boolean' }).default(false),
   isActive: integer('is_active', { mode: 'boolean' }).default(true),
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),

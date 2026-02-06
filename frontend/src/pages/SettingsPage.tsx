@@ -281,6 +281,7 @@ export default function SettingsPage() {
     footerBgTransparent: false,
     reportConfig: defaultReportConfig,
     systemConfig: defaultSystemConfig,
+    attachDomainPdf: false,
   });
   const templateBodyRef = useRef<HTMLTextAreaElement>(null);
   const templateSubjectRef = useRef<HTMLInputElement>(null);
@@ -583,6 +584,7 @@ export default function SettingsPage() {
         footerBgTransparent: parsed.footerBgTransparent || false,
         reportConfig: template.reportConfig || defaultReportConfig,
         systemConfig: template.systemConfig || defaultSystemConfig,
+        attachDomainPdf: template.attachDomainPdf || false,
       });
     } else {
       setTemplateForm({
@@ -610,6 +612,7 @@ export default function SettingsPage() {
         footerBgTransparent: false,
         reportConfig: defaultReportConfig,
         systemConfig: defaultSystemConfig,
+        attachDomainPdf: false,
       });
     }
     setSelectedTemplate(template);
@@ -719,6 +722,7 @@ export default function SettingsPage() {
       htmlContent,
       variables: variables.length > 0 ? variables : null,
       isActive: templateForm.isActive,
+      attachDomainPdf: templateForm.type === 'client' ? templateForm.attachDomainPdf : false,
     };
 
     // Include reportConfig only for report templates
@@ -4890,6 +4894,19 @@ export default function SettingsPage() {
               </select>
             </div>
           </div>
+
+          {/* Attach domain PDF checkbox - only for client type */}
+          {templateForm.type === 'client' && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={templateForm.attachDomainPdf}
+                onChange={(e) => setTemplateForm(prev => ({ ...prev, attachDomainPdf: e.target.checked }))}
+                className="w-4 h-4 rounded border-gray-300 text-primary-600"
+              />
+              <span className="text-gray-700 dark:text-gray-300">{t('templates.attachDomainPdf')}</span>
+            </label>
+          )}
 
           {/* Subject with variable buttons */}
           <div>

@@ -5,6 +5,17 @@ import { sendEmail, getExpiryNotificationEmail, getDailyReportEmail } from './em
 import { formatDate, addDaysToDate, daysUntilExpiry } from '../utils/dates.js';
 import { generateHostingListHtml } from './reports.js';
 import { generateSystemInfoHtml } from './system.js';
+import fs from 'fs';
+import path from 'path';
+
+const PDF_DIR = '/app/data/pdfs';
+
+function getDomainPdfAttachment(domainId: number, pdfFilename: string | null): Array<{ filename: string; path: string }> {
+  if (!pdfFilename) return [];
+  const filePath = path.join(PDF_DIR, `${domainId}_${pdfFilename}`);
+  if (!fs.existsSync(filePath)) return [];
+  return [{ filename: pdfFilename, path: filePath }];
+}
 
 async function checkExpiringItems() {
   console.log('[Scheduler] Checking expiring items...');
@@ -36,6 +47,7 @@ async function checkExpiringDomains(targetDate: string, daysRemaining: number, s
       id: schema.domains.id,
       domainName: schema.domains.domainName,
       expiryDate: schema.domains.expiryDate,
+      pdfFilename: schema.domains.pdfFilename,
       clientName: schema.clients.name,
       clientEmail: schema.clients.email1,
       primaryContactName: schema.domains.primaryContactName,
@@ -66,6 +78,7 @@ async function checkExpiringDomains(targetDate: string, daysRemaining: number, s
     try {
       let emailSubject: string;
       let emailHtml: string;
+      let attachments: Array<{ filename: string; path: string }> = [];
 
       if (setting.templateId) {
         const template = await db.select()
@@ -94,6 +107,10 @@ async function checkExpiringDomains(targetDate: string, daysRemaining: number, s
             emailSubject = emailSubject.replace(regex, value);
             emailHtml = emailHtml.replace(regex, value);
           }
+
+          if (template.attachDomainPdf) {
+            attachments = getDomainPdfAttachment(domain.id, domain.pdfFilename);
+          }
         } else {
           const emailOptions = getExpiryNotificationEmail('domain', domain.domainName, domain.clientName || 'Nepoznat', domain.expiryDate || '', daysRemaining);
           emailSubject = emailOptions.subject;
@@ -105,7 +122,7 @@ async function checkExpiringDomains(targetDate: string, daysRemaining: number, s
         emailHtml = emailOptions.html;
       }
 
-      await sendEmail({ to: domain.clientEmail, subject: emailSubject, html: emailHtml });
+      await sendEmail({ to: domain.clientEmail, subject: emailSubject, html: emailHtml, attachments: attachments.length > 0 ? attachments : undefined });
 
       await db.insert(schema.notificationLog).values({
         type: 'domain',
@@ -137,7 +154,9 @@ async function checkExpiringHosting(targetDate: string, daysRemaining: number, s
       expiryDate: schema.webHosting.expiryDate,
       clientName: schema.clients.name,
       clientEmail: schema.clients.email1,
+      domainId: schema.domains.id,
       domainName: schema.domains.domainName,
+      domainPdfFilename: schema.domains.pdfFilename,
       primaryContactName: schema.domains.primaryContactName,
       primaryContactPhone: schema.domains.primaryContactPhone,
       primaryContactEmail: schema.domains.primaryContactEmail,
@@ -168,6 +187,7 @@ async function checkExpiringHosting(targetDate: string, daysRemaining: number, s
       const itemName = item.domainName || item.packageName;
       let emailSubject: string;
       let emailHtml: string;
+      let hostingAttachments: Array<{ filename: string; path: string }> = [];
 
       if (setting.templateId) {
         const template = await db.select()
@@ -197,6 +217,10 @@ async function checkExpiringHosting(targetDate: string, daysRemaining: number, s
             emailSubject = emailSubject.replace(regex, value);
             emailHtml = emailHtml.replace(regex, value);
           }
+
+          if (template.attachDomainPdf && item.domainId) {
+            hostingAttachments = getDomainPdfAttachment(item.domainId, item.domainPdfFilename);
+          }
         } else {
           const emailOptions = getExpiryNotificationEmail('hosting', itemName, item.clientName || 'Nepoznat', item.expiryDate, daysRemaining);
           emailSubject = emailOptions.subject;
@@ -208,7 +232,7 @@ async function checkExpiringHosting(targetDate: string, daysRemaining: number, s
         emailHtml = emailOptions.html;
       }
 
-      await sendEmail({ to: item.clientEmail, subject: emailSubject, html: emailHtml });
+      await sendEmail({ to: item.clientEmail, subject: emailSubject, html: emailHtml, attachments: hostingAttachments.length > 0 ? hostingAttachments : undefined });
 
       await db.insert(schema.notificationLog).values({
         type: 'hosting',
@@ -239,7 +263,9 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
       expiryDate: schema.mailHosting.expiryDate,
       clientName: schema.clients.name,
       clientEmail: schema.clients.email1,
+      domainId: schema.domains.id,
       domainName: schema.domains.domainName,
+      domainPdfFilename: schema.domains.pdfFilename,
       packageName: schema.mailPackages.name,
       packageDescription: schema.mailPackages.description,
       maxMailboxes: schema.mailPackages.maxMailboxes,
@@ -275,6 +301,7 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
       const itemName = item.domainName || item.packageName || 'Mail hosting';
       let emailSubject: string;
       let emailHtml: string;
+      let mailAttachments: Array<{ filename: string; path: string }> = [];
 
       if (setting.templateId) {
         const template = await db.select()
@@ -307,6 +334,10 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
             emailSubject = emailSubject.replace(regex, value);
             emailHtml = emailHtml.replace(regex, value);
           }
+
+          if (template.attachDomainPdf && item.domainId) {
+            mailAttachments = getDomainPdfAttachment(item.domainId, item.domainPdfFilename);
+          }
         } else {
           const emailOptions = getExpiryNotificationEmail('mail', itemName, item.clientName || 'Nepoznat', item.expiryDate, daysRemaining);
           emailSubject = emailOptions.subject;
@@ -318,7 +349,7 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
         emailHtml = emailOptions.html;
       }
 
-      await sendEmail({ to: item.clientEmail, subject: emailSubject, html: emailHtml });
+      await sendEmail({ to: item.clientEmail, subject: emailSubject, html: emailHtml, attachments: mailAttachments.length > 0 ? mailAttachments : undefined });
 
       await db.insert(schema.notificationLog).values({
         type: 'mail',

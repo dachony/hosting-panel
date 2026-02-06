@@ -72,6 +72,7 @@ export interface Domain {
   contactEmail2?: string | null;
   contactEmail3?: string | null;
   notes?: string | null;
+  pdfFilename?: string | null;
   createdAt: string;
   clientName?: string | null;
 }
@@ -166,6 +167,7 @@ export interface EmailTemplate {
   variables?: string[] | null;
   reportConfig?: ReportConfig | null;
   systemConfig?: SystemConfig | null;
+  attachDomainPdf?: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

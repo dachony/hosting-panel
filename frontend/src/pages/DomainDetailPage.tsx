@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { Domain, Hosting, Package, Client, ExpiryStatus, MailServer, MailSecurity } from '../types';
 import DateInput from '../components/common/DateInput';
-import { ArrowLeft, Globe, Package as PackageIcon, ChevronDown, ChevronRight, Pencil, Lock, Unlock, Server, Shield } from 'lucide-react';
+import { ArrowLeft, Globe, Package as PackageIcon, ChevronDown, ChevronRight, Pencil, Lock, Unlock, Server, Shield, FileText, Upload, Download, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface DomainWithDetails extends Domain {
@@ -197,6 +197,37 @@ export default function DomainDetailPage() {
     },
     onError: () => toast.error(t('domains.errorUpdatingStatus')),
   });
+
+  // PDF mutations
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadPdfMutation = useMutation({
+    mutationFn: (file: File) => api.uploadFile<{ pdfFilename: string }>(`/api/domains/${id}/pdf`, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['domain', id] });
+      queryClient.invalidateQueries({ queryKey: ['domains'] });
+      toast.success(t('domains.pdfUploaded'));
+    },
+    onError: (err: Error) => toast.error(err.message || t('domains.errorUploadingPdf')),
+  });
+
+  const deletePdfMutation = useMutation({
+    mutationFn: () => api.delete(`/api/domains/${id}/pdf`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['domain', id] });
+      queryClient.invalidateQueries({ queryKey: ['domains'] });
+      toast.success(t('domains.pdfDeleted'));
+    },
+    onError: () => toast.error(t('domains.errorDeletingPdf')),
+  });
+
+  const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadPdfMutation.mutate(file);
+      e.target.value = '';
+    }
+  };
 
   const handleUnlock = () => {
     if (!domain) return;
@@ -719,6 +750,53 @@ export default function DomainDetailPage() {
                   </div>
                 </div>
               )}
+
+              {/* PDF Document */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-3.5 h-3.5 text-primary-600" />
+                    <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('domains.pdfDocument')}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {domain.pdfFilename ? (
+                      <>
+                        <span className="text-xs text-gray-600 dark:text-gray-400">{domain.pdfFilename}</span>
+                        <button
+                          onClick={() => api.download(`/api/domains/${id}/pdf`, domain.pdfFilename!)}
+                          className="p-1 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors"
+                          title={t('common.download')}
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => deletePdfMutation.mutate()}
+                          className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          title={t('common.delete')}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-gray-400">{t('domains.noPdf')}</span>
+                    )}
+                    <input
+                      ref={pdfInputRef}
+                      type="file"
+                      accept=".pdf"
+                      onChange={handlePdfUpload}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => pdfInputRef.current?.click()}
+                      className="btn btn-secondary !text-[11px] !py-0.5 !px-2 flex items-center gap-1"
+                    >
+                      <Upload className="w-3 h-3" />
+                      {t('domains.uploadPdf')}
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               {/* Notes */}
               <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">

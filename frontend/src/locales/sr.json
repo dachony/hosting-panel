@@ -69,7 +69,8 @@
     "client": "Klijent",
     "extend": "Produži",
     "fromExpiryDate": "Od datuma isteka",
-    "fromToday": "Od danas"
+    "fromToday": "Od danas",
+    "download": "Preuzmi"
   },
   "auth": {
     "login": "Prijava",
@@ -218,7 +219,14 @@
     "active": "AKTIVAN",
     "inactive": "NEAKTIVAN",
     "clickToEdit": "klikni za izmenu",
-    "editHosting": "Izmeni hosting"
+    "editHosting": "Izmeni hosting",
+    "pdfDocument": "PDF Dokument",
+    "uploadPdf": "Otpremi PDF",
+    "noPdf": "Nema PDF-a",
+    "pdfUploaded": "PDF je otpremljen",
+    "pdfDeleted": "PDF je obrisan",
+    "errorUploadingPdf": "Greška pri otpremanju PDF-a",
+    "errorDeletingPdf": "Greška pri brisanju PDF-a"
   },
   "hosting": {
     "title": "Web Hosting",
@@ -305,7 +313,8 @@
     "pdfTemplate": "PDF šablon",
     "variables": "Varijable",
     "preview": "Pregled",
-    "deleteConfirm": "Da li ste sigurni da želite da obrišete ovaj šablon?"
+    "deleteConfirm": "Da li ste sigurni da želite da obrišete ovaj šablon?",
+    "attachDomainPdf": "Prilozi PDF domena uz email"
   },
   "emailLog": {
     "title": "Email dnevnik",

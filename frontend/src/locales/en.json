@@ -69,7 +69,8 @@
     "client": "Client",
     "extend": "Extend",
     "fromExpiryDate": "From Expiry Date",
-    "fromToday": "From Today"
+    "fromToday": "From Today",
+    "download": "Download"
   },
   "auth": {
     "login": "Login",
@@ -218,7 +219,14 @@
     "active": "ACTIVE",
     "inactive": "INACTIVE",
     "clickToEdit": "click to edit",
-    "editHosting": "Edit Hosting"
+    "editHosting": "Edit Hosting",
+    "pdfDocument": "PDF Document",
+    "uploadPdf": "Upload PDF",
+    "noPdf": "No PDF",
+    "pdfUploaded": "PDF uploaded",
+    "pdfDeleted": "PDF deleted",
+    "errorUploadingPdf": "Error uploading PDF",
+    "errorDeletingPdf": "Error deleting PDF"
   },
   "hosting": {
     "title": "Web Hosting",
@@ -305,7 +313,8 @@
     "pdfTemplate": "PDF Template",
     "variables": "Variables",
     "preview": "Preview",
-    "deleteConfirm": "Are you sure you want to delete this template?"
+    "deleteConfirm": "Are you sure you want to delete this template?",
+    "attachDomainPdf": "Attach domain PDF to email"
   },
   "emailLog": {
     "title": "Email Log",

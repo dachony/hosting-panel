@@ -74,6 +74,7 @@ const templateSchema = z.object({
   variables: z.array(z.string()).optional(),
   reportConfig: reportConfigSchema,
   systemConfig: systemConfigSchema,
+  attachDomainPdf: z.boolean().optional().default(false),
   isActive: z.boolean().default(true),
 });
 
