@@ -399,7 +399,7 @@ export default function HostingPage() {
       );
     }
     return true;
-  });
+  }).sort((a, b) => (a.domainName || '').localeCompare(b.domainName || ''));
 
   return (
     <div className="space-y-4">
@@ -410,16 +410,45 @@ export default function HostingPage() {
       {/* Domains List */}
       <div className="card card-flush overflow-hidden">
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t('common.searchPlaceholder')}
-              className="input input-sm w-full pl-8"
-            />
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t('common.searchPlaceholder')}
+                className="input input-sm w-full pl-8"
+              />
+            </div>
+
+            {/* View Toggle */}
+            <div className="flex items-center gap-1 border border-gray-200 dark:border-gray-600 rounded p-0.5">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                }`}
+                title={t('common.listView')}
+              >
+                <LayoutList className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`p-1.5 rounded transition-colors ${
+                  viewMode === 'cards'
+                    ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                }`}
+                title={t('common.cardsView')}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+            </div>
           </div>
+
           <button
             onClick={() => setAddDomainModalOpen(true)}
             className="btn btn-primary btn-sm flex items-center"
@@ -429,64 +458,35 @@ export default function HostingPage() {
           </button>
         </div>
 
-        {/* Status Filter & View Toggle */}
-        <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          <div className="flex items-center gap-2">
-            <Filter className="w-3.5 h-3.5 text-gray-400" />
-            <div className="flex gap-1.5 flex-wrap">
+        {/* Status Filter */}
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <Filter className="w-3.5 h-3.5 text-gray-400" />
+          <div className="flex gap-1.5 flex-wrap">
+            <button
+              onClick={clearAllFilters}
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                statusFilters.size === 0
+                  ? 'bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-800'
+                  : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              {t('common.all')}
+            </button>
+            {ALL_STATUSES.map((status) => (
               <button
-                onClick={clearAllFilters}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                  statusFilters.size === 0
-                    ? 'bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-800'
+                key={status}
+                onClick={() => toggleStatusFilter(status)}
+                className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
+                  statusFilters.has(status)
+                    ? `${statusColors[status].bg} ${statusColors[status].text} ring-2 ring-offset-1 dark:ring-offset-gray-800`
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
+                style={statusFilters.has(status) ? { '--tw-ring-color': status === 'green' ? '#22c55e' : status === 'yellow' ? '#eab308' : status === 'orange' ? '#f97316' : status === 'red' ? '#ef4444' : status === 'forDeletion' ? '#a855f7' : '#6b7280' } as React.CSSProperties : undefined}
               >
-                {t('common.all')}
+                <span className={`w-2 h-2 rounded-full ${statusColors[status].dot}`}></span>
+                {statusLabels[status]}
               </button>
-              {ALL_STATUSES.map((status) => (
-                <button
-                  key={status}
-                  onClick={() => toggleStatusFilter(status)}
-                  className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
-                    statusFilters.has(status)
-                      ? `${statusColors[status].bg} ${statusColors[status].text} ring-2 ring-offset-1 dark:ring-offset-gray-800`
-                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                  style={statusFilters.has(status) ? { '--tw-ring-color': status === 'green' ? '#22c55e' : status === 'yellow' ? '#eab308' : status === 'orange' ? '#f97316' : status === 'red' ? '#ef4444' : status === 'forDeletion' ? '#a855f7' : '#6b7280' } as React.CSSProperties : undefined}
-                >
-                  <span className={`w-2 h-2 rounded-full ${statusColors[status].dot}`}></span>
-                  {statusLabels[status]}
-                </button>
-              ))}
-
-            </div>
-          </div>
-
-          {/* View Toggle */}
-          <div className="flex items-center gap-1 border border-gray-200 dark:border-gray-600 rounded p-0.5">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded transition-colors ${
-                viewMode === 'list'
-                  ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-              }`}
-              title={t('common.listView')}
-            >
-              <LayoutList className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`p-1.5 rounded transition-colors ${
-                viewMode === 'cards'
-                  ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-              }`}
-              title={t('common.cardsView')}
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
+            ))}
           </div>
         </div>
 
@@ -625,8 +625,10 @@ export default function HostingPage() {
                     <div className="text-gray-700 dark:text-gray-300 font-medium truncate">
                       {hosting.packageName || '—'}
                     </div>
-                    {!isUnhosted && hosting.mailServerName && (
-                      <div className="text-gray-500 truncate">{hosting.mailServerName}</div>
+                    {!isUnhosted && (
+                      <div className="text-gray-500 truncate">
+                        {hosting.packageMaxMailboxes || 0} {t('common.mailboxes')} · {hosting.packageStorageGb || 0} GB
+                      </div>
                     )}
                   </div>
 

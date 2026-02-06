@@ -119,7 +119,7 @@ export default function ClientsPage() {
       );
     }
     return true;
-  }) || [];
+  })?.sort((a, b) => (a.name || '').localeCompare(b.name || '')) || [];
 
   return (
     <div className="space-y-4">

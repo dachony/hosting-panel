@@ -555,7 +555,7 @@ export default function ClientDetailPage() {
       domain.contactEmail2?.toLowerCase().includes(search) ||
       domain.contactEmail3?.toLowerCase().includes(search)
     );
-  });
+  }).sort((a, b) => a.domainName.localeCompare(b.domainName));
 
   return (
     <div className="space-y-4">
@@ -953,26 +953,16 @@ export default function ClientDetailPage() {
                     </div>
 
                     {/* Package Info */}
-                    {domainHosting && (
-                      <div className="flex items-center gap-4 flex-shrink-0 text-xs ml-auto">
-                        <div>
-                          <div className="text-gray-700 dark:text-gray-300">
-                            <span className="text-gray-500 font-medium">{t('common.package')}</span> {domainHosting.packageName || '-'}
-                          </div>
-                          {(domainHosting as HostingWithPackage).packageDescription && (
-                            <div className="text-gray-500">{(domainHosting as HostingWithPackage).packageDescription}</div>
-                          )}
-                        </div>
-                        <div className="text-gray-600 dark:text-gray-400">
-                          <div>{(domainHosting as HostingWithPackage).packageMaxMailboxes || 0} {t('common.mailboxes')}</div>
-                          <div>{(domainHosting as HostingWithPackage).packageStorageGb || 0} GB</div>
-                        </div>
-                        <div className="text-gray-600 dark:text-gray-400">
-                          <div><span className="text-gray-500 font-medium">{t('common.mailServer')}</span> {(domainHosting as HostingWithPackage).mailServerName || '-'}</div>
-                          <div><span className="text-gray-500 font-medium">{t('common.mailSecurity')}</span> {(domainHosting as HostingWithPackage).mailSecurityName || '-'}</div>
-                        </div>
+                    <div className="w-36 flex-shrink-0 text-xs text-left">
+                      <div className="text-gray-700 dark:text-gray-300 font-medium truncate">
+                        {domainHosting?.packageName || '—'}
                       </div>
-                    )}
+                      {domainHosting && (
+                        <div className="text-gray-500 truncate">
+                          {(domainHosting as HostingWithPackage).packageMaxMailboxes || 0} {t('common.mailboxes')} · {(domainHosting as HostingWithPackage).packageStorageGb || 0} GB
+                        </div>
+                      )}
+                    </div>
 
                     {/* Status & Buttons */}
                     <div className="flex items-center gap-2 flex-shrink-0">
