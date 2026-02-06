@@ -34,8 +34,8 @@ app.use('*', cors({
       const allowed = process.env.CORS_ORIGINS.split(',').map(o => o.trim());
       return allowed.includes(origin) ? origin : null;
     }
-    // When no CORS_ORIGINS is set, allow all origins (safe behind reverse proxy)
-    return origin;
+    // When no CORS_ORIGINS is set, reject cross-origin requests (same-origin only)
+    return null;
   },
   credentials: true,
 }));
@@ -83,7 +83,7 @@ app.route('/api/security', security);
 app.onError((err, c) => {
   console.error('Error:', err);
   // Send notification for application errors (async, don't await)
-  notifyApplicationError(err.message, err.stack).catch(() => {});
+  notifyApplicationError(err.message).catch(() => {});
   return c.json({ error: 'Internal server error' }, 500);
 });
 

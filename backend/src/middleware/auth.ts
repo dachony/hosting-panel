@@ -3,7 +3,12 @@ import jwt from 'jsonwebtoken';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is not set. Exiting.');
+  process.exit(1);
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export type UserRole = 'superadmin' | 'admin' | 'salesadmin' | 'sales';
 
