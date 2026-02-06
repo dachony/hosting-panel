@@ -166,8 +166,16 @@ export interface SystemConfig {
     passwordChanges: boolean; // Password change audit
     resourceUsage: boolean;   // Disk/resource usage
     databaseSize: boolean;    // Database size info
+    auditLogs: boolean;       // Audit log count & size
+    emailLogs: boolean;       // Email log count & size
+    pdfDocuments: boolean;    // PDF documents count & size
   };
   period: 'today' | 'last7days' | 'last30days' | 'all';
+  thresholds?: {
+    auditLogsCount?: number;
+    emailLogsCount?: number;
+    pdfSizeMb?: number;
+  };
 }
 
 export const emailTemplates = sqliteTable('email_templates', {

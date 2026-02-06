@@ -1,6 +1,6 @@
 import { db, schema, SystemConfig } from '../db/index.js';
 import { eq, and, gte, desc, count, isNotNull } from 'drizzle-orm';
-import { statSync, readdirSync } from 'fs';
+import { statSync, readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 
 // Get date filter based on period
@@ -406,6 +406,91 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
         </tr>
       </table>`,
       '#6366f1'
+    ));
+  }
+
+  // Audit logs section
+  if (config.sections.auditLogs) {
+    const auditCount = await db.select({ count: count() }).from(schema.auditLogs);
+    const total = auditCount[0].count;
+    const threshold = config.thresholds?.auditLogsCount;
+    const warning = threshold && total > threshold
+      ? `<div style="margin-top:8px; padding:8px; background:#fef2f2; border:1px solid #fca5a5; border-radius:4px; color:#dc2626; font-size:12px;">⚠️ Audit log count (${total.toLocaleString()}) exceeds threshold (${threshold.toLocaleString()})</div>`
+      : '';
+
+    sections.push(generateSection(
+      `📋 Audit Logs (${total.toLocaleString()} entries)`,
+      `<table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <tr>
+          <td style="padding:6px 8px;"><strong>Total entries:</strong></td>
+          <td style="padding:6px 8px; text-align:right;">${total.toLocaleString()}</td>
+        </tr>
+      </table>${warning}`,
+      '#ea580c'
+    ));
+  }
+
+  // Email logs section
+  if (config.sections.emailLogs) {
+    const emailCount = await db.select({ count: count() }).from(schema.emailLogs);
+    const total = emailCount[0].count;
+    const threshold = config.thresholds?.emailLogsCount;
+    const warning = threshold && total > threshold
+      ? `<div style="margin-top:8px; padding:8px; background:#fef2f2; border:1px solid #fca5a5; border-radius:4px; color:#dc2626; font-size:12px;">⚠️ Email log count (${total.toLocaleString()}) exceeds threshold (${threshold.toLocaleString()})</div>`
+      : '';
+
+    sections.push(generateSection(
+      `📧 Email Logs (${total.toLocaleString()} entries)`,
+      `<table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <tr>
+          <td style="padding:6px 8px;"><strong>Total entries:</strong></td>
+          <td style="padding:6px 8px; text-align:right;">${total.toLocaleString()}</td>
+        </tr>
+      </table>${warning}`,
+      '#0284c7'
+    ));
+  }
+
+  // PDF documents section
+  if (config.sections.pdfDocuments) {
+    const pdfDir = '/app/data/pdfs';
+    let fileCount = 0;
+    let totalSize = 0;
+
+    if (existsSync(pdfDir)) {
+      try {
+        const files = readdirSync(pdfDir);
+        for (const file of files) {
+          try {
+            const stats = statSync(join(pdfDir, file));
+            if (stats.isFile()) {
+              fileCount++;
+              totalSize += stats.size;
+            }
+          } catch { /* skip unreadable files */ }
+        }
+      } catch { /* directory not readable */ }
+    }
+
+    const sizeMb = totalSize / (1024 * 1024);
+    const threshold = config.thresholds?.pdfSizeMb;
+    const warning = threshold && sizeMb > threshold
+      ? `<div style="margin-top:8px; padding:8px; background:#fef2f2; border:1px solid #fca5a5; border-radius:4px; color:#dc2626; font-size:12px;">⚠️ PDF storage (${formatBytes(totalSize)}) exceeds threshold (${threshold} MB)</div>`
+      : '';
+
+    sections.push(generateSection(
+      `📄 PDF Documents (${fileCount} files)`,
+      `<table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <tr>
+          <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;"><strong>File count:</strong></td>
+          <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb; text-align:right;">${fileCount}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;"><strong>Total size:</strong></td>
+          <td style="padding:6px 8px; text-align:right;">${formatBytes(totalSize)}</td>
+        </tr>
+      </table>${warning}`,
+      '#be123c'
     ));
   }
 

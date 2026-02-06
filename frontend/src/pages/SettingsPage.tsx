@@ -254,8 +254,12 @@ export default function SettingsPage() {
       passwordChanges: false,
       resourceUsage: false,
       databaseSize: true,
+      auditLogs: false,
+      emailLogs: false,
+      pdfDocuments: false,
     },
     period: 'last7days',
+    thresholds: { auditLogsCount: 10000, emailLogsCount: 5000, pdfSizeMb: 500 },
   };
 
   const [templateForm, setTemplateForm] = useState({
@@ -585,7 +589,13 @@ export default function SettingsPage() {
         footerBgColor: parsed.footerBgColor || '#1e40af',
         footerBgTransparent: parsed.footerBgTransparent || false,
         reportConfig: template.reportConfig || defaultReportConfig,
-        systemConfig: template.systemConfig || defaultSystemConfig,
+        systemConfig: template.systemConfig
+          ? {
+              sections: { ...defaultSystemConfig.sections, ...template.systemConfig.sections },
+              period: template.systemConfig.period || defaultSystemConfig.period,
+              thresholds: { ...defaultSystemConfig.thresholds, ...template.systemConfig.thresholds },
+            }
+          : defaultSystemConfig,
         attachDomainPdf: template.attachDomainPdf || false,
       });
     } else {
@@ -5368,7 +5378,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                 {/* Section Toggles */}
                 <div>
                   <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-2 block">Include Sections:</label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {([
                       { key: 'blockedIps' as const, label: '🛡️ Blocked IPs', color: 'bg-red-50 dark:bg-red-900/30' },
                       { key: 'lockedUsers' as const, label: '🔒 Locked Users', color: 'bg-amber-50 dark:bg-amber-900/30' },
@@ -5376,6 +5386,9 @@ Za sva pitanja stojimo Vam na raspolaganju."
                       { key: 'passwordChanges' as const, label: '🔑 Password Changes', color: 'bg-green-50 dark:bg-green-900/30' },
                       { key: 'resourceUsage' as const, label: '💾 Resource Usage', color: 'bg-cyan-50 dark:bg-cyan-900/30' },
                       { key: 'databaseSize' as const, label: '🗄️ Database Info', color: 'bg-indigo-50 dark:bg-indigo-900/30' },
+                      { key: 'auditLogs' as const, label: '📋 Audit Logs', color: 'bg-orange-50 dark:bg-orange-900/30' },
+                      { key: 'emailLogs' as const, label: '📧 Email Logs', color: 'bg-sky-50 dark:bg-sky-900/30' },
+                      { key: 'pdfDocuments' as const, label: '📄 PDF Documents', color: 'bg-rose-50 dark:bg-rose-900/30' },
                     ]).map(({ key, label, color }) => (
                       <label key={key} className={`flex items-center text-xs cursor-pointer p-2 rounded ${color}`}>
                         <input
@@ -5397,6 +5410,69 @@ Za sva pitanja stojimo Vam na raspolaganju."
                     ))}
                   </div>
                 </div>
+
+                {/* Alert Thresholds */}
+                {(templateForm.systemConfig.sections.auditLogs || templateForm.systemConfig.sections.emailLogs || templateForm.systemConfig.sections.pdfDocuments) && (
+                  <div>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-2 block">Alert Thresholds:</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {templateForm.systemConfig.sections.auditLogs && (
+                        <div>
+                          <label className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5 block">Audit Logs limit</label>
+                          <input
+                            type="number"
+                            placeholder="10000"
+                            value={templateForm.systemConfig.thresholds?.auditLogsCount ?? ''}
+                            onChange={(e) => setTemplateForm(prev => ({
+                              ...prev,
+                              systemConfig: {
+                                ...prev.systemConfig,
+                                thresholds: { ...prev.systemConfig.thresholds, auditLogsCount: e.target.value ? Number(e.target.value) : undefined }
+                              }
+                            }))}
+                            className="input !py-1 !text-xs w-full"
+                          />
+                        </div>
+                      )}
+                      {templateForm.systemConfig.sections.emailLogs && (
+                        <div>
+                          <label className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5 block">Email Logs limit</label>
+                          <input
+                            type="number"
+                            placeholder="5000"
+                            value={templateForm.systemConfig.thresholds?.emailLogsCount ?? ''}
+                            onChange={(e) => setTemplateForm(prev => ({
+                              ...prev,
+                              systemConfig: {
+                                ...prev.systemConfig,
+                                thresholds: { ...prev.systemConfig.thresholds, emailLogsCount: e.target.value ? Number(e.target.value) : undefined }
+                              }
+                            }))}
+                            className="input !py-1 !text-xs w-full"
+                          />
+                        </div>
+                      )}
+                      {templateForm.systemConfig.sections.pdfDocuments && (
+                        <div>
+                          <label className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5 block">PDF Size limit (MB)</label>
+                          <input
+                            type="number"
+                            placeholder="500"
+                            value={templateForm.systemConfig.thresholds?.pdfSizeMb ?? ''}
+                            onChange={(e) => setTemplateForm(prev => ({
+                              ...prev,
+                              systemConfig: {
+                                ...prev.systemConfig,
+                                thresholds: { ...prev.systemConfig.thresholds, pdfSizeMb: e.target.value ? Number(e.target.value) : undefined }
+                              }
+                            }))}
+                            className="input !py-1 !text-xs w-full"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Period Selection */}
                 <div>

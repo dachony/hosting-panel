@@ -34,8 +34,16 @@ export interface SystemConfig {
     passwordChanges: boolean;
     resourceUsage: boolean;
     databaseSize: boolean;
+    auditLogs: boolean;
+    emailLogs: boolean;
+    pdfDocuments: boolean;
   };
   period: 'today' | 'last7days' | 'last30days' | 'all';
+  thresholds?: {
+    auditLogsCount?: number;
+    emailLogsCount?: number;
+    pdfSizeMb?: number;
+  };
 }
 
 export interface Client {
