@@ -87,12 +87,11 @@ export default function DomainDetailPage() {
   const [extendFromToday, setExtendFromToday] = useState(false);
 
   const extendOptions: { value: ExtendPeriod; label: string }[] = [
-    { value: '1month', label: '+1 mesec' },
-    { value: '1year', label: '+1 godina' },
-    { value: '2years', label: '+2 godine' },
-    { value: '3years', label: '+3 godine' },
-    { value: '5years', label: '+5 godina' },
-    { value: 'unlimited', label: 'Neograničeno' },
+    { value: '1year', label: '1 year' },
+    { value: '2years', label: '2 years' },
+    { value: '3years', label: '3 years' },
+    { value: '5years', label: '5 years' },
+    { value: 'unlimited', label: 'Unlimited' },
   ];
 
   const [domainForm, setDomainForm] = useState({
@@ -750,7 +749,7 @@ export default function DomainDetailPage() {
                       <button
                         type="button"
                         onClick={() => setExtendModalOpen(true)}
-                        className="btn btn-secondary !text-[11px] !py-0.5 !px-2 flex items-center gap-1 ml-auto"
+                        className="btn btn-primary !text-xs !py-1 !px-2 flex items-center gap-1 ml-auto"
                       >
                         <Calendar className="w-3 h-3" />
                         {t('common.extend')}
