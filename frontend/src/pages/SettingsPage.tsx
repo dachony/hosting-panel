@@ -1690,7 +1690,7 @@ export default function SettingsPage() {
           // Full backup - open preview modal instead of inline validation
           const dataEntries: Record<string, unknown[]> = {};
           for (const [key, value] of Object.entries(parsed.data)) {
-            if (Array.isArray(value) && value.length > 0) {
+            if (Array.isArray(value)) {
               dataEntries[key] = value;
             }
           }
@@ -5862,27 +5862,30 @@ Your team"
 
           {/* Category list */}
           {importPreviewData && Object.entries(importPreviewData).map(([type, items]) => {
+            const isEmpty = items.length === 0;
             const isExpanded = importExpandedSections.has(type);
             const sectionSelected = isSectionFullySelected(type, importSelections);
             const sectionPartial = isSectionPartiallySelected(type, importSelections);
             const selectedInSection = (importSelections[type] || []).filter(Boolean).length;
             return (
-              <div key={type} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700/30 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50"
-                  onClick={() => toggleSectionExpand(type, importExpandedSections, setImportExpandedSections)}
+              <div key={type} className={`border rounded-lg overflow-hidden ${isEmpty ? 'border-gray-100 dark:border-gray-800 opacity-50' : 'border-gray-200 dark:border-gray-700'}`}>
+                <div className={`flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700/30 ${isEmpty ? 'cursor-default' : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}
+                  onClick={() => !isEmpty && toggleSectionExpand(type, importExpandedSections, setImportExpandedSections)}
                 >
-                  <input
-                    type="checkbox"
-                    checked={sectionSelected}
-                    ref={(el) => { if (el) el.indeterminate = sectionPartial; }}
-                    onChange={(e) => { e.stopPropagation(); toggleAllInSection(type, importSelections, setImportSelections); }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100 flex-1">
-                    {typeLabelsMap[type] || type} ({selectedInSection}/{items.length})
+                  {!isEmpty && (
+                    <input
+                      type="checkbox"
+                      checked={sectionSelected}
+                      ref={(el) => { if (el) el.indeterminate = sectionPartial; }}
+                      onChange={(e) => { e.stopPropagation(); toggleAllInSection(type, importSelections, setImportSelections); }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                  )}
+                  <span className={`text-sm font-medium flex-1 ${isEmpty ? 'text-gray-400 dark:text-gray-600' : 'text-gray-900 dark:text-gray-100'}`}>
+                    {typeLabelsMap[type] || type} {isEmpty ? '(empty)' : `(${selectedInSection}/${items.length})`}
                   </span>
-                  {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                  {!isEmpty && (isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />)}
                 </div>
                 {isExpanded && (
                   <div className="divide-y divide-gray-100 dark:divide-gray-700/50 max-h-60 overflow-y-auto">
