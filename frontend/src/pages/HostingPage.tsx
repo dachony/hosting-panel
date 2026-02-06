@@ -264,7 +264,7 @@ export default function HostingPage() {
       setSelectedExtendPeriod('');
       setExtendFromToday(false);
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(error.message || t('common.errorSaving')),
   });
 
   const expireNowMutation = useMutation({
@@ -276,7 +276,7 @@ export default function HostingPage() {
       setExtendItem(null);
       setSelectedExtendPeriod('');
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(error.message || t('common.errorSaving')),
   });
 
   const handleExtend = (hostingId: number, name: string) => {

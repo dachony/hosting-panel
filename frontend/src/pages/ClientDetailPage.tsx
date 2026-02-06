@@ -240,7 +240,7 @@ export default function ClientDetailPage() {
       setExtendItem(null);
       setSelectedExtendPeriod('');
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(error.message || t('common.errorSaving')),
   });
 
   // PDF mutations

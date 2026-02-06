@@ -24,7 +24,7 @@ export default function LoginPage() {
     fetch('/api/public/branding')
       .then(res => res.json())
       .then(data => setBranding(data))
-      .catch(() => {});
+      .catch((e) => console.warn('Failed to load branding', e));
   }, []);
 
   // Form state
