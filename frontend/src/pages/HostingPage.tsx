@@ -52,7 +52,6 @@ const periodButtons = [
   { years: 1, label: '+1' },
   { years: 2, label: '+2' },
   { years: 3, label: '+3' },
-  { years: 5, label: '+5' },
   { years: 100, label: 'Unlim.' },
 ];
 

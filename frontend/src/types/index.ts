@@ -86,7 +86,7 @@ export interface Domain {
   clientName?: string | null;
 }
 
-export type ExtendPeriod = '1month' | '1year' | '2years' | '3years' | '5years' | 'unlimited';
+export type ExtendPeriod = '1month' | '1year' | '2years' | '3years' | 'unlimited';
 
 export interface Package {
   id: number;

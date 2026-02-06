@@ -174,7 +174,7 @@ clients.delete('/:id', superAdminMiddleware, async (c) => {
 // Extend hosting endpoint
 const extendSchema = z.object({
   id: z.number(),
-  period: z.enum(['1month', '1year', '2years', '3years', '5years', 'unlimited']),
+  period: z.enum(['1month', '1year', '2years', '3years', 'unlimited']),
   fromToday: z.boolean().optional(),
 });
 
@@ -189,7 +189,6 @@ clients.post('/:clientId/extend', async (c) => {
       '1year': 365,
       '2years': 730,
       '3years': 365 * 3,
-      '5years': 365 * 5,
       'unlimited': 36500, // 100 years
     }[period];
 
