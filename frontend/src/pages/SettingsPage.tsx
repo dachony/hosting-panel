@@ -214,7 +214,6 @@ export default function SettingsPage() {
   const [selectedNotification, setSelectedNotification] = useState<NotificationSetting | null>(null);
   const [triggerModalOpen, setTriggerModalOpen] = useState(false);
   const [triggerDomainId, setTriggerDomainId] = useState<number | undefined>(undefined);
-  const [triggerDomainSearch, setTriggerDomainSearch] = useState('');
   const [notificationForm, setNotificationForm] = useState({
     name: '',
     type: 'client' as 'client' | 'service_request' | 'sales_request' | 'reports' | 'system',
@@ -4843,7 +4842,6 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => {
                     setTriggerDomainId(undefined);
-                    setTriggerDomainSearch('');
                     setTriggerModalOpen(true);
                   }}
                   className="!py-1.5 !px-3 !text-sm flex items-center gap-1 rounded bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-200 hover:border-amber-400 active:bg-amber-300 active:scale-[0.97] dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/50 dark:hover:bg-amber-500/40 dark:hover:border-amber-400/70 dark:active:bg-amber-500/50 transition-all duration-150"
@@ -4883,60 +4881,23 @@ export default function SettingsPage() {
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Select a domain to send a test notification, or trigger for all matching domains.
+            Select a domain to send a test notification, or leave empty to trigger for all matching domains.
           </p>
 
           <div>
             <label className="block text-sm font-medium mb-1">Domain</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={triggerDomainSearch}
-                onChange={(e) => {
-                  setTriggerDomainSearch(e.target.value);
-                  if (triggerDomainId) setTriggerDomainId(undefined);
-                }}
-                placeholder="Search domain..."
-                className="input w-full"
-              />
-              {triggerDomainSearch && !triggerDomainId && (
-                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                  {(triggerDomainsData?.domains || [])
-                    .filter(d => d.domainName.toLowerCase().includes(triggerDomainSearch.toLowerCase()) ||
-                      (d.clientName && d.clientName.toLowerCase().includes(triggerDomainSearch.toLowerCase())))
-                    .slice(0, 20)
-                    .map(d => (
-                      <button
-                        key={d.id}
-                        type="button"
-                        onClick={() => {
-                          setTriggerDomainId(d.id);
-                          setTriggerDomainSearch(d.domainName);
-                        }}
-                        className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
-                      >
-                        <span className="font-medium">{d.domainName}</span>
-                        {d.clientName && <span className="text-gray-500 ml-2">({d.clientName})</span>}
-                      </button>
-                    ))}
-                  {(triggerDomainsData?.domains || []).filter(d =>
-                    d.domainName.toLowerCase().includes(triggerDomainSearch.toLowerCase()) ||
-                    (d.clientName && d.clientName.toLowerCase().includes(triggerDomainSearch.toLowerCase()))
-                  ).length === 0 && (
-                    <div className="px-3 py-2 text-sm text-gray-500">No domains found</div>
-                  )}
-                </div>
-              )}
-            </div>
-            {triggerDomainId && (
-              <button
-                type="button"
-                onClick={() => { setTriggerDomainId(undefined); setTriggerDomainSearch(''); }}
-                className="text-xs text-blue-600 hover:text-blue-800 mt-1"
-              >
-                Clear selection
-              </button>
-            )}
+            <select
+              value={triggerDomainId || ''}
+              onChange={(e) => setTriggerDomainId(e.target.value ? Number(e.target.value) : undefined)}
+              className="input w-full"
+            >
+              <option value="">-- All domains --</option>
+              {(triggerDomainsData?.domains || []).map(d => (
+                <option key={d.id} value={d.id}>
+                  {d.domainName}{d.clientName ? ` (${d.clientName})` : ''}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
@@ -4947,21 +4908,6 @@ export default function SettingsPage() {
             >
               Cancel
             </button>
-            {!triggerDomainId && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (selectedNotification) {
-                    triggerNotificationMutation.mutate({ id: selectedNotification.id });
-                  }
-                }}
-                className="!py-1.5 !px-3 !text-sm flex items-center gap-1 rounded bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-200 hover:border-amber-400 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/50 dark:hover:bg-amber-500/40 transition-all duration-150"
-                disabled={triggerNotificationMutation.isPending}
-              >
-                <Play className="w-3.5 h-3.5" />
-                {triggerNotificationMutation.isPending ? 'Sending...' : 'Trigger All'}
-              </button>
-            )}
             <button
               type="button"
               onClick={() => {
@@ -4970,10 +4916,10 @@ export default function SettingsPage() {
                 }
               }}
               className="btn btn-primary !py-1.5 !px-3 !text-sm flex items-center gap-1"
-              disabled={triggerNotificationMutation.isPending || (!triggerDomainId && false)}
+              disabled={triggerNotificationMutation.isPending}
             >
               <Send className="w-3.5 h-3.5" />
-              {triggerNotificationMutation.isPending ? 'Sending...' : triggerDomainId ? 'Send to Domain' : 'Send'}
+              {triggerNotificationMutation.isPending ? 'Sending...' : triggerDomainId ? 'Send to Domain' : 'Trigger All'}
             </button>
           </div>
         </div>

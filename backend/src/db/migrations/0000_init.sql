@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS `domains` (
   `domain_name` text NOT NULL,
   `registrar` text,
   `registration_date` text,
-  `expiry_date` text NOT NULL,
+  `expiry_date` text,
   `auto_renew` integer DEFAULT false,
   `notes` text,
   `created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
