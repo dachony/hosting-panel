@@ -7,6 +7,7 @@ import { getCurrentTimestamp } from '../utils/dates.js';
 import { sendEmail, sendTestEmail, testSmtpConnection } from '../services/email.js';
 import { generateHostingListHtml } from '../services/reports.js';
 import { generateSystemInfoHtml } from '../services/system.js';
+import { triggerClientNotification } from '../services/scheduler.js';
 import type { ReportConfig, SystemConfig } from '../db/schema.js';
 
 const mailSettingsSchema = z.object({
@@ -417,7 +418,18 @@ notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
       return c.json({ error: 'Template not found or inactive' }, 400);
     }
 
-    // Determine recipient
+    // For client-type notifications with primary recipients, use the scheduler logic
+    if (setting.type === 'client' && setting.recipientType === 'primary') {
+      await triggerClientNotification(setting);
+
+      await db.update(schema.notificationSettings)
+        .set({ lastSent: new Date().toISOString(), updatedAt: getCurrentTimestamp() })
+        .where(eq(schema.notificationSettings.id, id));
+
+      return c.json({ message: 'Client notifications triggered (sent to matching domain/hosting contacts)' });
+    }
+
+    // Determine recipient for non-client types
     let recipient: string | null = null;
     if (setting.recipientType === 'custom' && setting.customEmail) {
       recipient = setting.customEmail;

@@ -685,4 +685,17 @@ export function startScheduler() {
   }, 10000);
 }
 
-export { checkExpiringItems, sendDailyReport, sendReportNotifications, sendSystemNotifications };
+// Trigger a single client notification setting (used by manual "Trigger Now")
+async function triggerClientNotification(setting: typeof schema.notificationSettings.$inferSelect) {
+  const schedule = setting.schedule || [];
+  const today = new Date();
+
+  for (const days of schedule) {
+    const targetDate = formatDate(addDaysToDate(today, days));
+    await checkExpiringDomains(targetDate, days, setting);
+    await checkExpiringHosting(targetDate, days, setting);
+    await checkExpiringMailHosting(targetDate, days, setting);
+  }
+}
+
+export { checkExpiringItems, sendDailyReport, sendReportNotifications, sendSystemNotifications, triggerClientNotification };
