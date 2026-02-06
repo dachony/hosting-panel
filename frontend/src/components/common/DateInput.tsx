@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { CalendarDays } from 'lucide-react';
 
 interface DateInputProps {
@@ -19,15 +20,26 @@ export default function DateInput({
   className = '',
 }: DateInputProps) {
   const isSmall = size === 'sm';
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleClick = () => {
+    try {
+      inputRef.current?.showPicker();
+    } catch {
+      // showPicker() may throw if already open or unsupported
+    }
+  };
 
   return (
     <div className={`relative ${className}`}>
       <input
+        ref={inputRef}
         type="date"
         name={name}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
+        onClick={handleClick}
         className={`input w-full cursor-pointer
           bg-white dark:bg-gray-800
           border-gray-300 dark:border-gray-600
@@ -39,9 +51,13 @@ export default function DateInput({
           [&::-webkit-calendar-picker-indicator]:w-full
           [&::-webkit-calendar-picker-indicator]:h-full
           [&::-webkit-calendar-picker-indicator]:cursor-pointer
+          [&::-webkit-inner-spin-button]:hidden
+          [&::-moz-focus-inner]:border-0
           ${isSmall ? 'pr-8 text-xs py-1 px-1.5' : 'pr-12 text-base py-3'}`}
       />
-      <CalendarDays className={`absolute top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none
+      <CalendarDays
+        onClick={handleClick}
+        className={`absolute top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer
         ${isSmall ? 'right-1.5 w-3.5 h-3.5' : 'right-3 w-5 h-5'}`}
       />
     </div>
