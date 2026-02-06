@@ -210,16 +210,12 @@ export default function ClientsPage() {
                 <div className="space-y-2 text-xs">
                   <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
                     <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">{t('common.primaryContact')}</div>
-                    <div className="text-gray-700 dark:text-gray-300">{client.contactPerson || '-'}</div>
-                    <div className="text-gray-500 dark:text-gray-400">{client.phone || '-'}</div>
-                    <div className="text-gray-500 dark:text-gray-400 truncate">{client.email1 || '-'}</div>
+                    <div className="text-gray-700 dark:text-gray-300 truncate">{[client.contactPerson, client.phone, client.email1].filter(Boolean).join(', ') || '-'}</div>
                   </div>
 
                   <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
                     <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">{t('common.technicalContact')}</div>
-                    <div className="text-gray-700 dark:text-gray-300">{client.techContact || client.contactPerson || '-'}</div>
-                    <div className="text-gray-500 dark:text-gray-400">{client.techPhone || client.phone || '-'}</div>
-                    <div className="text-gray-500 dark:text-gray-400 truncate">{client.techEmail || client.email1 || '-'}</div>
+                    <div className="text-gray-700 dark:text-gray-300 truncate">{[client.techContact || client.contactPerson, client.techPhone || client.phone, client.techEmail || client.email1].filter(Boolean).join(', ') || '-'}</div>
                   </div>
 
                   {client.address && (
@@ -288,21 +284,11 @@ export default function ClientsPage() {
                 <div className="min-w-0 flex-1 text-xs space-y-1">
                   <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                     <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.primaryContact')}</span>
-                    <span className="text-gray-400">{t('common.name') + ':'}</span>
-                    <span>{client.contactPerson || '-'},</span>
-                    <span className="text-gray-400">{t('common.phone') + ':'}</span>
-                    <span>{client.phone || '-'},</span>
-                    <span className="text-gray-400">{t('common.email') + ':'}</span>
-                    <span className="truncate">{client.email1 || '-'}</span>
+                    <span className="truncate">{[client.contactPerson, client.phone, client.email1].filter(Boolean).join(', ') || '-'}</span>
                   </div>
                   <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                     <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.technicalContact')}</span>
-                    <span className="text-gray-400">{t('common.name') + ':'}</span>
-                    <span>{client.techContact || client.contactPerson || '-'},</span>
-                    <span className="text-gray-400">{t('common.phone') + ':'}</span>
-                    <span>{client.techPhone || client.phone || '-'},</span>
-                    <span className="text-gray-400">{t('common.email') + ':'}</span>
-                    <span className="truncate">{client.techEmail || client.email1 || '-'}</span>
+                    <span className="truncate">{[client.techContact || client.contactPerson, client.techPhone || client.phone, client.techEmail || client.email1].filter(Boolean).join(', ') || '-'}</span>
                   </div>
                 </div>
 

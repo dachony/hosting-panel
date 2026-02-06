@@ -501,16 +501,12 @@ export default function HostingPage() {
                   <div className="space-y-2 text-xs">
                     <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
                       <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">{t('common.primaryContact')}</div>
-                      <div className="text-gray-700 dark:text-gray-300">{hosting.domainPrimaryName || hosting.clientContactPerson || '-'}</div>
-                      <div className="text-gray-500 dark:text-gray-400">{hosting.domainPrimaryPhone || hosting.clientPhone || '-'}</div>
-                      <div className="text-gray-500 dark:text-gray-400 truncate">{hosting.domainPrimaryEmail || hosting.clientEmail || '-'}</div>
+                      <div className="text-gray-700 dark:text-gray-300 truncate">{[hosting.domainPrimaryName || hosting.clientContactPerson, hosting.domainPrimaryPhone || hosting.clientPhone, hosting.domainPrimaryEmail || hosting.clientEmail].filter(Boolean).join(', ') || '-'}</div>
                     </div>
 
                     <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
                       <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">{t('common.technicalContact')}</div>
-                      <div className="text-gray-700 dark:text-gray-300">{hosting.domainTechName || hosting.clientTechContact || '-'}</div>
-                      <div className="text-gray-500 dark:text-gray-400">{hosting.domainTechPhone || hosting.clientTechPhone || '-'}</div>
-                      <div className="text-gray-500 dark:text-gray-400 truncate">{hosting.domainTechEmail || hosting.clientTechEmail || '-'}</div>
+                      <div className="text-gray-700 dark:text-gray-300 truncate">{[hosting.domainTechName || hosting.clientTechContact, hosting.domainTechPhone || hosting.clientTechPhone, hosting.domainTechEmail || hosting.clientTechEmail].filter(Boolean).join(', ') || '-'}</div>
                     </div>
 
                     {!isUnhosted && (
@@ -577,11 +573,11 @@ export default function HostingPage() {
                   <div className="min-w-0 flex-1 text-xs space-y-1 overflow-hidden">
                     <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 whitespace-nowrap overflow-hidden">
                       <span className="text-gray-500 font-medium flex-shrink-0">{t('common.primaryContact')}</span>
-                      <span className="truncate">{hosting.domainPrimaryName || hosting.clientContactPerson || '-'}, {hosting.domainPrimaryPhone || hosting.clientPhone || '-'}, {hosting.domainPrimaryEmail || hosting.clientEmail || '-'}</span>
+                      <span className="truncate">{[hosting.domainPrimaryName || hosting.clientContactPerson, hosting.domainPrimaryPhone || hosting.clientPhone, hosting.domainPrimaryEmail || hosting.clientEmail].filter(Boolean).join(', ') || '-'}</span>
                     </div>
                     <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 whitespace-nowrap overflow-hidden">
                       <span className="text-gray-500 font-medium flex-shrink-0">{t('common.technicalContact')}</span>
-                      <span className="truncate">{hosting.domainTechName || hosting.clientTechContact || hosting.clientContactPerson || '-'}, {hosting.domainTechPhone || hosting.clientTechPhone || hosting.clientPhone || '-'}, {hosting.domainTechEmail || hosting.clientTechEmail || hosting.clientEmail || '-'}</span>
+                      <span className="truncate">{[hosting.domainTechName || hosting.clientTechContact || hosting.clientContactPerson, hosting.domainTechPhone || hosting.clientTechPhone || hosting.clientPhone, hosting.domainTechEmail || hosting.clientTechEmail || hosting.clientEmail].filter(Boolean).join(', ') || '-'}</span>
                     </div>
                   </div>
 

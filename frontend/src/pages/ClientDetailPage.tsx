@@ -553,11 +553,11 @@ export default function ClientDetailPage() {
               <span className="font-medium text-sm flex-shrink-0">{client.name}</span>
               <span className="text-gray-400 mx-1 flex-shrink-0">|</span>
               <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                <span className="text-gray-500 font-medium">{t('common.primaryContact')}</span> {client.contactPerson || '-'}, {client.phone || '-'}, {client.email1 || '-'}
+                <span className="text-gray-500 font-medium">{t('common.primaryContact')}</span> {[client.contactPerson, client.phone, client.email1].filter(Boolean).join(', ') || '-'}
               </span>
               <span className="text-gray-400 mx-1 flex-shrink-0">|</span>
               <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                <span className="text-gray-500 font-medium">{t('common.technicalContact')}</span> {client.techContact || client.contactPerson || '-'}, {client.techPhone || client.phone || '-'}, {client.techEmail || client.email1 || '-'}
+                <span className="text-gray-500 font-medium">{t('common.technicalContact')}</span> {[client.techContact || client.contactPerson, client.techPhone || client.phone, client.techEmail || client.email1].filter(Boolean).join(', ') || '-'}
               </span>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
