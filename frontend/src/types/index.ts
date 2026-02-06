@@ -142,7 +142,7 @@ export interface NotificationSetting {
   customEmail?: string | null;
   includeTechnical: boolean;
   enabled: boolean;
-  frequency?: 'daily' | 'weekly' | 'monthly' | null;
+  frequency?: 'hourly' | 'daily' | 'weekly' | 'monthly' | null;
   dayOfWeek?: number | null;
   dayOfMonth?: number | null;
   lastSent?: string | null;
@@ -151,7 +151,7 @@ export interface NotificationSetting {
 export interface ReportSetting {
   id: number;
   name: string;
-  frequency: 'daily' | 'weekly' | 'monthly';
+  frequency: 'hourly' | 'daily' | 'weekly' | 'monthly';
   recipients: string[];
   enabled: boolean;
   lastSent?: string | null;

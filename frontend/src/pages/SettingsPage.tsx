@@ -224,7 +224,7 @@ export default function SettingsPage() {
     customEmail: '',
     includeTechnical: false,
     enabled: true,
-    frequency: 'daily' as 'daily' | 'weekly' | 'monthly',
+    frequency: 'daily' as 'hourly' | 'daily' | 'weekly' | 'monthly',
     dayOfWeek: 1 as number | null,
     dayOfMonth: 1 as number | null,
   });
@@ -3797,6 +3797,7 @@ export default function SettingsPage() {
                           const freq = setting.frequency || 'daily';
                           const time = setting.runAtTime || '09:00';
                           const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                          if (freq === 'hourly') return `Hourly @ :${time.split(':')[1] || '00'}`;
                           if (freq === 'weekly') return `Weekly (${dayNames[setting.dayOfWeek ?? 1]}) @ ${time}`;
                           if (freq === 'monthly') {
                             const d = setting.dayOfMonth ?? 1;
@@ -4565,21 +4566,44 @@ export default function SettingsPage() {
 
               {/* Frequency pills */}
               <div className="flex gap-2">
-                {(['daily', 'weekly', 'monthly'] as const).map((freq) => (
+                {(['hourly', 'daily', 'weekly', 'monthly'] as const).map((freq) => (
                   <button
                     key={freq}
                     type="button"
-                    onClick={() => setNotificationForm({ ...notificationForm, frequency: freq })}
+                    onClick={() => setNotificationForm({ ...notificationForm, frequency: freq, ...(freq === 'hourly' ? { runAtTime: `00:${notificationForm.runAtTime.split(':')[1] || '00'}` } : {}) })}
                     className={`px-4 py-1.5 rounded border text-sm font-medium transition-colors ${
                       notificationForm.frequency === freq
                         ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:border-primary-500 dark:text-primary-300'
                         : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
                     }`}
                   >
-                    {freq === 'daily' ? 'Daily' : freq === 'weekly' ? 'Weekly' : 'Monthly'}
+                    {freq.charAt(0).toUpperCase() + freq.slice(1)}
                   </button>
                 ))}
               </div>
+
+              {/* Minute offset for hourly */}
+              {notificationForm.frequency === 'hourly' && (
+                <div className="space-y-1">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Run at minute:</span>
+                  <div className="flex gap-2">
+                    {['00', '15', '30', '45'].map((min) => (
+                      <button
+                        key={min}
+                        type="button"
+                        onClick={() => setNotificationForm({ ...notificationForm, runAtTime: `00:${min}` })}
+                        className={`px-4 py-1.5 rounded border text-sm font-medium transition-colors ${
+                          notificationForm.runAtTime.split(':')[1] === min
+                            ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:border-primary-500 dark:text-primary-300'
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
+                        }`}
+                      >
+                        :{min}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Day of week for weekly */}
               {notificationForm.frequency === 'weekly' && (
@@ -4636,16 +4660,18 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* Run time */}
-              <div className="flex items-center gap-2 pt-1">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Run at:</span>
-                <input
-                  type="time"
-                  value={notificationForm.runAtTime}
-                  onChange={(e) => setNotificationForm({ ...notificationForm, runAtTime: e.target.value })}
-                  className="input !py-1 !px-2 !text-sm w-28"
-                />
-              </div>
+              {/* Run time - hidden for hourly since minute picker is used */}
+              {notificationForm.frequency !== 'hourly' && (
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Run at:</span>
+                  <input
+                    type="time"
+                    value={notificationForm.runAtTime}
+                    onChange={(e) => setNotificationForm({ ...notificationForm, runAtTime: e.target.value })}
+                    className="input !py-1 !px-2 !text-sm w-28"
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-3">

@@ -487,9 +487,25 @@ async function sendDailyReport() {
 // Check if a scheduled notification should run now based on frequency settings
 function shouldRunNow(setting: { frequency: string | null; dayOfWeek: number | null; dayOfMonth: number | null; runAtTime: string; lastSent: string | null }): boolean {
   const now = new Date();
-  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const frequency = setting.frequency || 'daily';
 
-  // Check if current time matches runAtTime
+  if (frequency === 'hourly') {
+    // For hourly: only check minutes from runAtTime, ignore hours
+    const targetMinute = parseInt(setting.runAtTime.split(':')[1] || '0');
+    if (now.getMinutes() !== targetMinute) return false;
+    // Idempotency: check if already sent this hour
+    if (setting.lastSent) {
+      const lastSent = new Date(setting.lastSent);
+      if (lastSent.getFullYear() === now.getFullYear() &&
+          lastSent.getMonth() === now.getMonth() &&
+          lastSent.getDate() === now.getDate() &&
+          lastSent.getHours() === now.getHours()) return false;
+    }
+    return true;
+  }
+
+  // For daily/weekly/monthly: check full HH:MM match
+  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   if (currentTime !== setting.runAtTime) return false;
 
   // Check if already sent today
@@ -498,8 +514,6 @@ function shouldRunNow(setting: { frequency: string | null; dayOfWeek: number | n
     const todayStr = now.toISOString().substring(0, 10);
     if (lastSentDate === todayStr) return false;
   }
-
-  const frequency = setting.frequency || 'daily';
 
   if (frequency === 'daily') {
     return true;

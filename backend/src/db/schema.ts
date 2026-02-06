@@ -115,7 +115,7 @@ export const notificationSettings = sqliteTable('notification_settings', {
   customEmail: text('custom_email'),
   includeTechnical: integer('include_technical', { mode: 'boolean' }).default(false),
   enabled: integer('enabled', { mode: 'boolean' }).default(true),
-  frequency: text('frequency', { enum: ['daily', 'weekly', 'monthly'] }),
+  frequency: text('frequency', { enum: ['hourly', 'daily', 'weekly', 'monthly'] }),
   dayOfWeek: integer('day_of_week'),
   dayOfMonth: integer('day_of_month'),
   lastSent: text('last_sent'),
@@ -136,7 +136,7 @@ export const notificationLog = sqliteTable('notification_log', {
 export const reportSettings = sqliteTable('report_settings', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
-  frequency: text('frequency', { enum: ['daily', 'weekly', 'monthly'] }).notNull(),
+  frequency: text('frequency', { enum: ['hourly', 'daily', 'weekly', 'monthly'] }).notNull(),
   recipients: text('recipients', { mode: 'json' }).$type<string[]>().notNull(),
   enabled: integer('enabled', { mode: 'boolean' }).default(true),
   lastSent: text('last_sent'),

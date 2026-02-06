@@ -36,14 +36,14 @@ const notificationSettingsSchema = z.object({
   customEmail: z.preprocess((val) => (val === '' ? null : val), z.string().email().nullable().optional()),
   includeTechnical: z.boolean().default(false),
   enabled: z.boolean().default(true),
-  frequency: z.enum(['daily', 'weekly', 'monthly']).nullable().optional(),
+  frequency: z.enum(['hourly', 'daily', 'weekly', 'monthly']).nullable().optional(),
   dayOfWeek: z.number().int().min(0).max(6).nullable().optional(),
   dayOfMonth: z.number().int().min(1).max(31).nullable().optional(),
 });
 
 const reportSettingsSchema = z.object({
   name: z.string().min(1),
-  frequency: z.enum(['daily', 'weekly', 'monthly']),
+  frequency: z.enum(['hourly', 'daily', 'weekly', 'monthly']),
   recipients: z.array(z.string().email()).min(1),
   enabled: z.boolean().default(true),
 });
