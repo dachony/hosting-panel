@@ -69,40 +69,27 @@ function StatusBadge({ status, days }: { status: ExpiryStatus; days: number }) {
   const { t } = useTranslation();
   const config = statusColors[status];
 
+  let label: string;
   if (status === 'deleted') {
-    return (
-      <div className="flex items-center gap-2">
-        <div className={`w-3 h-3 rounded-full ${config.dot}`}></div>
-        <span className={`text-sm font-bold ${config.text}`}>{t('common.deleted')}</span>
-      </div>
-    );
+    label = t('common.statusDeleted');
+  } else if (status === 'forDeletion') {
+    label = t('common.statusForDeletion');
+  } else if (days <= 0) {
+    label = t('common.statusExpired');
+  } else if (status === 'green') {
+    label = t('common.statusOk');
+  } else {
+    label = t('common.statusExpiring');
   }
 
-  if (status === 'forDeletion') {
-    return (
-      <div className="flex items-center gap-2">
-        <div className={`w-3 h-3 rounded-full ${config.dot}`}></div>
-        <span className={`text-sm font-bold ${config.text}`}>{t('common.forDeletion')}</span>
-      </div>
-    );
-  }
-
-  if (days <= 0) {
-    return (
-      <div className="flex items-center gap-2">
-        <div className={`w-3 h-3 rounded-full ${config.dot}`}></div>
-        <span className={`text-sm font-bold ${config.text}`}>{t('common.expired')}</span>
-      </div>
-    );
-  }
+  const daysStr = days > 0 ? (days > 36000 ? '∞' : `${days}d`) : null;
 
   return (
-    <div className="flex items-center gap-2">
-      <div className={`w-3 h-3 rounded-full ${config.dot}`}></div>
-      <div className="text-center">
-        <div className={`text-xs ${config.text}`}>{t('common.daysLeft')}</div>
-        <div className={`text-lg font-bold ${config.text} leading-tight`}>{days > 36000 ? '∞' : days}</div>
-      </div>
+    <div className="flex items-center gap-1.5">
+      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${config.dot}`}></div>
+      <span className={`text-xs font-semibold ${config.text} whitespace-nowrap`}>
+        {label}{daysStr ? ` (${daysStr})` : ''}
+      </span>
     </div>
   );
 }
@@ -608,21 +595,21 @@ export default function HostingPage() {
                 <div
                   key={hosting.id ?? `d-${hosting.domainId}`}
                   onClick={() => navigate(`/domains/${hosting.domainId}`)}
-                  className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors"
                 >
                   {/* Domain & Company */}
-                  <div className="w-44 flex-shrink-0">
+                  <div className="w-48 flex-shrink-0">
                     <div className="flex items-center gap-2">
                       <Globe className="w-4 h-4 text-primary-600 flex-shrink-0" />
-                      <span className="font-medium text-sm">{hosting.domainName || '-'}</span>
+                      <span className="font-medium text-sm truncate">{hosting.domainName || '-'}</span>
                     </div>
-                    <div className="text-xs text-gray-500 mt-0.5 ml-6">
-                      <span className="font-medium">{t('common.company')}</span> {hosting.clientName || '-'}
+                    <div className="text-xs text-gray-500 mt-0.5 ml-6 truncate">
+                      {hosting.clientName || '-'}
                     </div>
                   </div>
 
                   {/* Contacts */}
-                  <div className="min-w-0 flex-1 text-xs space-y-1 overflow-hidden">
+                  <div className="min-w-0 flex-1 text-xs space-y-0.5 overflow-hidden">
                     <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 whitespace-nowrap overflow-hidden">
                       <span className="text-gray-500 font-medium flex-shrink-0">{t('common.primaryContact')}</span>
                       <span className="truncate">{[hosting.domainPrimaryName || hosting.clientContactPerson, hosting.domainPrimaryPhone || hosting.clientPhone, hosting.domainPrimaryEmail || hosting.clientEmail].filter(Boolean).join(', ') || '-'}</span>
@@ -633,42 +620,29 @@ export default function HostingPage() {
                     </div>
                   </div>
 
-                  {/* Package Info */}
-                  {isUnhosted ? (
-                    <div className="flex-shrink-0 text-xs ml-auto">
-                      <span className="px-2 py-1 rounded text-xs font-medium bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
-                        {t('common.noPackage')}
-                      </span>
+                  {/* Package */}
+                  <div className="w-36 flex-shrink-0 text-xs text-left">
+                    <div className="text-gray-700 dark:text-gray-300 font-medium truncate">
+                      {hosting.packageName || '—'}
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-4 flex-shrink-0 text-xs ml-auto">
-                      <div>
-                        <div className="text-gray-700 dark:text-gray-300">
-                          <span className="text-gray-500 font-medium">{t('common.package')}</span> {hosting.packageName || '-'}
-                        </div>
-                        {hosting.packageDescription && (
-                          <div className="text-gray-500">{hosting.packageDescription}</div>
-                        )}
-                      </div>
-                      <div className="text-gray-600 dark:text-gray-400">
-                        <div>{hosting.packageMaxMailboxes || 0} {t('common.mailboxes')}</div>
-                        <div>{hosting.packageStorageGb || 0} GB</div>
-                      </div>
-                      <div className="text-gray-600 dark:text-gray-400">
-                        <div><span className="text-gray-500 font-medium">{t('common.mailServer')}</span> {hosting.mailServerName || '-'}</div>
-                        <div><span className="text-gray-500 font-medium">{t('common.mailSecurity')}</span> {hosting.mailSecurityName || '-'}</div>
-                      </div>
-                    </div>
-                  )}
+                    {!isUnhosted && hosting.mailServerName && (
+                      <div className="text-gray-500 truncate">{hosting.mailServerName}</div>
+                    )}
+                  </div>
 
-                  {/* Status & Edit */}
-                  {isUnhosted ? (
-                    <span className="px-2 py-1 rounded text-xs font-medium bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
-                      {t('common.noPackage')}
-                    </span>
-                  ) : (
-                    <StatusBadge status={status} days={hosting.daysUntilExpiry!} />
-                  )}
+                  {/* Status */}
+                  <div className="w-32 flex-shrink-0">
+                    {isUnhosted ? (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full flex-shrink-0 bg-gray-400"></div>
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">{t('common.statusNoPackage')}</span>
+                      </div>
+                    ) : (
+                      <StatusBadge status={status} days={hosting.daysUntilExpiry!} />
+                    )}
+                  </div>
+
+                  {/* Buttons */}
                   <div className="flex gap-2 flex-shrink-0">
                     {isSuperAdmin && (
                       <button
@@ -684,10 +658,17 @@ export default function HostingPage() {
                     >
                       <Pencil className="w-3 h-3" />{t('common.edit')}
                     </button>
-                    {!isUnhosted && hosting.id && (
+                    {!isUnhosted && hosting.id ? (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleExtend(hosting.id!, hosting.domainName || ''); }}
                         className="btn btn-primary btn-sm flex items-center gap-1"
+                      >
+                        <Calendar className="w-3 h-3" />{t('common.extend')}
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="btn btn-primary btn-sm flex items-center gap-1 opacity-40 cursor-not-allowed"
                       >
                         <Calendar className="w-3 h-3" />{t('common.extend')}
                       </button>

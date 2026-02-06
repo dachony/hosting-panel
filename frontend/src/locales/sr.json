@@ -88,7 +88,9 @@
     "statusExpired": "Isteklo",
     "statusForDeletion": "Za brisanje",
     "statusDeleted": "Obrisano",
-    "statusOkShort": "OK (>31d)"
+    "statusOkShort": "OK (>31d)",
+    "statusExpiring": "Ističe",
+    "statusNoPackage": "Bez paketa"
   },
   "auth": {
     "login": "Prijava",

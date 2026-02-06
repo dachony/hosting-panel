@@ -88,7 +88,9 @@
     "statusExpired": "Expired",
     "statusForDeletion": "For Deletion",
     "statusDeleted": "Deleted",
-    "statusOkShort": "OK (>31d)"
+    "statusOkShort": "OK (>31d)",
+    "statusExpiring": "Expiring",
+    "statusNoPackage": "No package"
   },
   "auth": {
     "login": "Login",
