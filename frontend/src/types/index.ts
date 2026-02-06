@@ -184,6 +184,7 @@ export interface DashboardStats {
 
 export interface ExpiringItem {
   id: number;
+  domainId: number | null;
   type: 'domain' | 'hosting' | 'mail';
   name: string;
   clientName: string | null;

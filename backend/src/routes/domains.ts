@@ -136,6 +136,10 @@ domains.delete('/:id', superAdminMiddleware, async (c) => {
     return c.json({ error: 'Domain not found' }, 404);
   }
 
+  // Delete associated hosting records to prevent orphans
+  await db.delete(schema.webHosting).where(eq(schema.webHosting.domainId, id));
+  await db.delete(schema.mailHosting).where(eq(schema.mailHosting.domainId, id));
+
   await db.delete(schema.domains).where(eq(schema.domains.id, id));
 
   return c.json({ message: 'Domain deleted' });

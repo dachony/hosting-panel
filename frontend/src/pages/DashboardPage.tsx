@@ -148,7 +148,7 @@ export default function DashboardPage() {
               {expiringItems.map((item) => (
                 <div
                   key={`${item.type}-${item.id}`}
-                  onClick={() => navigate(`/domains/${item.id}`)}
+                  onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
                   className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0 text-xs">
@@ -189,7 +189,7 @@ export default function DashboardPage() {
               {willBeDeletedItems.map((item) => (
                 <div
                   key={`delete-${item.type}-${item.id}`}
-                  onClick={() => navigate(`/domains/${item.id}`)}
+                  onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
                   className="flex items-center justify-between px-3 py-2 bg-red-50/50 dark:bg-red-900/10 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/20 transition-colors"
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0 text-xs">
