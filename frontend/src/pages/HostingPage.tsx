@@ -3,10 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
-import { Hosting, ExpiryStatus, Client, Domain, Package } from '../types';
+import { Hosting, ExpiryStatus, Client, Domain, Package, ExtendPeriod } from '../types';
 import Modal from '../components/common/Modal';
 import DateInput from '../components/common/DateInput';
-import { Search, Filter, Plus, Globe, Loader2, Pencil, Trash2, LayoutList, LayoutGrid, Server, Shield } from 'lucide-react';
+import { Search, Filter, Plus, Globe, Loader2, Pencil, Trash2, LayoutList, LayoutGrid, Server, Shield, Calendar, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
@@ -138,6 +138,18 @@ export default function HostingPage() {
     expiryDate: '',
   });
 
+  const [extendModalOpen, setExtendModalOpen] = useState(false);
+  const [extendItem, setExtendItem] = useState<{ id: number; name: string } | null>(null);
+  const [selectedExtendPeriod, setSelectedExtendPeriod] = useState<ExtendPeriod | ''>('');
+  const [extendFromToday, setExtendFromToday] = useState(false);
+
+  const extendOptions: { value: ExtendPeriod; label: string }[] = [
+    { value: '1year', label: '1 year' },
+    { value: '2years', label: '2 years' },
+    { value: '3years', label: '3 years' },
+    { value: 'unlimited', label: 'Unlimited' },
+  ];
+
   const statusLabels: Record<ExpiryStatus, string> = {
     green: t('status.ok'),
     yellow: t('status.warning'),
@@ -241,6 +253,39 @@ export default function HostingPage() {
     },
     onError: () => toast.error(t('common.errorDeleting')),
   });
+
+  const extendMutation = useMutation({
+    mutationFn: ({ hostingId, period, fromToday }: { hostingId: number; period: ExtendPeriod; fromToday?: boolean }) =>
+      api.post(`/api/hosting/${hostingId}/extend`, { period, fromToday }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hosting'] });
+      toast.success(t('common.saved'));
+      setExtendModalOpen(false);
+      setExtendItem(null);
+      setSelectedExtendPeriod('');
+      setExtendFromToday(false);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const expireNowMutation = useMutation({
+    mutationFn: (hostingId: number) => api.post(`/api/hosting/${hostingId}/expire-now`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hosting'] });
+      toast.success(t('common.saved'));
+      setExtendModalOpen(false);
+      setExtendItem(null);
+      setSelectedExtendPeriod('');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const handleExtend = (hostingId: number, name: string) => {
+    setExtendItem({ id: hostingId, name });
+    setSelectedExtendPeriod('');
+    setExtendFromToday(false);
+    setExtendModalOpen(true);
+  };
 
   const resetDomainForm = () => {
     setSelectedClientId('');
@@ -539,6 +584,14 @@ export default function HostingPage() {
                       >
                         <Pencil className="w-3 h-3" />{t('common.edit')}
                       </button>
+                      {!isUnhosted && hosting.id && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleExtend(hosting.id!, hosting.domainName || ''); }}
+                          className="btn btn-primary !text-xs !py-1 !px-2 flex items-center gap-1"
+                        >
+                          <Calendar className="w-3 h-3" />{t('common.extend')}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -632,6 +685,14 @@ export default function HostingPage() {
                     >
                       <Pencil className="w-3 h-3" />{t('common.edit')}
                     </button>
+                    {!isUnhosted && hosting.id && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleExtend(hosting.id!, hosting.domainName || ''); }}
+                        className="btn btn-primary !text-xs !py-1 !px-2 flex items-center gap-1"
+                      >
+                        <Calendar className="w-3 h-3" />{t('common.extend')}
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -886,6 +947,116 @@ export default function HostingPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Extend Modal */}
+      <Modal
+        isOpen={extendModalOpen}
+        onClose={() => {
+          setExtendModalOpen(false);
+          setExtendItem(null);
+          setSelectedExtendPeriod('');
+          setExtendFromToday(false);
+        }}
+        title={`${t('common.extend')}: ${extendItem?.name || ''}`}
+        size="sm"
+      >
+        <div className="space-y-4">
+          {/* From Today / From Expiry Date */}
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer text-sm">
+              <input
+                type="radio"
+                name="extendFrom"
+                checked={!extendFromToday}
+                onChange={() => setExtendFromToday(false)}
+                className="w-4 h-4 text-primary-600"
+              />
+              <span className="text-gray-700 dark:text-gray-300">{t('common.fromExpiryDate')}</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer text-sm">
+              <input
+                type="radio"
+                name="extendFrom"
+                checked={extendFromToday}
+                onChange={() => setExtendFromToday(true)}
+                className="w-4 h-4 text-primary-600"
+              />
+              <span className="text-gray-700 dark:text-gray-300">{t('common.fromToday')}</span>
+            </label>
+          </div>
+
+          {/* Period Selection */}
+          <div className="space-y-2">
+            {extendOptions.map((option) => (
+              <label
+                key={option.value}
+                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  selectedExtendPeriod === option.value
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="extendPeriod"
+                  value={option.value}
+                  checked={selectedExtendPeriod === option.value}
+                  onChange={() => setSelectedExtendPeriod(option.value)}
+                  className="w-4 h-4 text-primary-600"
+                />
+                <span className="font-medium">{option.label}</span>
+              </label>
+            ))}
+          </div>
+
+          {/* Buttons */}
+          <div className="flex justify-between items-center pt-3 border-t dark:border-gray-700">
+            <button
+              type="button"
+              onClick={() => {
+                if (extendItem) {
+                  expireNowMutation.mutate(extendItem.id);
+                }
+              }}
+              disabled={expireNowMutation.isPending}
+              className="!text-xs !py-1.5 !px-3 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+            >
+              <AlertTriangle className="w-3 h-3" />
+              {expireNowMutation.isPending ? t('common.saving') : t('common.expireNow')}
+            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setExtendModalOpen(false);
+                  setExtendItem(null);
+                  setSelectedExtendPeriod('');
+                  setExtendFromToday(false);
+                }}
+                className="btn btn-secondary py-1.5 px-3 text-sm"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedExtendPeriod && extendItem) {
+                    extendMutation.mutate({
+                      hostingId: extendItem.id,
+                      period: selectedExtendPeriod,
+                      fromToday: extendFromToday,
+                    });
+                  }
+                }}
+                disabled={!selectedExtendPeriod || extendMutation.isPending}
+                className="btn btn-primary py-1.5 px-3 text-sm"
+              >
+                {extendMutation.isPending ? t('common.saving') : t('common.save')}
+              </button>
+            </div>
+          </div>
+        </div>
       </Modal>
 
       <ConfirmDialog

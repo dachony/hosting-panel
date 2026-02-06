@@ -70,6 +70,7 @@
     "extend": "Produži",
     "fromExpiryDate": "Od datuma isteka",
     "fromToday": "Od danas",
+    "expireNow": "Istekni odmah",
     "download": "Preuzmi"
   },
   "auth": {

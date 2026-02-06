@@ -70,6 +70,7 @@
     "extend": "Extend",
     "fromExpiryDate": "From Expiry Date",
     "fromToday": "From Today",
+    "expireNow": "Expire Now",
     "download": "Download"
   },
   "auth": {
