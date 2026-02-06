@@ -1461,11 +1461,29 @@ export default function SettingsPage() {
     }
   };
 
-  const initializeSelections = (data: Record<string, unknown[]>): Record<string, boolean[]> => {
+  const getItemSubtitle = (type: string, item: Record<string, unknown>): string | null => {
+    switch (type) {
+      case 'clients': return [item.contactPerson, item.email1, item.phone].filter(Boolean).join(' · ') || null;
+      case 'domains': return [item.clientName, item.registrar].filter(Boolean).join(' · ') || null;
+      case 'webHosting':
+      case 'mailHosting': return [item.clientName, item.packageName, item.expiryDate].filter(Boolean).join(' · ') || null;
+      case 'packages': return [item.maxMailboxes && `${item.maxMailboxes} mailboxes`, item.storageGb && `${item.storageGb} GB`, item.price && `${item.price} RSD`].filter(Boolean).join(' · ') || null;
+      case 'templates': return [item.type, item.subject].filter(Boolean).join(' · ') || null;
+      case 'notificationSettings': return [item.type, item.enabled ? 'Enabled' : 'Disabled'].filter(Boolean).join(' · ') || null;
+      case 'appSettings': return (item.value as string) || null;
+      case 'companyInfo': return [item.address, item.phone, item.email].filter(Boolean).join(' · ') || null;
+      case 'bankAccounts': return [item.accountNumber, item.swift].filter(Boolean).join(' · ') || null;
+      case 'mailServers': return [item.hostname, item.port && `port ${item.port}`].filter(Boolean).join(' · ') || null;
+      case 'mailSecurity': return (item.description as string) || null;
+      default: return null;
+    }
+  };
+
+  const initializeSelections = (data: Record<string, unknown[]>, allSelected = true): Record<string, boolean[]> => {
     const selections: Record<string, boolean[]> = {};
     for (const [key, items] of Object.entries(data)) {
       if (Array.isArray(items) && items.length > 0) {
-        selections[key] = items.map(() => true);
+        selections[key] = items.map(() => allSelected);
       }
     }
     return selections;
@@ -1675,7 +1693,7 @@ export default function SettingsPage() {
             exportedAt: parsed.exportedAt,
             fileName: file.name,
           });
-          setImportSelections(initializeSelections(dataEntries));
+          setImportSelections(initializeSelections(dataEntries, false));
           setImportExpandedSections(new Set());
           setImportPreviewOpen(true);
           // Reset file input and return early - no inline validation
@@ -5860,20 +5878,30 @@ Your team"
                   {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
                 </div>
                 {isExpanded && (
-                  <div className="divide-y divide-gray-100 dark:divide-gray-700/50 max-h-48 overflow-y-auto">
-                    {items.map((item, idx) => (
-                      <label key={idx} className="flex items-center gap-2 px-3 py-1.5 pl-8 hover:bg-gray-50 dark:hover:bg-gray-700/20 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={importSelections[type]?.[idx] ?? true}
-                          onChange={() => toggleItem(type, idx, importSelections, setImportSelections)}
-                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
-                        />
-                        <span className="text-xs text-gray-700 dark:text-gray-300">
-                          {getItemDisplayName(type, item as Record<string, unknown>)}
-                        </span>
-                      </label>
-                    ))}
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700/50 max-h-60 overflow-y-auto">
+                    {items.map((item, idx) => {
+                      const subtitle = getItemSubtitle(type, item as Record<string, unknown>);
+                      return (
+                        <label key={idx} className={`flex items-center gap-2 px-3 py-2 pl-8 cursor-pointer transition-colors ${
+                          importSelections[type]?.[idx] ? 'bg-primary-50/50 dark:bg-primary-900/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/20'
+                        }`}>
+                          <input
+                            type="checkbox"
+                            checked={importSelections[type]?.[idx] ?? false}
+                            onChange={() => toggleItem(type, idx, importSelections, setImportSelections)}
+                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5 flex-shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                              {getItemDisplayName(type, item as Record<string, unknown>)}
+                            </div>
+                            {subtitle && (
+                              <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{subtitle}</div>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -5883,7 +5911,9 @@ Your team"
           {/* Footer */}
           <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              Selected: {getSelectedCount(importSelections)} items
+              {getSelectedCount(importSelections) === 0
+                ? 'Select items to import'
+                : `Selected: ${getSelectedCount(importSelections)} items`}
             </span>
             <div className="flex gap-2">
               <button
@@ -5933,20 +5963,30 @@ Your team"
                   {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
                 </div>
                 {isExpanded && (
-                  <div className="divide-y divide-gray-100 dark:divide-gray-700/50 max-h-48 overflow-y-auto">
-                    {items.map((item, idx) => (
-                      <label key={idx} className="flex items-center gap-2 px-3 py-1.5 pl-8 hover:bg-gray-50 dark:hover:bg-gray-700/20 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={exportSelections[type]?.[idx] ?? true}
-                          onChange={() => toggleItem(type, idx, exportSelections, setExportSelections)}
-                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
-                        />
-                        <span className="text-xs text-gray-700 dark:text-gray-300">
-                          {getItemDisplayName(type, item as Record<string, unknown>)}
-                        </span>
-                      </label>
-                    ))}
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700/50 max-h-60 overflow-y-auto">
+                    {items.map((item, idx) => {
+                      const subtitle = getItemSubtitle(type, item as Record<string, unknown>);
+                      return (
+                        <label key={idx} className={`flex items-center gap-2 px-3 py-2 pl-8 cursor-pointer transition-colors ${
+                          exportSelections[type]?.[idx] ? 'bg-primary-50/50 dark:bg-primary-900/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/20'
+                        }`}>
+                          <input
+                            type="checkbox"
+                            checked={exportSelections[type]?.[idx] ?? true}
+                            onChange={() => toggleItem(type, idx, exportSelections, setExportSelections)}
+                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5 flex-shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                              {getItemDisplayName(type, item as Record<string, unknown>)}
+                            </div>
+                            {subtitle && (
+                              <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{subtitle}</div>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 )}
               </div>
