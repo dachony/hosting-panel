@@ -9,8 +9,21 @@
 }
 
 @layer components {
+  /* ── Buttons ── */
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply px-3 py-1.5 text-sm rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-xs {
+    @apply px-1.5 py-0.5 text-[11px];
+  }
+
+  .btn-sm {
+    @apply px-2.5 py-1 text-xs;
+  }
+
+  .btn-lg {
+    @apply px-5 py-2.5 text-base;
   }
 
   .btn-primary {
@@ -25,18 +38,58 @@
     @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
   }
 
+  /* ── Inputs ── */
   .input {
     @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100;
   }
 
+  .input-sm {
+    @apply px-2.5 py-1.5 text-sm;
+  }
+
+  .input-xs {
+    @apply px-2 py-0.5 text-xs;
+  }
+
+  .select {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 bg-white appearance-none bg-no-repeat;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+  }
+
+  /* ── Checkbox ── */
+  .checkbox {
+    @apply w-4 h-4 rounded border-gray-300 text-primary-600 cursor-pointer
+      focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
+      dark:border-gray-500 dark:bg-gray-700 dark:checked:bg-primary-600 dark:focus:ring-offset-gray-800;
+  }
+
+  /* ── Labels ── */
   .label {
     @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
   }
 
+  /* ── Cards ── */
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6;
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-4;
   }
 
+  .card-flush {
+    @apply p-0;
+  }
+
+  .card-compact {
+    @apply p-3;
+  }
+
+  /* ── Badge ── */
+  .badge {
+    @apply px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  /* ── Tables ── */
   .table-container {
     @apply overflow-x-auto;
   }
@@ -55,5 +108,30 @@
 
   .table tbody tr {
     @apply bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700;
+  }
+
+  /* ── Compact mode ── */
+  .compact-mode .card {
+    @apply p-3;
+  }
+
+  .compact-mode .card-compact {
+    @apply p-2;
+  }
+
+  .compact-mode .table th {
+    @apply px-4 py-2;
+  }
+
+  .compact-mode .table td {
+    @apply px-4 py-2;
+  }
+
+  .compact-mode .input {
+    @apply py-1.5 text-sm;
+  }
+
+  .compact-mode .btn {
+    @apply py-1 text-xs;
   }
 }

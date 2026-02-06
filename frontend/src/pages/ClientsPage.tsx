@@ -128,7 +128,7 @@ export default function ClientsPage() {
       </h1>
 
       {/* Clients List */}
-      <div className="card !p-0 overflow-hidden">
+      <div className="card card-flush overflow-hidden">
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <div className="relative flex-1 max-w-xs">
@@ -138,7 +138,7 @@ export default function ClientsPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder={t('common.searchPlaceholder')}
-                className="input !py-1.5 !text-sm w-full pl-8"
+                className="input input-sm w-full pl-8"
               />
             </div>
 
@@ -248,14 +248,14 @@ export default function ClientsPage() {
                   {isSuperAdmin && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setClientToDelete(client); setDeleteDialogOpen(true); }}
-                      className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                      className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
                     >
                       <Trash2 className="w-3 h-3" />{t('common.delete')}
                     </button>
                   )}
                   <button
                     onClick={(e) => { e.stopPropagation(); handleEdit(client); }}
-                    className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                    className="btn btn-sm flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                   >
                     <Pencil className="w-3 h-3" />{t('common.edit')}
                   </button>
@@ -297,14 +297,14 @@ export default function ClientsPage() {
                   {isSuperAdmin && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setClientToDelete(client); setDeleteDialogOpen(true); }}
-                      className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                      className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
                     >
                       <Trash2 className="w-3 h-3" />{t('common.delete')}
                     </button>
                   )}
                   <button
                     onClick={(e) => { e.stopPropagation(); handleEdit(client); }}
-                    className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                    className="btn btn-sm flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                   >
                     <Pencil className="w-3 h-3" />{t('common.edit')}
                   </button>
@@ -383,7 +383,7 @@ export default function ClientsPage() {
                   type="checkbox"
                   checked={techSameAsPrimary}
                   onChange={(e) => setTechSameAsPrimary(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600"
+                  className="checkbox"
                 />
                 <span className="text-gray-500">{t('common.sameAsPrimaryContact')}</span>
               </label>

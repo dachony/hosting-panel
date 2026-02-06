@@ -67,7 +67,7 @@ export default function DashboardPage() {
           <div
             key={card.label}
             onClick={() => navigate(card.link)}
-            className="card !p-3 flex items-center cursor-pointer hover:shadow-md hover:border-primary-300 dark:hover:border-primary-600 transition-all"
+            className="card card-compact flex items-center cursor-pointer hover:shadow-md hover:border-primary-300 dark:hover:border-primary-600 transition-all"
           >
             <div className={`p-2 rounded-lg ${card.color} mr-3`}>
               <card.icon className="w-5 h-5 text-white" />
@@ -86,7 +86,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div
           onClick={() => navigate('/clients?add=true')}
-          className="card !p-3 flex items-center cursor-pointer hover:shadow-md hover:border-primary-300 dark:hover:border-primary-600 transition-all"
+          className="card card-compact flex items-center cursor-pointer hover:shadow-md hover:border-primary-300 dark:hover:border-primary-600 transition-all"
         >
           <div className="p-2 rounded-lg bg-primary-500 mr-3">
             <UserPlus className="w-5 h-5 text-white" />
@@ -99,7 +99,7 @@ export default function DashboardPage() {
 
         <div
           onClick={() => navigate('/domains?add=true')}
-          className="card !p-3 flex items-center cursor-pointer hover:shadow-md hover:border-primary-300 dark:hover:border-primary-600 transition-all"
+          className="card card-compact flex items-center cursor-pointer hover:shadow-md hover:border-primary-300 dark:hover:border-primary-600 transition-all"
         >
           <div className="p-2 rounded-lg bg-emerald-500 mr-3">
             <Plus className="w-5 h-5 text-white" />
@@ -112,7 +112,7 @@ export default function DashboardPage() {
 
         <div
           onClick={() => navigate('/domains?filter=yellow,orange,red')}
-          className="card !p-3 flex items-center cursor-pointer hover:shadow-md hover:border-yellow-300 dark:hover:border-yellow-600 transition-all"
+          className="card card-compact flex items-center cursor-pointer hover:shadow-md hover:border-yellow-300 dark:hover:border-yellow-600 transition-all"
         >
           <AlertTriangle className="w-6 h-6 text-yellow-500 mr-3" />
           <div>
@@ -125,7 +125,7 @@ export default function DashboardPage() {
 
         <div
           onClick={() => navigate('/domains?filter=forDeletion,deleted')}
-          className="card !p-3 flex items-center cursor-pointer hover:shadow-md hover:border-red-300 dark:hover:border-red-600 transition-all"
+          className="card card-compact flex items-center cursor-pointer hover:shadow-md hover:border-red-300 dark:hover:border-red-600 transition-all"
         >
           <Trash2 className="w-6 h-6 text-red-500 mr-3" />
           <div>
@@ -140,7 +140,7 @@ export default function DashboardPage() {
       {/* 2x2 Grid: Expiring | Expired / For Deletion | For Deleted */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Expiring items list */}
-        <div className="card !p-0 overflow-hidden">
+        <div className="card card-flush overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-yellow-50 dark:bg-yellow-900/20">
             <h2 className="font-semibold text-sm text-yellow-700 dark:text-yellow-400">
               {t('dashboard.expiringItemsNext30Days')}
@@ -180,7 +180,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Expired items (0-7 days) */}
-        <div className="card !p-0 overflow-hidden">
+        <div className="card card-flush overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-900/20">
             <h2 className="font-semibold text-sm text-red-700 dark:text-red-400">
               {t('dashboard.expiredItems')}
@@ -222,7 +222,7 @@ export default function DashboardPage() {
         </div>
 
         {/* For Deletion (7-60 days) */}
-        <div className="card !p-0 overflow-hidden">
+        <div className="card card-flush overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-purple-50 dark:bg-purple-900/20">
             <h2 className="font-semibold text-sm text-purple-700 dark:text-purple-400">
               {t('dashboard.forDeletionItems')}
@@ -264,7 +264,7 @@ export default function DashboardPage() {
         </div>
 
         {/* For Deleted (60+ days) */}
-        <div className="card !p-0 overflow-hidden">
+        <div className="card card-flush overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700/50">
             <h2 className="font-semibold text-sm text-gray-700 dark:text-gray-400">
               {t('dashboard.willBeDeletedExpired60')}

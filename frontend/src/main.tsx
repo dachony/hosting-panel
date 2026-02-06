@@ -7,6 +7,7 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ZoomProvider } from './context/ZoomContext';
+import { AppearanceProvider } from './context/AppearanceContext';
 import './i18n';
 import './index.css';
 
@@ -25,10 +26,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <ThemeProvider>
           <ZoomProvider>
-            <AuthProvider>
-              <App />
-              <Toaster position="top-right" />
-            </AuthProvider>
+            <AppearanceProvider>
+              <AuthProvider>
+                <App />
+                <Toaster position="top-right" />
+              </AuthProvider>
+            </AppearanceProvider>
           </ZoomProvider>
         </ThemeProvider>
       </BrowserRouter>

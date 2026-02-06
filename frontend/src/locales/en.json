@@ -335,6 +335,7 @@
     "scheduler": "Scheduler",
     "templates": "Templates",
     "importExport": "Import/Export",
+    "appearance": "Appearance",
     "users": "Users",
     "saved": "Settings saved",
     "errorSaving": "Error saving",
@@ -790,5 +791,28 @@
     "domainsWithPdf": "Domains with PDF",
     "deletePdfs": "Delete PDFs",
     "errorLoading": "Error loading system status"
+  },
+  "appearance": {
+    "title": "Appearance",
+    "theme": "Theme",
+    "themeDesc": "Choose light, dark, or system theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "accentColor": "Accent Color",
+    "accentDesc": "Primary color of the application",
+    "blue": "Blue",
+    "indigo": "Indigo",
+    "violet": "Violet",
+    "emerald": "Emerald",
+    "amber": "Amber",
+    "rose": "Rose",
+    "density": "Display Density",
+    "densityDesc": "Controls spacing between elements",
+    "comfy": "Comfortable",
+    "compact": "Compact",
+    "zoom": "Zoom",
+    "zoomDesc": "Interface zoom level",
+    "reset": "Reset"
   }
 }

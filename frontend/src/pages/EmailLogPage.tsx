@@ -83,7 +83,7 @@ export default function EmailLogPage() {
         {t('emailLog.title')}
       </h1>
 
-      <div className="card !p-0 overflow-hidden">
+      <div className="card card-flush overflow-hidden">
         {/* Toolbar */}
         <div className="flex flex-wrap gap-3 items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
@@ -95,12 +95,12 @@ export default function EmailLogPage() {
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={t('emailLog.searchPlaceholder')}
-                className="input !py-1.5 !text-sm w-full pl-8"
+                className="input input-sm w-full pl-8"
               />
             </div>
             <button
               onClick={() => refetch()}
-              className="btn btn-secondary !py-1.5 !px-3 !text-sm flex items-center gap-1"
+              className="btn btn-secondary flex items-center gap-1"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               {t('emailLog.refresh')}
@@ -112,7 +112,7 @@ export default function EmailLogPage() {
               <button
                 onClick={() => setDeleteMenuOpen(!deleteMenuOpen)}
                 disabled={deleteAllMutation.isPending || !total}
-                className="btn !py-1.5 !px-3 !text-sm flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 disabled:opacity-50"
+                className="btn flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 disabled:opacity-50"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 {t('emailLog.deleteLogs')}
@@ -232,7 +232,7 @@ export default function EmailLogPage() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="btn btn-secondary !py-1 !px-2 disabled:opacity-50"
+                className="btn btn-secondary btn-sm disabled:opacity-50"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -242,7 +242,7 @@ export default function EmailLogPage() {
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="btn btn-secondary !py-1 !px-2 disabled:opacity-50"
+                className="btn btn-secondary btn-sm disabled:opacity-50"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

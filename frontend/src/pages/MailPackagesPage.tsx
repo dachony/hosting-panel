@@ -112,7 +112,7 @@ export default function PackagesPage() {
       </h1>
 
       {/* Packages List */}
-      <div className="card !p-0 overflow-hidden">
+      <div className="card card-flush overflow-hidden">
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -121,7 +121,7 @@ export default function PackagesPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('common.searchPlaceholder')}
-              className="input !py-1.5 !text-sm w-full pl-8"
+              className="input input-sm w-full pl-8"
             />
           </div>
           <button
@@ -197,14 +197,14 @@ export default function PackagesPage() {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     onClick={(e) => { e.stopPropagation(); handleRowClick(pkg); }}
-                    className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                    className="btn btn-sm flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                   >
                     <Pencil className="w-3 h-3" />
                     {t('common.edit')}
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setSelectedPackage(pkg); setDeleteDialogOpen(true); }}
-                    className="!text-xs !py-1 !px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                    className="btn btn-sm rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
                   >
                     {t('common.delete')}
                   </button>
@@ -224,24 +224,24 @@ export default function PackagesPage() {
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('mailPackages.name')} *</label>
-            <input name="name" defaultValue={selectedPackage?.name} className="input !py-1.5 !text-sm" required />
+            <input name="name" defaultValue={selectedPackage?.name} className="input input-sm" required />
           </div>
           <div>
             <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('mailPackages.description')}</label>
-            <input name="description" defaultValue={selectedPackage?.description || ''} className="input !py-1.5 !text-sm" placeholder={t('mailPackages.optional')} />
+            <input name="description" defaultValue={selectedPackage?.description || ''} className="input input-sm" placeholder={t('mailPackages.optional')} />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('mailPackages.maxMailboxes')} *</label>
-              <input name="maxMailboxes" type="number" min="1" defaultValue={selectedPackage?.maxMailboxes || 5} className="input !py-1.5 !text-sm" required />
+              <input name="maxMailboxes" type="number" min="1" defaultValue={selectedPackage?.maxMailboxes || 5} className="input input-sm" required />
             </div>
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('mailPackages.storageGb')} *</label>
-              <input name="storageGb" type="number" min="0" step="0.1" defaultValue={selectedPackage?.storageGb || 5} className="input !py-1.5 !text-sm" required />
+              <input name="storageGb" type="number" min="0" step="0.1" defaultValue={selectedPackage?.storageGb || 5} className="input input-sm" required />
             </div>
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('mailPackages.priceRsd')} *</label>
-              <input name="price" type="number" min="0" step="0.01" defaultValue={selectedPackage?.price || 0} className="input !py-1.5 !text-sm" required />
+              <input name="price" type="number" min="0" step="0.01" defaultValue={selectedPackage?.price || 0} className="input input-sm" required />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -250,7 +250,7 @@ export default function PackagesPage() {
               <select
                 value={selectedMailServerId || ''}
                 onChange={(e) => setSelectedMailServerId(e.target.value ? parseInt(e.target.value) : null)}
-                className="input !py-1.5 !text-sm"
+                className="input input-sm"
               >
                 <option value="">{t('mailPackages.noneOption')}</option>
                 {mailServersData?.servers?.map((server) => (
@@ -265,7 +265,7 @@ export default function PackagesPage() {
               <select
                 value={selectedMailSecurityId || ''}
                 onChange={(e) => setSelectedMailSecurityId(e.target.value ? parseInt(e.target.value) : null)}
-                className="input !py-1.5 !text-sm"
+                className="input input-sm"
               >
                 <option value="">{t('mailPackages.noneOption')}</option>
                 {mailSecurityData?.services?.map((service) => (
@@ -278,13 +278,13 @@ export default function PackagesPage() {
           </div>
           <div>
             <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('mailPackages.featuresSeparated')}</label>
-            <input name="features" defaultValue={selectedPackage?.features?.join(', ') || ''} className="input !py-1.5 !text-sm" placeholder="Webmail, IMAP, Spam filter" />
+            <input name="features" defaultValue={selectedPackage?.features?.join(', ') || ''} className="input input-sm" placeholder="Webmail, IMAP, Spam filter" />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setModalOpen(false)} className="btn btn-secondary !py-1.5 !px-3 !text-sm">
+            <button type="button" onClick={() => setModalOpen(false)} className="btn btn-secondary">
               {t('common.cancel')}
             </button>
-            <button type="submit" className="btn btn-primary !py-1.5 !px-4 !text-sm" disabled={saveMutation.isPending}>
+            <button type="submit" className="btn btn-primary" disabled={saveMutation.isPending}>
               {saveMutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           </div>

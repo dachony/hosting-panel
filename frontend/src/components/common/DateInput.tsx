@@ -46,7 +46,7 @@ export default function DateInput({
           bg-white dark:bg-gray-800
           border-gray-300 dark:border-gray-600
           ${value ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}
-          ${isSmall ? 'pr-8 text-xs py-1 px-1.5' : 'pr-12 text-base py-3'}`}
+          ${isSmall ? 'pr-8 text-xs py-1 px-1.5' : 'pr-10 text-sm py-1.5'}`}
       >
         {formatDisplay(value) || 'dd.mm.yyyy'}
       </div>

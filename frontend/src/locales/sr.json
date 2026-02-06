@@ -335,6 +335,7 @@
     "scheduler": "Planer",
     "templates": "Šabloni",
     "importExport": "Uvoz/Izvoz",
+    "appearance": "Izgled",
     "users": "Korisnici",
     "saved": "Podešavanja sačuvana",
     "errorSaving": "Greška pri čuvanju",
@@ -790,5 +791,28 @@
     "domainsWithPdf": "Domeni sa PDF-om",
     "deletePdfs": "Obriši PDF-ove",
     "errorLoading": "Greška pri učitavanju statusa sistema"
+  },
+  "appearance": {
+    "title": "Izgled",
+    "theme": "Tema",
+    "themeDesc": "Izaberite svetlu, tamnu ili sistemsku temu",
+    "light": "Svetla",
+    "dark": "Tamna",
+    "system": "Sistem",
+    "accentColor": "Akcentna boja",
+    "accentDesc": "Primarna boja aplikacije",
+    "blue": "Plava",
+    "indigo": "Indigo",
+    "violet": "Ljubičasta",
+    "emerald": "Smaragdna",
+    "amber": "Ćilibarna",
+    "rose": "Ružičasta",
+    "density": "Gustina prikaza",
+    "densityDesc": "Kontroliše razmak između elemenata",
+    "comfy": "Udobno",
+    "compact": "Kompaktno",
+    "zoom": "Uvećanje",
+    "zoomDesc": "Nivo uvećanja interfejsa",
+    "reset": "Resetuj"
   }
 }

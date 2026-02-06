@@ -219,7 +219,7 @@ export default function SystemStatusPage() {
           </span>
           <button
             onClick={() => refetch()}
-            className="btn btn-secondary !py-1.5 !px-3 !text-sm flex items-center gap-1"
+            className="btn btn-secondary flex items-center gap-1"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             {t('systemStatus.refresh')}
@@ -411,7 +411,7 @@ export default function SystemStatusPage() {
               {/* Export */}
               <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                 <div className="relative group">
-                  <button className="btn btn-secondary !py-1 !px-2 !text-xs flex items-center gap-1">
+                  <button className="btn btn-secondary btn-sm flex items-center gap-1">
                     <Download className="w-3 h-3" />
                     {t('systemStatus.export')}
                   </button>
@@ -463,13 +463,13 @@ export default function SystemStatusPage() {
                         <button
                           onClick={() => deleteAuditMutation.mutate(days)}
                           disabled={deleteAuditMutation.isPending}
-                          className="!py-0.5 !px-2 !text-xs rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
+                          className="btn btn-xs rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
                         >
                           {deleteAuditMutation.isPending ? t('systemStatus.deleting') : t('common.confirm')}
                         </button>
                         <button
                           onClick={() => setConfirmDeleteAudit(null)}
-                          className="!py-0.5 !px-1.5 !text-xs rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                          className="btn btn-xs rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                         >
                           {t('common.cancel')}
                         </button>
@@ -478,7 +478,7 @@ export default function SystemStatusPage() {
                       <button
                         key={days}
                         onClick={() => setConfirmDeleteAudit(days)}
-                        className={`!py-0.5 !px-2 !text-xs rounded border transition-colors ${
+                        className={`btn btn-xs rounded border transition-colors ${
                           days === 0
                             ? 'border-red-300 text-red-600 hover:bg-red-50 dark:border-red-500/50 dark:text-red-400 dark:hover:bg-red-500/10'
                             : 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
@@ -529,13 +529,13 @@ export default function SystemStatusPage() {
                         <button
                           onClick={() => deleteEmailsMutation.mutate(days)}
                           disabled={deleteEmailsMutation.isPending}
-                          className="!py-0.5 !px-2 !text-xs rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
+                          className="btn btn-xs rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
                         >
                           {deleteEmailsMutation.isPending ? t('systemStatus.deleting') : t('common.confirm')}
                         </button>
                         <button
                           onClick={() => setConfirmDeleteEmails(null)}
-                          className="!py-0.5 !px-1.5 !text-xs rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                          className="btn btn-xs rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                         >
                           {t('common.cancel')}
                         </button>
@@ -545,7 +545,7 @@ export default function SystemStatusPage() {
                         key={days}
                         onClick={() => setConfirmDeleteEmails(days)}
                         disabled={!emailStats?.total}
-                        className={`!py-0.5 !px-2 !text-xs rounded border transition-colors ${
+                        className={`btn btn-xs rounded border transition-colors ${
                           days === 0
                             ? 'border-red-300 text-red-600 hover:bg-red-50 dark:border-red-500/50 dark:text-red-400 dark:hover:bg-red-500/10'
                             : 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
@@ -594,13 +594,13 @@ export default function SystemStatusPage() {
                         <button
                           onClick={() => deletePdfsMutation.mutate(days)}
                           disabled={deletePdfsMutation.isPending}
-                          className="!py-0.5 !px-2 !text-xs rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
+                          className="btn btn-xs rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
                         >
                           {deletePdfsMutation.isPending ? t('systemStatus.deleting') : t('common.confirm')}
                         </button>
                         <button
                           onClick={() => setConfirmDeletePdfs(null)}
-                          className="!py-0.5 !px-1.5 !text-xs rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                          className="btn btn-xs rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                         >
                           {t('common.cancel')}
                         </button>
@@ -610,7 +610,7 @@ export default function SystemStatusPage() {
                         key={days}
                         onClick={() => setConfirmDeletePdfs(days)}
                         disabled={!pdfStats?.fileCount}
-                        className={`!py-0.5 !px-2 !text-xs rounded border transition-colors ${
+                        className={`btn btn-xs rounded border transition-colors ${
                           days === 0
                             ? 'border-red-300 text-red-600 hover:bg-red-50 dark:border-red-500/50 dark:text-red-400 dark:hover:bg-red-500/10'
                             : 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'

@@ -421,7 +421,7 @@ export default function HostingPage() {
       </h1>
 
       {/* Domains List */}
-      <div className="card !p-0 overflow-hidden">
+      <div className="card card-flush overflow-hidden">
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -430,7 +430,7 @@ export default function HostingPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('common.searchPlaceholder')}
-              className="input !py-1.5 !text-sm w-full pl-8"
+              className="input input-sm w-full pl-8"
             />
           </div>
           <button
@@ -572,21 +572,21 @@ export default function HostingPage() {
                       {isSuperAdmin && (
                         <button
                           onClick={(e) => { e.stopPropagation(); setDomainToDelete({ domainId: hosting.domainId!, domainName: hosting.domainName || '' }); setDeleteDialogOpen(true); }}
-                          className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                          className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); navigate(`/domains/${hosting.domainId}`); }}
-                        className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                        className="btn btn-sm flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                       >
                         <Pencil className="w-3 h-3" />{t('common.edit')}
                       </button>
                       {!isUnhosted && hosting.id && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleExtend(hosting.id!, hosting.domainName || ''); }}
-                          className="btn btn-primary !text-xs !py-1 !px-2 flex items-center gap-1"
+                          className="btn btn-primary btn-sm flex items-center gap-1"
                         >
                           <Calendar className="w-3 h-3" />{t('common.extend')}
                         </button>
@@ -673,21 +673,21 @@ export default function HostingPage() {
                     {isSuperAdmin && (
                       <button
                         onClick={(e) => { e.stopPropagation(); setDomainToDelete({ domainId: hosting.domainId!, domainName: hosting.domainName || '' }); setDeleteDialogOpen(true); }}
-                        className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                        className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
                     )}
                     <button
                       onClick={(e) => { e.stopPropagation(); navigate(`/domains/${hosting.domainId}`); }}
-                      className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                      className="btn btn-sm flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                     >
                       <Pencil className="w-3 h-3" />{t('common.edit')}
                     </button>
                     {!isUnhosted && hosting.id && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleExtend(hosting.id!, hosting.domainName || ''); }}
-                        className="btn btn-primary !text-xs !py-1 !px-2 flex items-center gap-1"
+                        className="btn btn-primary btn-sm flex items-center gap-1"
                       >
                         <Calendar className="w-3 h-3" />{t('common.extend')}
                       </button>
@@ -1019,7 +1019,7 @@ export default function HostingPage() {
                 }
               }}
               disabled={expireNowMutation.isPending}
-              className="!text-xs !py-1.5 !px-3 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+              className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
             >
               <AlertTriangle className="w-3 h-3" />
               {expireNowMutation.isPending ? t('common.saving') : t('common.expireNow')}

@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useAppearance, AccentColor } from '../context/AppearanceContext';
+import { useTheme } from '../context/ThemeContext';
+import { useZoom } from '../context/ZoomContext';
 import { NotificationSetting, User, MailServer, MailSecurity, CompanyInfo, BankAccount, EmailTemplate, Package, ReportConfig, DomainStatus, SystemConfig } from '../types';
 import Modal from '../components/common/Modal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
@@ -40,10 +43,15 @@ import {
   Play,
   ChevronDown,
   ChevronRight,
+  Palette,
+  Sun,
+  Moon,
+  Monitor,
+  Minus,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-type TabType = 'system' | 'security' | 'my-account' | 'owner' | 'smtp' | 'mail-servers' | 'mail-security' | 'packages' | 'notifications' | 'templates' | 'import-export' | 'users';
+type TabType = 'system' | 'security' | 'my-account' | 'appearance' | 'owner' | 'smtp' | 'mail-servers' | 'mail-security' | 'packages' | 'notifications' | 'templates' | 'import-export' | 'users';
 
 interface SystemSettings {
   systemName: string;
@@ -105,6 +113,152 @@ interface MailSettings {
   fromName: string;
   imapPort: number;
   imapSecure: boolean;
+}
+
+const ACCENT_COLORS: { id: AccentColor; labelKey: string; swatch: string }[] = [
+  { id: 'blue', labelKey: 'appearance.blue', swatch: '#2563eb' },
+  { id: 'indigo', labelKey: 'appearance.indigo', swatch: '#4f46e5' },
+  { id: 'violet', labelKey: 'appearance.violet', swatch: '#7c3aed' },
+  { id: 'emerald', labelKey: 'appearance.emerald', swatch: '#059669' },
+  { id: 'amber', labelKey: 'appearance.amber', swatch: '#d97706' },
+  { id: 'rose', labelKey: 'appearance.rose', swatch: '#e11d48' },
+];
+
+function AppearanceTab() {
+  const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
+  const { accent, setAccent, density, setDensity } = useAppearance();
+  const { zoom, zoomIn, zoomOut, resetZoom } = useZoom();
+
+  const themeOptions = [
+    { id: 'light' as const, label: t('appearance.light'), icon: Sun },
+    { id: 'dark' as const, label: t('appearance.dark'), icon: Moon },
+    { id: 'system' as const, label: t('appearance.system'), icon: Monitor },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Theme */}
+      <div className="card">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+          {t('appearance.theme')}
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          {t('appearance.themeDesc')}
+        </p>
+        <div className="flex gap-2">
+          {themeOptions.map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => setTheme(opt.id)}
+              className={`btn flex items-center gap-2 ${
+                theme === opt.id
+                  ? 'btn-primary'
+                  : 'btn-secondary'
+              }`}
+            >
+              <opt.icon className="w-4 h-4" />
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Accent Color */}
+      <div className="card">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+          {t('appearance.accentColor')}
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          {t('appearance.accentDesc')}
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {ACCENT_COLORS.map((color) => (
+            <button
+              key={color.id}
+              onClick={() => setAccent(color.id)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all ${
+                accent === color.id
+                  ? 'border-gray-900 dark:border-white shadow-md'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'
+              }`}
+            >
+              <span
+                className="w-5 h-5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: color.swatch }}
+              />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t(color.labelKey)}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Density */}
+      <div className="card">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+          {t('appearance.density')}
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          {t('appearance.densityDesc')}
+        </p>
+        <div className="flex gap-2">
+          {(['comfy', 'compact'] as const).map((d) => (
+            <button
+              key={d}
+              onClick={() => setDensity(d)}
+              className={`btn ${
+                density === d ? 'btn-primary' : 'btn-secondary'
+              }`}
+            >
+              {t(`appearance.${d}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Zoom */}
+      <div className="card">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+          {t('appearance.zoom')}
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          {t('appearance.zoomDesc')}
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={zoomOut}
+            className="btn btn-secondary btn-sm"
+            disabled={zoom <= 50}
+          >
+            <Minus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={resetZoom}
+            className="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[4rem] text-center hover:text-primary-600 transition-colors"
+          >
+            {zoom}%
+          </button>
+          <button
+            onClick={zoomIn}
+            className="btn btn-secondary btn-sm"
+            disabled={zoom >= 120}
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+          {zoom !== 100 && (
+            <button
+              onClick={resetZoom}
+              className="btn btn-secondary btn-sm ml-2"
+            >
+              {t('appearance.reset')}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function SettingsPage() {
@@ -2040,6 +2194,8 @@ export default function SettingsPage() {
     ...(canManageSystem ? [{ id: 'security' as const, label: t('settings.security'), icon: Lock }] : []),
     // All users: My Account (2FA settings)
     { id: 'my-account' as const, label: t('settings.account'), icon: UserIcon },
+    // All users: Appearance (theme, accent, density, zoom)
+    { id: 'appearance' as const, label: t('settings.appearance'), icon: Palette },
     // Admin+: Company info
     ...(canManageContent ? [{ id: 'owner' as const, label: t('settings.company'), icon: Building2 }] : []),
     // SuperAdmin only: Email settings (SMTP/IMAP)
@@ -2173,7 +2329,7 @@ export default function SettingsPage() {
       {/* System Tab */}
       {activeTab === 'system' && (
         <div className="space-y-4">
-          <div className="card !p-4">
+          <div className="card">
             {systemSettingsLoading ? (
               <div className="flex justify-center py-6">
                 <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
@@ -2186,7 +2342,7 @@ export default function SettingsPage() {
                     <input
                       value={systemSettings.systemName}
                       onChange={(e) => setSystemSettings({ ...systemSettings, systemName: e.target.value })}
-                      className="input !py-1.5 !text-sm"
+                      className="input input-sm"
                       placeholder="Hosting Panel"
                     />
                   </div>
@@ -2195,7 +2351,7 @@ export default function SettingsPage() {
                     <input
                       value={systemSettings.baseUrl}
                       onChange={(e) => setSystemSettings({ ...systemSettings, baseUrl: e.target.value })}
-                      className="input !py-1.5 !text-sm"
+                      className="input input-sm"
                       placeholder="https://dashboard.example.com"
                     />
                     <p className="text-[10px] text-gray-400 mt-1">Public application URL for links in email invitations</p>
@@ -2203,7 +2359,7 @@ export default function SettingsPage() {
                   <div className="col-span-6 flex justify-end pt-2">
                     <button
                       type="submit"
-                      className="btn btn-primary !py-1.5 !px-4 !text-sm"
+                      className="btn btn-primary"
                       disabled={saveSystemSettingsMutation.isPending}
                     >
                       {saveSystemSettingsMutation.isPending ? 'Saving...' : 'Save'}
@@ -2216,7 +2372,7 @@ export default function SettingsPage() {
 
           {/* System Notifications Section (Admin only) */}
           {isAdmin && (
-            <div className="card !p-4">
+            <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
                   <Bell className="w-4 h-4" />
@@ -2227,7 +2383,7 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={systemNotifications.enabled}
                     onChange={(e) => setSystemNotifications(prev => ({ ...prev, enabled: e.target.checked }))}
-                    className="mr-2"
+                    className="checkbox mr-2"
                   />
                   Enable
                 </label>
@@ -2242,7 +2398,7 @@ export default function SettingsPage() {
                       type="email"
                       value={systemNotifications.recipientEmail}
                       onChange={(e) => setSystemNotifications(prev => ({ ...prev, recipientEmail: e.target.value }))}
-                      className="input !py-1.5 !text-sm"
+                      className="input input-sm"
                       placeholder="admin@example.com"
                     />
                   </div>
@@ -2263,7 +2419,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, superadminPasswordChange: e.target.checked }
                               }))}
-                              className="mr-2"
+                              className="checkbox mr-2"
                             />
                             Superadmin password change
                           </label>
@@ -2275,7 +2431,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, adminPasswordChange: e.target.checked }
                               }))}
-                              className="mr-2"
+                              className="checkbox mr-2"
                             />
                             Admin password change
                           </label>
@@ -2287,7 +2443,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, userLocked: e.target.checked }
                               }))}
-                              className="mr-2"
+                              className="checkbox mr-2"
                             />
                             User account locked
                           </label>
@@ -2300,7 +2456,7 @@ export default function SettingsPage() {
                                   ...prev,
                                   events: { ...prev.events, failedLoginAttempts: e.target.checked }
                                 }))}
-                                className="mr-2"
+                                className="checkbox mr-2"
                               />
                               Failed logins &gt;
                             </label>
@@ -2313,7 +2469,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, failedLoginThreshold: parseInt(e.target.value) || 5 }
                               }))}
-                              className="input !py-0.5 !px-2 !text-xs w-14"
+                              className="input input-xs w-14"
                               disabled={!systemNotifications.events.failedLoginAttempts}
                             />
                           </div>
@@ -2332,7 +2488,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, applicationStart: e.target.checked }
                               }))}
-                              className="mr-2"
+                              className="checkbox mr-2"
                             />
                             Application started
                           </label>
@@ -2344,7 +2500,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, applicationStop: e.target.checked }
                               }))}
-                              className="mr-2"
+                              className="checkbox mr-2"
                             />
                             Application stopped
                           </label>
@@ -2356,7 +2512,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, applicationError: e.target.checked }
                               }))}
-                              className="mr-2"
+                              className="checkbox mr-2"
                             />
                             Application errors
                           </label>
@@ -2368,7 +2524,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, databaseError: e.target.checked }
                               }))}
-                              className="mr-2"
+                              className="checkbox mr-2"
                             />
                             Database errors
                           </label>
@@ -2388,7 +2544,7 @@ export default function SettingsPage() {
                                   ...prev,
                                   events: { ...prev.events, diskUsageThreshold: e.target.checked }
                                 }))}
-                                className="mr-2"
+                                className="checkbox mr-2"
                               />
                               Disk usage &gt;
                             </label>
@@ -2401,7 +2557,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, diskUsagePercent: parseInt(e.target.value) || 90 }
                               }))}
-                              className="input !py-0.5 !px-2 !text-xs w-14"
+                              className="input input-xs w-14"
                               disabled={!systemNotifications.events.diskUsageThreshold}
                             />
                             <span className="text-xs text-gray-500">%</span>
@@ -2415,7 +2571,7 @@ export default function SettingsPage() {
                                   ...prev,
                                   events: { ...prev.events, cpuUsageThreshold: e.target.checked }
                                 }))}
-                                className="mr-2"
+                                className="checkbox mr-2"
                               />
                               CPU usage &gt;
                             </label>
@@ -2428,7 +2584,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, cpuUsagePercent: parseInt(e.target.value) || 90 }
                               }))}
-                              className="input !py-0.5 !px-2 !text-xs w-14"
+                              className="input input-xs w-14"
                               disabled={!systemNotifications.events.cpuUsageThreshold}
                             />
                             <span className="text-xs text-gray-500">%</span>
@@ -2442,7 +2598,7 @@ export default function SettingsPage() {
                                   ...prev,
                                   events: { ...prev.events, memoryUsageThreshold: e.target.checked }
                                 }))}
-                                className="mr-2"
+                                className="checkbox mr-2"
                               />
                               Memory usage &gt;
                             </label>
@@ -2455,7 +2611,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, memoryUsagePercent: parseInt(e.target.value) || 90 }
                               }))}
-                              className="input !py-0.5 !px-2 !text-xs w-14"
+                              className="input input-xs w-14"
                               disabled={!systemNotifications.events.memoryUsageThreshold}
                             />
                             <span className="text-xs text-gray-500">%</span>
@@ -2475,7 +2631,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, backupCompleted: e.target.checked }
                               }))}
-                              className="mr-2"
+                              className="checkbox mr-2"
                             />
                             Backup completed
                           </label>
@@ -2487,7 +2643,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, backupFailed: e.target.checked }
                               }))}
-                              className="mr-2"
+                              className="checkbox mr-2"
                             />
                             Backup failed
                           </label>
@@ -2500,7 +2656,7 @@ export default function SettingsPage() {
                                   ...prev,
                                   events: { ...prev.events, sslCertExpiring: e.target.checked }
                                 }))}
-                                className="mr-2"
+                                className="checkbox mr-2"
                               />
                               SSL cert expiring in
                             </label>
@@ -2513,7 +2669,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, sslCertExpiringDays: parseInt(e.target.value) || 14 }
                               }))}
-                              className="input !py-0.5 !px-2 !text-xs w-14"
+                              className="input input-xs w-14"
                               disabled={!systemNotifications.events.sslCertExpiring}
                             />
                             <span className="text-xs text-gray-500">days</span>
@@ -2534,7 +2690,7 @@ export default function SettingsPage() {
                                   ...prev,
                                   events: { ...prev.events, auditLogsThreshold: e.target.checked }
                                 }))}
-                                className="mr-2"
+                                className="checkbox mr-2"
                               />
                               Audit logs &gt;
                             </label>
@@ -2546,7 +2702,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, auditLogsCount: parseInt(e.target.value) || 10000 }
                               }))}
-                              className="input !py-0.5 !px-2 !text-xs w-20"
+                              className="input input-xs w-20"
                               disabled={!systemNotifications.events.auditLogsThreshold}
                             />
                             <span className="text-xs text-gray-500">entries</span>
@@ -2560,7 +2716,7 @@ export default function SettingsPage() {
                                   ...prev,
                                   events: { ...prev.events, emailLogsThreshold: e.target.checked }
                                 }))}
-                                className="mr-2"
+                                className="checkbox mr-2"
                               />
                               Email logs &gt;
                             </label>
@@ -2572,7 +2728,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, emailLogsCount: parseInt(e.target.value) || 5000 }
                               }))}
-                              className="input !py-0.5 !px-2 !text-xs w-20"
+                              className="input input-xs w-20"
                               disabled={!systemNotifications.events.emailLogsThreshold}
                             />
                             <span className="text-xs text-gray-500">entries</span>
@@ -2586,7 +2742,7 @@ export default function SettingsPage() {
                                   ...prev,
                                   events: { ...prev.events, pdfSizeThreshold: e.target.checked }
                                 }))}
-                                className="mr-2"
+                                className="checkbox mr-2"
                               />
                               PDF storage &gt;
                             </label>
@@ -2598,7 +2754,7 @@ export default function SettingsPage() {
                                 ...prev,
                                 events: { ...prev.events, pdfSizeMb: parseInt(e.target.value) || 500 }
                               }))}
-                              className="input !py-0.5 !px-2 !text-xs w-20"
+                              className="input input-xs w-20"
                               disabled={!systemNotifications.events.pdfSizeThreshold}
                             />
                             <span className="text-xs text-gray-500">MB</span>
@@ -2613,7 +2769,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => saveSystemNotificationsMutation.mutate(systemNotifications)}
-                      className="btn btn-primary !py-1.5 !px-4 !text-sm"
+                      className="btn btn-primary"
                       disabled={saveSystemNotificationsMutation.isPending || !systemNotifications.recipientEmail}
                     >
                       {saveSystemNotificationsMutation.isPending ? 'Saving...' : 'Save Notifications'}
@@ -2630,7 +2786,7 @@ export default function SettingsPage() {
       {activeTab === 'security' && isAdmin && (
         <div className="space-y-4">
           {/* 2FA and Fail2Ban Settings */}
-          <div className="card !p-3">
+          <div className="card card-compact">
             {securitySettingsLoading ? (
               <div className="flex justify-center py-4">
                 <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
@@ -2647,7 +2803,7 @@ export default function SettingsPage() {
                     <select
                       value={securitySettings.twoFactorEnforcement}
                       onChange={(e) => setSecuritySettings({ ...securitySettings, twoFactorEnforcement: e.target.value as SecuritySettings['twoFactorEnforcement'] })}
-                      className="input !py-1 !text-xs flex-1 max-w-xs"
+                      className="input input-xs flex-1 max-w-xs"
                     >
                       <option value="disabled">Disabled</option>
                       <option value="optional">Optional</option>
@@ -2666,7 +2822,7 @@ export default function SettingsPage() {
                               setSecuritySettings({ ...securitySettings, twoFactorMethods: securitySettings.twoFactorMethods.filter(m => m !== 'email') });
                             }
                           }}
-                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                          className="checkbox"
                         />
                         <span className="text-gray-700 dark:text-gray-300">Email</span>
                       </label>
@@ -2681,7 +2837,7 @@ export default function SettingsPage() {
                               setSecuritySettings({ ...securitySettings, twoFactorMethods: securitySettings.twoFactorMethods.filter(m => m !== 'totp') });
                             }
                           }}
-                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                          className="checkbox"
                         />
                         <span className="text-gray-700 dark:text-gray-300">TOTP</span>
                       </label>
@@ -2702,7 +2858,7 @@ export default function SettingsPage() {
                       onChange={(e) => setSecuritySettings({ ...securitySettings, maxLoginAttempts: parseInt(e.target.value) || 3 })}
                       min={1}
                       max={20}
-                      className="input !py-1.5 !text-sm"
+                      className="input input-sm"
                     />
                     <p className="text-[10px] text-gray-400 mt-1">Before temporary block</p>
                   </div>
@@ -2715,7 +2871,7 @@ export default function SettingsPage() {
                       onChange={(e) => setSecuritySettings({ ...securitySettings, lockoutMinutes: parseInt(e.target.value) || 10 })}
                       min={1}
                       max={1440}
-                      className="input !py-1.5 !text-sm"
+                      className="input input-sm"
                     />
                     <p className="text-[10px] text-gray-400 mt-1">Temporary block duration</p>
                   </div>
@@ -2728,7 +2884,7 @@ export default function SettingsPage() {
                       onChange={(e) => setSecuritySettings({ ...securitySettings, permanentBlockAttempts: parseInt(e.target.value) || 10 })}
                       min={5}
                       max={100}
-                      className="input !py-1.5 !text-sm"
+                      className="input input-sm"
                     />
                     <p className="text-[10px] text-gray-400 mt-1">Total failed attempts</p>
                   </div>
@@ -2747,7 +2903,7 @@ export default function SettingsPage() {
                       onChange={(e) => setSecuritySettings({ ...securitySettings, passwordMinLength: parseInt(e.target.value) || 8 })}
                       min={6}
                       max={32}
-                      className="input !py-1.5 !text-sm"
+                      className="input input-sm"
                     />
                   </div>
 
@@ -2757,7 +2913,7 @@ export default function SettingsPage() {
                         type="checkbox"
                         checked={securitySettings.passwordRequireUppercase}
                         onChange={(e) => setSecuritySettings({ ...securitySettings, passwordRequireUppercase: e.target.checked })}
-                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                        className="checkbox"
                       />
                       <span className="text-gray-700 dark:text-gray-300">Uppercase (A-Z)</span>
                     </label>
@@ -2766,7 +2922,7 @@ export default function SettingsPage() {
                         type="checkbox"
                         checked={securitySettings.passwordRequireLowercase}
                         onChange={(e) => setSecuritySettings({ ...securitySettings, passwordRequireLowercase: e.target.checked })}
-                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                        className="checkbox"
                       />
                       <span className="text-gray-700 dark:text-gray-300">Lowercase (a-z)</span>
                     </label>
@@ -2775,7 +2931,7 @@ export default function SettingsPage() {
                         type="checkbox"
                         checked={securitySettings.passwordRequireNumbers}
                         onChange={(e) => setSecuritySettings({ ...securitySettings, passwordRequireNumbers: e.target.checked })}
-                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                        className="checkbox"
                       />
                       <span className="text-gray-700 dark:text-gray-300">Numbers (0-9)</span>
                     </label>
@@ -2784,7 +2940,7 @@ export default function SettingsPage() {
                         type="checkbox"
                         checked={securitySettings.passwordRequireSpecial}
                         onChange={(e) => setSecuritySettings({ ...securitySettings, passwordRequireSpecial: e.target.checked })}
-                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                        className="checkbox"
                       />
                       <span className="text-gray-700 dark:text-gray-300">Special (!@#$%)</span>
                     </label>
@@ -2793,7 +2949,7 @@ export default function SettingsPage() {
                   <div className="col-span-6 flex justify-end pt-2">
                     <button
                       type="submit"
-                      className="btn btn-primary !py-1.5 !px-4 !text-sm"
+                      className="btn btn-primary"
                       disabled={saveSecuritySettingsMutation.isPending}
                     >
                       {saveSecuritySettingsMutation.isPending ? 'Saving...' : 'Save Security Settings'}
@@ -2807,7 +2963,7 @@ export default function SettingsPage() {
           {/* Blocked IPs and Locked Users - Side by side */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Blocked IPs */}
-            <div className="card !p-3">
+            <div className="card card-compact">
               <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
                 <Shield className="w-4 h-4 text-red-500" />
                 Blocked IPs
@@ -2848,7 +3004,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Locked Users */}
-            <div className="card !p-3">
+            <div className="card card-compact">
               <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
                 <Lock className="w-4 h-4 text-orange-500" />
                 Locked Users
@@ -2897,7 +3053,7 @@ export default function SettingsPage() {
       {/* My Account Tab */}
       {activeTab === 'my-account' && (
         <div className="space-y-4">
-          <div className="card !p-4">
+          <div className="card">
             <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
               <KeyRound className="w-4 h-4" />
               Two-Factor Authentication
@@ -2931,14 +3087,14 @@ export default function SettingsPage() {
                         <button
                           onClick={() => regenerateBackupCodesMutation.mutate()}
                           disabled={regenerateBackupCodesMutation.isPending}
-                          className="btn btn-secondary !py-1.5 !px-3 !text-sm"
+                          className="btn btn-secondary"
                         >
                           {regenerateBackupCodesMutation.isPending ? 'Generating...' : 'Regenerate Backup Codes'}
                         </button>
                       )}
                       <button
                         onClick={() => setDisable2FAModalOpen(true)}
-                        className="btn !py-1.5 !px-3 !text-sm bg-red-600 hover:bg-red-700 text-white"
+                        className="btn btn-danger"
                       >
                         Disable 2FA
                       </button>
@@ -2949,7 +3105,7 @@ export default function SettingsPage() {
                         resetSetup2FAState();
                         setSetup2FAModalOpen(true);
                       }}
-                      className="btn btn-primary !py-1.5 !px-3 !text-sm"
+                      className="btn btn-primary"
                     >
                       Enable 2FA
                     </button>
@@ -2967,7 +3123,7 @@ export default function SettingsPage() {
 
           {/* Backup Codes Display (after regeneration) */}
           {backupCodesToShow.length > 0 && (
-            <div className="card !p-4">
+            <div className="card">
               <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">
                 Your Backup Codes
               </h3>
@@ -2993,14 +3149,14 @@ export default function SettingsPage() {
                       toast.error(t('common.clipboardFailed'));
                     }
                   }}
-                  className="btn btn-secondary !py-1.5 !px-3 !text-sm flex items-center gap-2"
+                  className="btn btn-secondary flex items-center gap-2"
                 >
                   <Copy className="w-4 h-4" />
                   Copy Codes
                 </button>
                 <button
                   onClick={() => setBackupCodesToShow([])}
-                  className="btn btn-primary !py-1.5 !px-3 !text-sm"
+                  className="btn btn-primary"
                 >
                   Done
                 </button>
@@ -3204,6 +3360,9 @@ export default function SettingsPage() {
         </div>
       </Modal>
 
+      {/* Appearance Tab */}
+      {activeTab === 'appearance' && <AppearanceTab />}
+
       {/* Owner Tab */}
       {activeTab === 'owner' && (
         <div className="space-y-4">
@@ -3214,7 +3373,7 @@ export default function SettingsPage() {
           ) : (
             <>
               {/* Company Info */}
-              <div className="card !p-4">
+              <div className="card">
                 <form onSubmit={handleCompanyInfoSubmit}>
                   <div className="flex gap-4">
                     {/* Logo */}
@@ -3240,54 +3399,54 @@ export default function SettingsPage() {
                       {/* Row 1: Company Name + Website */}
                       <div className="col-span-3">
                         <label className="text-[11px] text-gray-500 dark:text-gray-400">Company Name *</label>
-                        <input value={companyInfo.name || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, name: e.target.value })} className="input !py-1.5 !text-sm" required />
+                        <input value={companyInfo.name || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, name: e.target.value })} className="input input-sm" required />
                       </div>
                       <div className="col-span-2">
                         <label className="text-[11px] text-gray-500 dark:text-gray-400">Website</label>
-                        <input value={companyInfo.website || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, website: e.target.value })} className="input !py-1.5 !text-sm" placeholder="https://" />
+                        <input value={companyInfo.website || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, website: e.target.value })} className="input input-sm" placeholder="https://" />
                       </div>
                       <div className="col-span-1">
                         <label className="text-[11px] text-gray-500 dark:text-gray-400">PIB</label>
-                        <input value={companyInfo.pib || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, pib: e.target.value })} className="input !py-1.5 !text-sm" />
+                        <input value={companyInfo.pib || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, pib: e.target.value })} className="input input-sm" />
                       </div>
 
                       {/* Row 2: Address + Email */}
                       <div className="col-span-3">
                         <label className="text-[11px] text-gray-500 dark:text-gray-400">Address</label>
-                        <input value={companyInfo.address || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, address: e.target.value })} className="input !py-1.5 !text-sm" />
+                        <input value={companyInfo.address || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, address: e.target.value })} className="input input-sm" />
                       </div>
                       <div className="col-span-2">
                         <label className="text-[11px] text-gray-500 dark:text-gray-400">Email</label>
-                        <input type="email" value={companyInfo.email || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, email: e.target.value })} className="input !py-1.5 !text-sm" />
+                        <input type="email" value={companyInfo.email || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, email: e.target.value })} className="input input-sm" />
                       </div>
                       <div className="col-span-1">
                         <label className="text-[11px] text-gray-500 dark:text-gray-400">MIB</label>
-                        <input value={companyInfo.mib || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, mib: e.target.value })} className="input !py-1.5 !text-sm" />
+                        <input value={companyInfo.mib || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, mib: e.target.value })} className="input input-sm" />
                       </div>
 
                       {/* Row 3: City/Postal/Country + Phones */}
                       <div className="col-span-1">
                         <label className="text-[11px] text-gray-500 dark:text-gray-400">Postal Code</label>
-                        <input value={companyInfo.postalCode || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, postalCode: e.target.value })} className="input !py-1.5 !text-sm" />
+                        <input value={companyInfo.postalCode || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, postalCode: e.target.value })} className="input input-sm" />
                       </div>
                       <div className="col-span-1">
                         <label className="text-[11px] text-gray-500 dark:text-gray-400">City</label>
-                        <input value={companyInfo.city || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, city: e.target.value })} className="input !py-1.5 !text-sm" />
+                        <input value={companyInfo.city || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, city: e.target.value })} className="input input-sm" />
                       </div>
                       <div className="col-span-1">
                         <label className="text-[11px] text-gray-500 dark:text-gray-400">Country</label>
-                        <input value={companyInfo.country || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, country: e.target.value })} className="input !py-1.5 !text-sm" />
+                        <input value={companyInfo.country || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, country: e.target.value })} className="input input-sm" />
                       </div>
                       <div className="col-span-1">
                         <label className="text-[11px] text-gray-500 dark:text-gray-400">Phone</label>
-                        <input value={companyInfo.phone || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, phone: e.target.value })} className="input !py-1.5 !text-sm" />
+                        <input value={companyInfo.phone || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, phone: e.target.value })} className="input input-sm" />
                       </div>
                       <div className="col-span-1">
                         <label className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center justify-between">
                           Phone 2
                           {!companyInfo.phone2 && <span className="text-[10px] text-gray-400 italic">optional</span>}
                         </label>
-                        <input value={companyInfo.phone2 || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, phone2: e.target.value })} className="input !py-1.5 !text-sm" />
+                        <input value={companyInfo.phone2 || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, phone2: e.target.value })} className="input input-sm" />
                       </div>
                       <div className="col-span-1"></div>
 
@@ -3298,9 +3457,9 @@ export default function SettingsPage() {
                       <div className="col-span-6 flex items-center gap-3">
                         <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20 flex-shrink-0">Primary</span>
                         <div className="flex-1 grid grid-cols-3 gap-3">
-                          <input value={companyInfo.contactName || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, contactName: e.target.value })} className="input !py-1.5 !text-sm" placeholder="Name" />
-                          <input value={companyInfo.contactPhone || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, contactPhone: e.target.value })} className="input !py-1.5 !text-sm" placeholder="Phone" />
-                          <input type="email" value={companyInfo.contactEmail || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, contactEmail: e.target.value })} className="input !py-1.5 !text-sm" placeholder="Email" />
+                          <input value={companyInfo.contactName || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, contactName: e.target.value })} className="input input-sm" placeholder="Name" />
+                          <input value={companyInfo.contactPhone || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, contactPhone: e.target.value })} className="input input-sm" placeholder="Phone" />
+                          <input type="email" value={companyInfo.contactEmail || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, contactEmail: e.target.value })} className="input input-sm" placeholder="Email" />
                         </div>
                       </div>
 
@@ -3308,15 +3467,15 @@ export default function SettingsPage() {
                       <div className="col-span-6 flex items-center gap-3">
                         <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20 flex-shrink-0">Technical</span>
                         <div className="flex-1 grid grid-cols-3 gap-3">
-                          <input value={companyInfo.techContactName || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, techContactName: e.target.value })} className="input !py-1.5 !text-sm" placeholder="Name" />
-                          <input value={companyInfo.techContactPhone || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, techContactPhone: e.target.value })} className="input !py-1.5 !text-sm" placeholder="Phone" />
-                          <input type="email" value={companyInfo.techContactEmail || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, techContactEmail: e.target.value })} className="input !py-1.5 !text-sm" placeholder="Email" />
+                          <input value={companyInfo.techContactName || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, techContactName: e.target.value })} className="input input-sm" placeholder="Name" />
+                          <input value={companyInfo.techContactPhone || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, techContactPhone: e.target.value })} className="input input-sm" placeholder="Phone" />
+                          <input type="email" value={companyInfo.techContactEmail || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, techContactEmail: e.target.value })} className="input input-sm" placeholder="Email" />
                         </div>
                       </div>
 
                       {/* Save Button */}
                       <div className="col-span-6 flex justify-end pt-2">
-                        <button type="submit" className="btn btn-primary !py-1.5 !px-4 !text-sm" disabled={saveCompanyInfoMutation.isPending}>
+                        <button type="submit" className="btn btn-primary" disabled={saveCompanyInfoMutation.isPending}>
                           {saveCompanyInfoMutation.isPending ? 'Saving...' : 'Save Changes'}
                         </button>
                       </div>
@@ -3326,7 +3485,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Bank Accounts */}
-              <div className="card !p-0 overflow-hidden">
+              <div className="card card-flush overflow-hidden">
                 <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                   <h2 className="font-semibold">Bank Accounts</h2>
                   <button onClick={() => { setSelectedBankAccount(null); setBankAccountModalOpen(true); }} className="btn btn-primary btn-sm flex items-center">
@@ -3351,8 +3510,8 @@ export default function SettingsPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           {!account.isDefault && <button onClick={(e) => { e.stopPropagation(); setDefaultBankAccountMutation.mutate(account.id); }} className="p-1.5 text-gray-400 hover:text-yellow-600 rounded" title="Set default"><Star className="w-3.5 h-3.5" /></button>}
-                          <button onClick={(e) => { e.stopPropagation(); setSelectedBankAccount(account); setBankAccountModalOpen(true); }} className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"><Pencil className="w-3 h-3" />Edit</button>
-                          <button onClick={(e) => { e.stopPropagation(); setSelectedBankAccount(account); setDeleteBankAccountDialogOpen(true); }} className="!text-xs !py-1 !px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150">Delete</button>
+                          <button onClick={(e) => { e.stopPropagation(); setSelectedBankAccount(account); setBankAccountModalOpen(true); }} className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"><Pencil className="w-3 h-3" />Edit</button>
+                          <button onClick={(e) => { e.stopPropagation(); setSelectedBankAccount(account); setDeleteBankAccountDialogOpen(true); }} className="text-xs py-1 px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150">Delete</button>
                         </div>
                       </div>
                     ))}
@@ -3367,7 +3526,7 @@ export default function SettingsPage() {
       {/* IMAP/SMTP Tab */}
       {activeTab === 'smtp' && (
         <div className="space-y-4">
-          <div className="card !p-4">
+          <div className="card">
             {mailSettingsLoading ? (
               <div className="flex justify-center py-6">
                 <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
@@ -3381,7 +3540,7 @@ export default function SettingsPage() {
                     <input
                       value={mailSettings.host}
                       onChange={(e) => setMailSettings({ ...mailSettings, host: e.target.value })}
-                      className="input !py-1.5 !text-sm"
+                      className="input input-sm"
                       placeholder="mail.example.com"
                       required
                     />
@@ -3396,7 +3555,7 @@ export default function SettingsPage() {
                           type="number"
                           value={mailSettings.port}
                           onChange={(e) => setMailSettings({ ...mailSettings, port: parseInt(e.target.value) || 587 })}
-                          className="input !py-1.5 !text-sm"
+                          className="input input-sm"
                           placeholder="587"
                           required
                         />
@@ -3407,7 +3566,7 @@ export default function SettingsPage() {
                             type="checkbox"
                             checked={mailSettings.secure}
                             onChange={(e) => setMailSettings({ ...mailSettings, secure: e.target.checked })}
-                            className="mr-1.5"
+                            className="checkbox mr-1.5"
                           />
                           SSL/TLS
                         </label>
@@ -3422,7 +3581,7 @@ export default function SettingsPage() {
                           type="number"
                           value={mailSettings.imapPort}
                           onChange={(e) => setMailSettings({ ...mailSettings, imapPort: parseInt(e.target.value) || 993 })}
-                          className="input !py-1.5 !text-sm"
+                          className="input input-sm"
                           placeholder="993"
                         />
                       </div>
@@ -3432,7 +3591,7 @@ export default function SettingsPage() {
                             type="checkbox"
                             checked={mailSettings.imapSecure}
                             onChange={(e) => setMailSettings({ ...mailSettings, imapSecure: e.target.checked })}
-                            className="mr-1.5"
+                            className="checkbox mr-1.5"
                           />
                           SSL/TLS
                         </label>
@@ -3446,7 +3605,7 @@ export default function SettingsPage() {
                     <input
                       value={mailSettings.user}
                       onChange={(e) => setMailSettings({ ...mailSettings, user: e.target.value })}
-                      className="input !py-1.5 !text-sm"
+                      className="input input-sm"
                       placeholder="user@example.com"
                     />
                   </div>
@@ -3457,7 +3616,7 @@ export default function SettingsPage() {
                         type={showPassword ? 'text' : 'password'}
                         value={mailSettings.password}
                         onChange={(e) => setMailSettings({ ...mailSettings, password: e.target.value })}
-                        className="input !py-1.5 !text-sm pr-10"
+                        className="input input-sm pr-10"
                         placeholder="********"
                       />
                       <button
@@ -3477,7 +3636,7 @@ export default function SettingsPage() {
                       type="email"
                       value={mailSettings.fromEmail}
                       onChange={(e) => setMailSettings({ ...mailSettings, fromEmail: e.target.value })}
-                      className="input !py-1.5 !text-sm"
+                      className="input input-sm"
                       placeholder="noreply@example.com"
                       required
                     />
@@ -3487,7 +3646,7 @@ export default function SettingsPage() {
                     <input
                       value={mailSettings.fromName}
                       onChange={(e) => setMailSettings({ ...mailSettings, fromName: e.target.value })}
-                      className="input !py-1.5 !text-sm"
+                      className="input input-sm"
                       placeholder="Hosting Panel"
                     />
                   </div>
@@ -3497,7 +3656,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => verifySmtpMutation.mutate()}
-                      className="btn btn-secondary !py-1.5 !px-3 !text-sm flex items-center"
+                      className="btn btn-secondary flex items-center"
                       disabled={verifySmtpMutation.isPending}
                     >
                       {verifySmtpMutation.isPending ? (
@@ -3510,7 +3669,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => verifyImapMutation.mutate()}
-                      className="btn btn-secondary !py-1.5 !px-3 !text-sm flex items-center"
+                      className="btn btn-secondary flex items-center"
                       disabled={verifyImapMutation.isPending || !mailSettings.imapPort}
                     >
                       {verifyImapMutation.isPending ? (
@@ -3522,7 +3681,7 @@ export default function SettingsPage() {
                     </button>
                     <button
                       type="submit"
-                      className="btn btn-primary !py-1.5 !px-4 !text-sm"
+                      className="btn btn-primary"
                       disabled={saveMailSettingsMutation.isPending}
                     >
                       {saveMailSettingsMutation.isPending ? 'Saving...' : 'Save'}
@@ -3534,7 +3693,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Test Email */}
-          <div className="card !p-4">
+          <div className="card">
             <div className="flex items-center gap-3">
               <label className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">Test Email</label>
               <input
@@ -3542,12 +3701,12 @@ export default function SettingsPage() {
                 value={testEmail}
                 onChange={(e) => setTestEmail(e.target.value)}
                 placeholder="test@example.com"
-                className="input !py-1.5 !text-sm flex-1"
+                className="input input-sm flex-1"
               />
               <button
                 onClick={() => testEmail && saveTestEmailMutation.mutate(testEmail)}
                 disabled={!testEmail || saveTestEmailMutation.isPending}
-                className="btn btn-secondary !py-1.5 !px-3 !text-sm flex items-center"
+                className="btn btn-secondary flex items-center"
               >
                 <Save className="w-3.5 h-3.5 mr-1.5" />
                 {saveTestEmailMutation.isPending ? 'Saving...' : 'Save'}
@@ -3555,7 +3714,7 @@ export default function SettingsPage() {
               <button
                 onClick={() => testEmail && testSmtpMutation.mutate(testEmail)}
                 disabled={!testEmail || testSmtpMutation.isPending}
-                className="btn btn-primary !py-1.5 !px-3 !text-sm flex items-center"
+                className="btn btn-primary flex items-center"
               >
                 <Send className="w-3.5 h-3.5 mr-1.5" />
                 {testSmtpMutation.isPending ? 'Sending...' : 'Send'}
@@ -3568,7 +3727,7 @@ export default function SettingsPage() {
       {/* Mail Servers Tab */}
       {activeTab === 'mail-servers' && (
         <div className="space-y-4">
-          <div className="card !p-0 overflow-hidden">
+          <div className="card card-flush overflow-hidden">
             <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
               <div className="relative flex-1 max-w-xs">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -3577,7 +3736,7 @@ export default function SettingsPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search..."
-                  className="input !py-1.5 !text-sm w-full pl-8"
+                  className="input input-sm w-full pl-8"
                 />
               </div>
               <button
@@ -3630,13 +3789,13 @@ export default function SettingsPage() {
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); setSelectedMailServer(server); setMailServerModalOpen(true); }}
-                        className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                        className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                       >
                         <Pencil className="w-3 h-3" />Edit
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setSelectedMailServer(server); setDeleteMailServerDialogOpen(true); }}
-                        className="!text-xs !py-1 !px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                        className="text-xs py-1 px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
                       >
                         Delete
                       </button>
@@ -3652,7 +3811,7 @@ export default function SettingsPage() {
       {/* Mail Security Tab */}
       {activeTab === 'mail-security' && (
         <div className="space-y-4">
-          <div className="card !p-0 overflow-hidden">
+          <div className="card card-flush overflow-hidden">
             <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
               <div className="relative flex-1 max-w-xs">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -3661,7 +3820,7 @@ export default function SettingsPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search..."
-                  className="input !py-1.5 !text-sm w-full pl-8"
+                  className="input input-sm w-full pl-8"
                 />
               </div>
               <button
@@ -3714,13 +3873,13 @@ export default function SettingsPage() {
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); setSelectedMailSecurity(service); setMailSecurityModalOpen(true); }}
-                        className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                        className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                       >
                         <Pencil className="w-3 h-3" />Edit
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setSelectedMailSecurity(service); setDeleteMailSecurityDialogOpen(true); }}
-                        className="!text-xs !py-1 !px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                        className="text-xs py-1 px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
                       >
                         Delete
                       </button>
@@ -3735,7 +3894,7 @@ export default function SettingsPage() {
 
       {/* Packages Tab */}
       {activeTab === 'packages' && (
-        <div className="card !p-0 overflow-hidden">
+        <div className="card card-flush overflow-hidden">
           <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <div className="relative flex-1 max-w-xs">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -3744,7 +3903,7 @@ export default function SettingsPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search..."
-                className="input !py-1.5 !text-sm w-full pl-8"
+                className="input input-sm w-full pl-8"
               />
             </div>
             <button
@@ -3824,14 +3983,14 @@ export default function SettingsPage() {
                           setSelectedMailSecurityId(pkg.mailSecurityId || null);
                           setPackageModalOpen(true);
                         }}
-                        className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                        className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                       >
                         <Pencil className="w-3 h-3" />
                         Edit
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setSelectedPackage(pkg); setDeletePackageDialogOpen(true); }}
-                        className="!text-xs !py-1 !px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                        className="text-xs py-1 px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
                       >
                         Delete
                       </button>
@@ -3846,7 +4005,7 @@ export default function SettingsPage() {
 
       {/* Notifications Tab */}
       {activeTab === 'notifications' && (
-        <div className="card !p-0 overflow-hidden">
+        <div className="card card-flush overflow-hidden">
           <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <div className="relative flex-1 max-w-xs">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -3855,7 +4014,7 @@ export default function SettingsPage() {
                 value={notificationSearchTerm}
                 onChange={(e) => setNotificationSearchTerm(e.target.value)}
                 placeholder="Search..."
-                className="input !py-1.5 !text-sm w-full pl-8"
+                className="input input-sm w-full pl-8"
               />
             </div>
             <button
@@ -3946,14 +4105,14 @@ export default function SettingsPage() {
                       }
                     }}
                     disabled={testNotificationMutation.isPending}
-                    className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-200 hover:border-blue-400 active:bg-blue-300 active:scale-[0.97] dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/50 dark:hover:bg-blue-500/40 dark:hover:border-blue-400/70 dark:active:bg-blue-500/50 transition-all duration-150"
+                    className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-200 hover:border-blue-400 active:bg-blue-300 active:scale-[0.97] dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/50 dark:hover:bg-blue-500/40 dark:hover:border-blue-400/70 dark:active:bg-blue-500/50 transition-all duration-150"
                   >
                     <Send className="w-3 h-3" />
                     Test
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); openNotificationModal(setting); }}
-                    className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                    className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                   >
                     <Pencil className="w-3 h-3" />
                     Edit
@@ -3961,14 +4120,14 @@ export default function SettingsPage() {
                   <button
                     onClick={(e) => { e.stopPropagation(); copyNotificationMutation.mutate(setting); }}
                     disabled={copyNotificationMutation.isPending}
-                    className="btn btn-secondary !text-xs !py-1 !px-2 flex items-center gap-1"
+                    className="btn btn-secondary btn-sm flex items-center gap-1"
                   >
                     <Copy className="w-3 h-3" />
                     Copy
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setSelectedNotification(setting); setDeleteNotificationDialogOpen(true); }}
-                    className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                    className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
                   >
                     <Trash2 className="w-3 h-3" />
                     Delete
@@ -3984,7 +4143,7 @@ export default function SettingsPage() {
       {/* Templates Tab */}
       {activeTab === 'templates' && (
         <div className="space-y-4">
-          <div className="card !p-0 overflow-hidden">
+          <div className="card card-flush overflow-hidden">
             <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
               <div className="relative flex-1 max-w-xs">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -3993,7 +4152,7 @@ export default function SettingsPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search..."
-                  className="input !py-1.5 !text-sm w-full pl-8"
+                  className="input input-sm w-full pl-8"
                 />
               </div>
               <button
@@ -4066,14 +4225,14 @@ export default function SettingsPage() {
                           }
                         }}
                         disabled={testTemplateMutation.isPending}
-                        className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-200 hover:border-blue-400 active:bg-blue-300 active:scale-[0.97] dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/50 dark:hover:bg-blue-500/40 dark:hover:border-blue-400/70 dark:active:bg-blue-500/50 transition-all duration-150"
+                        className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-200 hover:border-blue-400 active:bg-blue-300 active:scale-[0.97] dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/50 dark:hover:bg-blue-500/40 dark:hover:border-blue-400/70 dark:active:bg-blue-500/50 transition-all duration-150"
                       >
                         <Send className="w-3 h-3" />
                         Test
                       </button>
                       <button
                         onClick={(e) => handleTemplatePreview(e, tmpl)}
-                        className="btn btn-secondary !text-xs !py-1 !px-2 flex items-center gap-1"
+                        className="btn btn-secondary btn-sm flex items-center gap-1"
                         title="Preview"
                       >
                         <Eye className="w-3 h-3" />
@@ -4081,14 +4240,14 @@ export default function SettingsPage() {
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); openTemplateModal(tmpl); }}
-                        className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                        className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                       >
                         <Pencil className="w-3 h-3" />
                         Edit
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); copyTemplateMutation.mutate(tmpl); }}
-                        className="btn btn-secondary !text-xs !py-1 !px-2 flex items-center gap-1"
+                        className="btn btn-secondary btn-sm flex items-center gap-1"
                         disabled={copyTemplateMutation.isPending}
                       >
                         <Copy className="w-3 h-3" />
@@ -4096,7 +4255,7 @@ export default function SettingsPage() {
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setSelectedTemplate(tmpl); setDeleteTemplateDialogOpen(true); }}
-                        className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                        className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
                       >
                         <Trash2 className="w-3 h-3" />
                         Delete
@@ -4114,7 +4273,7 @@ export default function SettingsPage() {
       {activeTab === 'import-export' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Import Section */}
-          <div className="card !p-4">
+          <div className="card">
             <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
               <Upload className="w-4 h-4 text-primary-600" />
               Import
@@ -4127,7 +4286,7 @@ export default function SettingsPage() {
                 <select
                   value={importType}
                   onChange={(e) => { setImportType(e.target.value); setImportValidation(null); setImportData(null); }}
-                  className="input !py-1.5 !text-sm w-full"
+                  className="input input-sm w-full"
                 >
                   <option value="all">Complete backup (JSON)</option>
                   <option value="clients">Clients</option>
@@ -4156,7 +4315,7 @@ export default function SettingsPage() {
               <div>
                 <button
                   onClick={() => csvInputRef.current?.click()}
-                  className="btn btn-primary w-full !py-2 !text-sm flex items-center justify-center"
+                  className="btn btn-primary w-full flex items-center justify-center"
                 >
                   <Upload className="w-4 h-4 mr-2" />
                   Select file ({importType === 'all' ? '.json' : '.csv, .json'})
@@ -4196,7 +4355,7 @@ export default function SettingsPage() {
                   {importValidation.valid && (
                     <button
                       onClick={handleImportConfirm}
-                      className="mt-3 btn btn-primary w-full !py-1.5 !text-sm"
+                      className="mt-3 btn btn-primary w-full"
                     >
                       Confirm import
                     </button>
@@ -4207,7 +4366,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Export Section */}
-          <div className="card !p-4">
+          <div className="card">
             <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
               <Download className="w-4 h-4 text-primary-600" />
               Export
@@ -4223,7 +4382,7 @@ export default function SettingsPage() {
                       type="checkbox"
                       checked={exportTypes.includes('all')}
                       onChange={(e) => setExportTypes(e.target.checked ? ['all'] : [])}
-                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      className="checkbox"
                     />
                     <span className="text-gray-700 dark:text-gray-300 font-medium">All (complete backup)</span>
                   </label>
@@ -4250,7 +4409,7 @@ export default function SettingsPage() {
                                 setExportTypes(exportTypes.filter(t => t !== item.id));
                               }
                             }}
-                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                            className="checkbox"
                           />
                           <span className="text-gray-600 dark:text-gray-400">{item.label}</span>
                         </label>
@@ -4265,7 +4424,7 @@ export default function SettingsPage() {
                 <button
                   onClick={() => handleExport('json')}
                   disabled={exportTypes.length === 0 || exportLoading}
-                  className="btn btn-primary flex-1 !py-2 !text-sm flex items-center justify-center"
+                  className="btn btn-primary flex-1 flex items-center justify-center"
                 >
                   {exportLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
                   {exportLoading ? 'Loading...' : 'Export JSON'}
@@ -4273,7 +4432,7 @@ export default function SettingsPage() {
                 {!exportTypes.includes('all') && exportTypes.length === 1 && (
                   <button
                     onClick={() => handleExport('csv')}
-                    className="btn btn-secondary flex-1 !py-2 !text-sm flex items-center justify-center"
+                    className="btn btn-secondary flex-1 flex items-center justify-center"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Export CSV
@@ -4294,7 +4453,7 @@ export default function SettingsPage() {
       {/* Users Tab */}
       {activeTab === 'users' && isAdmin && (
         <div className="space-y-4">
-          <div className="card !p-0 overflow-hidden">
+          <div className="card card-flush overflow-hidden">
             <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
               <div className="relative flex-1 max-w-xs">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -4303,7 +4462,7 @@ export default function SettingsPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search..."
-                  className="input !py-1.5 !text-sm w-full pl-8"
+                  className="input input-sm w-full pl-8"
                 />
               </div>
               <button
@@ -4367,7 +4526,7 @@ export default function SettingsPage() {
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleUserActiveMutation.mutate(user.id); }}
                         disabled={toggleUserActiveMutation.isPending}
-                        className={`!text-xs !py-1 !px-2 rounded border transition-all duration-150 ${
+                        className={`text-xs py-1 px-2 rounded border transition-all duration-150 ${
                           user.isActive === false
                             ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/50'
                             : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-200 dark:bg-gray-500/20 dark:text-gray-300 dark:border-gray-500/50'
@@ -4377,13 +4536,13 @@ export default function SettingsPage() {
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setUserModalOpen(true); }}
-                        className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                        className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                       >
                         <Pencil className="w-3 h-3" />Uredi
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setDeleteUserDialogOpen(true); }}
-                        className="!text-xs !py-1 !px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                        className="text-xs py-1 px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
                       >
                         Delete
                       </button>
@@ -4406,27 +4565,27 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">First Name *</label>
-              <input name="firstName" defaultValue={selectedUser?.firstName || ''} className="input !py-1.5 !text-sm" required />
+              <input name="firstName" defaultValue={selectedUser?.firstName || ''} className="input input-sm" required />
             </div>
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Last Name *</label>
-              <input name="lastName" defaultValue={selectedUser?.lastName || ''} className="input !py-1.5 !text-sm" required />
+              <input name="lastName" defaultValue={selectedUser?.lastName || ''} className="input input-sm" required />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Email *</label>
-              <input name="email" type="email" defaultValue={selectedUser?.email} className="input !py-1.5 !text-sm" required />
+              <input name="email" type="email" defaultValue={selectedUser?.email} className="input input-sm" required />
             </div>
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Phone</label>
-              <input name="phone" type="tel" defaultValue={selectedUser?.phone || ''} className="input !py-1.5 !text-sm" placeholder="+381..." />
+              <input name="phone" type="tel" defaultValue={selectedUser?.phone || ''} className="input input-sm" placeholder="+381..." />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Role *</label>
-              <select name="role" defaultValue={selectedUser?.role || 'sales'} className="input !py-1.5 !text-sm" required>
+              <select name="role" defaultValue={selectedUser?.role || 'sales'} className="input input-sm" required>
                 <option value="sales">Sales</option>
                 <option value="salesadmin">Sales Admin</option>
                 <option value="admin">Administrator</option>
@@ -4440,7 +4599,7 @@ export default function SettingsPage() {
                     type="checkbox"
                     name="isActive"
                     defaultChecked={selectedUser?.isActive !== false}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    className="checkbox"
                   />
                   <span className="text-gray-700 dark:text-gray-300">Active</span>
                 </label>
@@ -4461,7 +4620,7 @@ export default function SettingsPage() {
                     type="checkbox"
                     name="sendInvite"
                     id="sendInvite"
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    className="checkbox"
                   />
                   <span className="text-gray-700 dark:text-gray-300">Send invitation by email</span>
                 </label>
@@ -4476,7 +4635,7 @@ export default function SettingsPage() {
               <input
                 name="password"
                 type="password"
-                className="input !py-1.5 !text-sm"
+                className="input input-sm"
                 id="passwordField"
                 placeholder="If you send an invitation, the password will be generated automatically"
               />
@@ -4491,16 +4650,16 @@ export default function SettingsPage() {
               <input
                 name="password"
                 type="password"
-                className="input !py-1.5 !text-sm"
+                className="input input-sm"
                 placeholder="Leave blank to keep current"
               />
             </div>
           )}
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setUserModalOpen(false)} className="btn btn-secondary !py-1.5 !px-3 !text-sm">
+            <button type="button" onClick={() => setUserModalOpen(false)} className="btn btn-secondary">
               Odustani
             </button>
-            <button type="submit" className="btn btn-primary !py-1.5 !px-4 !text-sm" disabled={saveUserMutation.isPending}>
+            <button type="submit" className="btn btn-primary" disabled={saveUserMutation.isPending}>
               {saveUserMutation.isPending ? 'Saving...' : 'Save'}
             </button>
           </div>
@@ -4517,26 +4676,26 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Name *</label>
-              <input name="name" defaultValue={selectedMailServer?.name} className="input !py-1.5 !text-sm" required placeholder="e.g. Mail Server 1" />
+              <input name="name" defaultValue={selectedMailServer?.name} className="input input-sm" required placeholder="e.g. Mail Server 1" />
             </div>
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Hostname *</label>
-              <input name="hostname" defaultValue={selectedMailServer?.hostname} className="input !py-1.5 !text-sm" required placeholder="mail.example.com" />
+              <input name="hostname" defaultValue={selectedMailServer?.hostname} className="input input-sm" required placeholder="mail.example.com" />
             </div>
           </div>
           <div>
             <label className="text-[11px] text-gray-500 dark:text-gray-400">Description</label>
-            <input name="description" defaultValue={selectedMailServer?.description || ''} className="input !py-1.5 !text-sm" placeholder="Optional description" />
+            <input name="description" defaultValue={selectedMailServer?.description || ''} className="input input-sm" placeholder="Optional description" />
           </div>
           <div className="flex items-center">
-            <input name="isDefault" type="checkbox" defaultChecked={selectedMailServer?.isDefault || false} className="mr-2" />
+            <input name="isDefault" type="checkbox" defaultChecked={selectedMailServer?.isDefault || false} className="checkbox mr-2" />
             <label className="text-sm text-gray-700 dark:text-gray-300">Set as default</label>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setMailServerModalOpen(false)} className="btn btn-secondary !py-1.5 !px-3 !text-sm">
+            <button type="button" onClick={() => setMailServerModalOpen(false)} className="btn btn-secondary">
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary !py-1.5 !px-4 !text-sm" disabled={saveMailServerMutation.isPending}>
+            <button type="submit" className="btn btn-primary" disabled={saveMailServerMutation.isPending}>
               {saveMailServerMutation.isPending ? 'Saving...' : 'Save'}
             </button>
           </div>
@@ -4553,26 +4712,26 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Name *</label>
-              <input name="name" defaultValue={selectedMailSecurity?.name} className="input !py-1.5 !text-sm" required placeholder="e.g. SpamExperts" />
+              <input name="name" defaultValue={selectedMailSecurity?.name} className="input input-sm" required placeholder="e.g. SpamExperts" />
             </div>
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Hostname *</label>
-              <input name="hostname" defaultValue={selectedMailSecurity?.hostname} className="input !py-1.5 !text-sm" required placeholder="security.example.com" />
+              <input name="hostname" defaultValue={selectedMailSecurity?.hostname} className="input input-sm" required placeholder="security.example.com" />
             </div>
           </div>
           <div>
             <label className="text-[11px] text-gray-500 dark:text-gray-400">Description</label>
-            <input name="description" defaultValue={selectedMailSecurity?.description || ''} className="input !py-1.5 !text-sm" placeholder="Optional description" />
+            <input name="description" defaultValue={selectedMailSecurity?.description || ''} className="input input-sm" placeholder="Optional description" />
           </div>
           <div className="flex items-center">
-            <input name="isDefault" type="checkbox" defaultChecked={selectedMailSecurity?.isDefault || false} className="mr-2" />
+            <input name="isDefault" type="checkbox" defaultChecked={selectedMailSecurity?.isDefault || false} className="checkbox mr-2" />
             <label className="text-sm text-gray-700 dark:text-gray-300">Set as default</label>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setMailSecurityModalOpen(false)} className="btn btn-secondary !py-1.5 !px-3 !text-sm">
+            <button type="button" onClick={() => setMailSecurityModalOpen(false)} className="btn btn-secondary">
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary !py-1.5 !px-4 !text-sm" disabled={saveMailSecurityMutation.isPending}>
+            <button type="submit" className="btn btn-primary" disabled={saveMailSecurityMutation.isPending}>
               {saveMailSecurityMutation.isPending ? 'Saving...' : 'Save'}
             </button>
           </div>
@@ -4589,32 +4748,32 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Bank Name *</label>
-              <input name="bankName" defaultValue={selectedBankAccount?.bankName} className="input !py-1.5 !text-sm" required placeholder="e.g. Banca Intesa" />
+              <input name="bankName" defaultValue={selectedBankAccount?.bankName} className="input input-sm" required placeholder="e.g. Banca Intesa" />
             </div>
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Account Number *</label>
-              <input name="accountNumber" defaultValue={selectedBankAccount?.accountNumber} className="input !py-1.5 !text-sm" required placeholder="160-0000000000000-00" />
+              <input name="accountNumber" defaultValue={selectedBankAccount?.accountNumber} className="input input-sm" required placeholder="160-0000000000000-00" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">SWIFT</label>
-              <input name="swift" defaultValue={selectedBankAccount?.swift || ''} className="input !py-1.5 !text-sm" placeholder="DBDBRSBG" />
+              <input name="swift" defaultValue={selectedBankAccount?.swift || ''} className="input input-sm" placeholder="DBDBRSBG" />
             </div>
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">IBAN</label>
-              <input name="iban" defaultValue={selectedBankAccount?.iban || ''} className="input !py-1.5 !text-sm" placeholder="RS35..." />
+              <input name="iban" defaultValue={selectedBankAccount?.iban || ''} className="input input-sm" placeholder="RS35..." />
             </div>
           </div>
           <div className="flex items-center">
-            <input name="isDefault" type="checkbox" defaultChecked={selectedBankAccount?.isDefault || false} className="mr-2" />
+            <input name="isDefault" type="checkbox" defaultChecked={selectedBankAccount?.isDefault || false} className="checkbox mr-2" />
             <label className="text-sm text-gray-700 dark:text-gray-300">Set as default</label>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setBankAccountModalOpen(false)} className="btn btn-secondary !py-1.5 !px-3 !text-sm">
+            <button type="button" onClick={() => setBankAccountModalOpen(false)} className="btn btn-secondary">
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary !py-1.5 !px-4 !text-sm" disabled={saveBankAccountMutation.isPending}>
+            <button type="submit" className="btn btn-primary" disabled={saveBankAccountMutation.isPending}>
               {saveBankAccountMutation.isPending ? 'Saving...' : 'Save'}
             </button>
           </div>
@@ -4637,7 +4796,7 @@ export default function SettingsPage() {
                 type="text"
                 value={notificationForm.name}
                 onChange={(e) => setNotificationForm({ ...notificationForm, name: e.target.value })}
-                className="input !py-1.5 !text-sm"
+                className="input input-sm"
                 placeholder="e.g. Hosting Expiry Reminder"
                 required
               />
@@ -4647,7 +4806,7 @@ export default function SettingsPage() {
               <select
                 value={notificationForm.type}
                 onChange={(e) => setNotificationForm({ ...notificationForm, type: e.target.value as typeof notificationForm.type, templateId: null })}
-                className="input !py-1.5 !text-sm"
+                className="input input-sm"
               >
                 <option value="client">Client</option>
                 <option value="service_request">Service Request</option>
@@ -4664,7 +4823,7 @@ export default function SettingsPage() {
             <select
               value={notificationForm.templateId || ''}
               onChange={(e) => setNotificationForm({ ...notificationForm, templateId: e.target.value ? parseInt(e.target.value) : null })}
-              className="input !py-1.5 !text-sm"
+              className="input input-sm"
             >
               <option value="">-- Select template --</option>
               {filteredTemplatesForNotification.map((tmpl) => (
@@ -4785,7 +4944,7 @@ export default function SettingsPage() {
                     type="time"
                     value={notificationForm.runAtTime}
                     onChange={(e) => setNotificationForm({ ...notificationForm, runAtTime: e.target.value })}
-                    className="input !py-1 !px-2 !text-sm w-28"
+                    className="input input-sm w-28"
                   />
                 </div>
               )}
@@ -4891,7 +5050,7 @@ export default function SettingsPage() {
                   type="time"
                   value={notificationForm.runAtTime}
                   onChange={(e) => setNotificationForm({ ...notificationForm, runAtTime: e.target.value })}
-                  className="input !py-1 !px-2 !text-sm w-28"
+                  className="input input-sm w-28"
                 />
               </div>
             </div>
@@ -4931,7 +5090,7 @@ export default function SettingsPage() {
                     type="email"
                     value={notificationForm.customEmail}
                     onChange={(e) => setNotificationForm({ ...notificationForm, customEmail: e.target.value })}
-                    className="input !py-1.5 !text-sm"
+                    className="input input-sm"
                     placeholder="email@example.com"
                   />
                 </div>
@@ -4942,7 +5101,7 @@ export default function SettingsPage() {
                   type="checkbox"
                   checked={notificationForm.includeTechnical}
                   onChange={(e) => setNotificationForm({ ...notificationForm, includeTechnical: e.target.checked })}
-                  className="w-4 h-4 rounded border-gray-300 text-primary-600"
+                  className="checkbox"
                 />
                 <span className="text-sm">Also send to Technical Contact (from domain)</span>
               </label>
@@ -4973,7 +5132,7 @@ export default function SettingsPage() {
                     copyNotificationMutation.mutate(selectedNotification);
                     setNotificationModalOpen(false);
                   }}
-                  className="btn btn-secondary !py-1.5 !px-3 !text-sm flex items-center gap-1"
+                  className="btn btn-secondary flex items-center gap-1"
                   disabled={copyNotificationMutation.isPending}
                 >
                   <Copy className="w-3.5 h-3.5" />
@@ -4987,7 +5146,7 @@ export default function SettingsPage() {
                     setTriggerDomainId(undefined);
                     setTriggerModalOpen(true);
                   }}
-                  className="!py-1.5 !px-3 !text-sm flex items-center gap-1 rounded bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-200 hover:border-amber-400 active:bg-amber-300 active:scale-[0.97] dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/50 dark:hover:bg-amber-500/40 dark:hover:border-amber-400/70 dark:active:bg-amber-500/50 transition-all duration-150"
+                  className="py-1.5 px-3 text-sm flex items-center gap-1 rounded bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-200 hover:border-amber-400 active:bg-amber-300 active:scale-[0.97] dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/50 dark:hover:bg-amber-500/40 dark:hover:border-amber-400/70 dark:active:bg-amber-500/50 transition-all duration-150"
                 >
                   <Play className="w-3.5 h-3.5" />
                   Trigger Now
@@ -4998,14 +5157,14 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => { setNotificationModalOpen(false); resetNotificationForm(); }}
-                className="btn btn-secondary !py-1.5 !px-3 !text-sm"
+                className="btn btn-secondary"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleNotificationSubmit}
-                className="btn btn-primary !py-1.5 !px-4 !text-sm"
+                className="btn btn-primary"
                 disabled={updateNotificationMutation.isPending || createNotificationMutation.isPending || !notificationForm.name}
               >
                 {(updateNotificationMutation.isPending || createNotificationMutation.isPending) ? 'Saving...' : 'Save'}
@@ -5047,7 +5206,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setTriggerModalOpen(false)}
-              className="btn btn-secondary !py-1.5 !px-3 !text-sm"
+              className="btn btn-secondary"
             >
               Cancel
             </button>
@@ -5058,7 +5217,7 @@ export default function SettingsPage() {
                   triggerNotificationMutation.mutate({ id: selectedNotification.id, domainId: triggerDomainId });
                 }
               }}
-              className="btn btn-primary !py-1.5 !px-3 !text-sm flex items-center gap-1"
+              className="btn btn-primary flex items-center gap-1"
               disabled={triggerNotificationMutation.isPending}
             >
               <Send className="w-3.5 h-3.5" />
@@ -5083,7 +5242,7 @@ export default function SettingsPage() {
               <input
                 value={templateForm.name}
                 onChange={(e) => setTemplateForm(prev => ({ ...prev, name: e.target.value }))}
-                className="input !py-1.5 !text-sm"
+                className="input input-sm"
                 placeholder="e.g. Domain Expiry Reminder"
                 required
               />
@@ -5093,7 +5252,7 @@ export default function SettingsPage() {
               <select
                 value={templateForm.type}
                 onChange={(e) => setTemplateForm(prev => ({ ...prev, type: e.target.value }))}
-                className="input !py-1.5 !text-sm"
+                className="input input-sm"
                 required
               >
                 {Object.entries(templateTypeLabels).map(([value, label]) => (
@@ -5110,7 +5269,7 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={templateForm.attachDomainPdf}
                 onChange={(e) => setTemplateForm(prev => ({ ...prev, attachDomainPdf: e.target.checked }))}
-                className="w-4 h-4 rounded border-gray-300 text-primary-600"
+                className="checkbox"
               />
               <span className="text-gray-700 dark:text-gray-300">Attach domain PDF to email</span>
             </label>
@@ -5138,7 +5297,7 @@ export default function SettingsPage() {
               ref={templateSubjectRef}
               value={templateForm.subject}
               onChange={(e) => setTemplateForm(prev => ({ ...prev, subject: e.target.value }))}
-              className="input !py-1.5 !text-sm"
+              className="input input-sm"
               placeholder="e.g. Notification: Domain {{domainName}} expires in {{daysUntilExpiry}} days"
               required
             />
@@ -5153,7 +5312,7 @@ export default function SettingsPage() {
                   type="checkbox"
                   checked={templateForm.showHeader}
                   onChange={(e) => setTemplateForm(prev => ({ ...prev, showHeader: e.target.checked }))}
-                  className="mr-1.5"
+                  className="checkbox mr-1.5"
                 />
                 Show header
               </label>
@@ -5308,7 +5467,7 @@ export default function SettingsPage() {
                 <input
                   value={templateForm.title}
                   onChange={(e) => setTemplateForm(prev => ({ ...prev, title: e.target.value }))}
-                  className="input !py-1.5 !text-sm"
+                  className="input input-sm"
                   placeholder="e.g. Domain expiry notification"
                 />
               </div>
@@ -5355,7 +5514,7 @@ export default function SettingsPage() {
                   ref={templateBodyRef}
                   value={templateForm.body}
                   onChange={(e) => setTemplateForm(prev => ({ ...prev, body: e.target.value }))}
-                  className="input !py-1.5 !text-sm"
+                  className="input input-sm"
                   rows={6}
                   placeholder="We notify you that domain {{domainName}} expires on {{expiryDate}}.
 
@@ -5407,7 +5566,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                               }
                             }));
                           }}
-                          className="mr-2"
+                          className="checkbox mr-2"
                         />
                         {label}
                       </label>
@@ -5428,7 +5587,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                           sorting: { ...prev.reportConfig.sorting, field: e.target.value as ReportConfig['sorting']['field'] }
                         }
                       }))}
-                      className="input !py-1.5 !text-sm"
+                      className="input input-sm"
                     >
                       <option value="domainName">Domain Name</option>
                       <option value="clientName">Client Name</option>
@@ -5446,7 +5605,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                           sorting: { ...prev.reportConfig.sorting, direction: e.target.value as 'asc' | 'desc' }
                         }
                       }))}
-                      className="input !py-1.5 !text-sm"
+                      className="input input-sm"
                     >
                       <option value="asc">A-Z / Earliest first</option>
                       <option value="desc">Z-A / Latest first</option>
@@ -5463,7 +5622,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                       ...prev,
                       reportConfig: { ...prev.reportConfig, groupByStatus: e.target.checked }
                     }))}
-                    className="mr-2"
+                    className="checkbox mr-2"
                   />
                   Group by status
                 </label>
@@ -5510,7 +5669,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                               }
                             }));
                           }}
-                          className="mr-2"
+                          className="checkbox mr-2"
                         />
                         {label}
                       </label>
@@ -5537,7 +5696,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                                 thresholds: { ...prev.systemConfig.thresholds, auditLogsCount: e.target.value ? Number(e.target.value) : undefined }
                               }
                             }))}
-                            className="input !py-1 !text-xs w-full"
+                            className="input input-xs w-full"
                           />
                         </div>
                       )}
@@ -5555,7 +5714,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                                 thresholds: { ...prev.systemConfig.thresholds, emailLogsCount: e.target.value ? Number(e.target.value) : undefined }
                               }
                             }))}
-                            className="input !py-1 !text-xs w-full"
+                            className="input input-xs w-full"
                           />
                         </div>
                       )}
@@ -5573,7 +5732,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                                 thresholds: { ...prev.systemConfig.thresholds, pdfSizeMb: e.target.value ? Number(e.target.value) : undefined }
                               }
                             }))}
-                            className="input !py-1 !text-xs w-full"
+                            className="input input-xs w-full"
                           />
                         </div>
                       )}
@@ -5593,7 +5752,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                         period: e.target.value as SystemConfig['period']
                       }
                     }))}
-                    className="input !py-1.5 !text-sm"
+                    className="input input-sm"
                   >
                     <option value="today">Today</option>
                     <option value="last7days">Last 7 days</option>
@@ -5618,7 +5777,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                   type="checkbox"
                   checked={templateForm.showSignature}
                   onChange={(e) => setTemplateForm(prev => ({ ...prev, showSignature: e.target.checked }))}
-                  className="mr-1.5"
+                  className="checkbox mr-1.5"
                 />
                 Show signature
               </label>
@@ -5632,7 +5791,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                   <textarea
                     value={templateForm.signature}
                     onChange={(e) => setTemplateForm(prev => ({ ...prev, signature: e.target.value }))}
-                    className="input !py-1.5 !text-sm"
+                    className="input input-sm"
                     rows={2}
                     placeholder="Best regards,
 Your team"
@@ -5755,7 +5914,7 @@ Your team"
                   type="checkbox"
                   checked={templateForm.showFooter}
                   onChange={(e) => setTemplateForm(prev => ({ ...prev, showFooter: e.target.checked }))}
-                  className="mr-1.5"
+                  className="checkbox mr-1.5"
                 />
                 Show footer
               </label>
@@ -5901,7 +6060,7 @@ Your team"
                     copyTemplateMutation.mutate(selectedTemplate);
                     setTemplateModalOpen(false);
                   }}
-                  className="btn btn-secondary !py-1.5 !px-3 !text-sm flex items-center gap-1"
+                  className="btn btn-secondary flex items-center gap-1"
                   disabled={copyTemplateMutation.isPending}
                 >
                   <Copy className="w-3.5 h-3.5" />
@@ -5910,10 +6069,10 @@ Your team"
               )}
             </div>
             <div className="flex gap-2">
-              <button type="button" onClick={() => setTemplateModalOpen(false)} className="btn btn-secondary !py-1.5 !px-3 !text-sm">
+              <button type="button" onClick={() => setTemplateModalOpen(false)} className="btn btn-secondary">
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary !py-1.5 !px-4 !text-sm" disabled={saveTemplateMutation.isPending}>
+              <button type="submit" className="btn btn-primary" disabled={saveTemplateMutation.isPending}>
                 {saveTemplateMutation.isPending ? 'Saving...' : 'Save'}
               </button>
             </div>
@@ -6059,24 +6218,24 @@ Your team"
         }} className="space-y-3">
           <div>
             <label className="text-[11px] text-gray-500 dark:text-gray-400">Name *</label>
-            <input name="name" defaultValue={selectedPackage?.name} className="input !py-1.5 !text-sm" required />
+            <input name="name" defaultValue={selectedPackage?.name} className="input input-sm" required />
           </div>
           <div>
             <label className="text-[11px] text-gray-500 dark:text-gray-400">Description</label>
-            <input name="description" defaultValue={selectedPackage?.description || ''} className="input !py-1.5 !text-sm" placeholder="Optional" />
+            <input name="description" defaultValue={selectedPackage?.description || ''} className="input input-sm" placeholder="Optional" />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Max Mailboxes *</label>
-              <input name="maxMailboxes" type="number" min="1" defaultValue={selectedPackage?.maxMailboxes || 5} className="input !py-1.5 !text-sm" required />
+              <input name="maxMailboxes" type="number" min="1" defaultValue={selectedPackage?.maxMailboxes || 5} className="input input-sm" required />
             </div>
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Storage (GB) *</label>
-              <input name="storageGb" type="number" min="0" step="0.1" defaultValue={selectedPackage?.storageGb || 5} className="input !py-1.5 !text-sm" required />
+              <input name="storageGb" type="number" min="0" step="0.1" defaultValue={selectedPackage?.storageGb || 5} className="input input-sm" required />
             </div>
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Price (RSD) *</label>
-              <input name="price" type="number" min="0" step="0.01" defaultValue={selectedPackage?.price || 0} className="input !py-1.5 !text-sm" required />
+              <input name="price" type="number" min="0" step="0.01" defaultValue={selectedPackage?.price || 0} className="input input-sm" required />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -6085,7 +6244,7 @@ Your team"
               <select
                 value={selectedMailServerId || ''}
                 onChange={(e) => setSelectedMailServerId(e.target.value ? parseInt(e.target.value) : null)}
-                className="input !py-1.5 !text-sm"
+                className="input input-sm"
               >
                 <option value="">-- None --</option>
                 {mailServersData?.servers?.map((server) => (
@@ -6100,7 +6259,7 @@ Your team"
               <select
                 value={selectedMailSecurityId || ''}
                 onChange={(e) => setSelectedMailSecurityId(e.target.value ? parseInt(e.target.value) : null)}
-                className="input !py-1.5 !text-sm"
+                className="input input-sm"
               >
                 <option value="">-- None --</option>
                 {mailSecurityData?.services?.map((service) => (
@@ -6113,13 +6272,13 @@ Your team"
           </div>
           <div>
             <label className="text-[11px] text-gray-500 dark:text-gray-400">Features (comma separated)</label>
-            <input name="features" defaultValue={selectedPackage?.features?.join(', ') || ''} className="input !py-1.5 !text-sm" placeholder="Webmail, IMAP, Spam filter" />
+            <input name="features" defaultValue={selectedPackage?.features?.join(', ') || ''} className="input input-sm" placeholder="Webmail, IMAP, Spam filter" />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setPackageModalOpen(false)} className="btn btn-secondary !py-1.5 !px-3 !text-sm">
+            <button type="button" onClick={() => setPackageModalOpen(false)} className="btn btn-secondary">
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary !py-1.5 !px-4 !text-sm" disabled={savePackageMutation.isPending}>
+            <button type="submit" className="btn btn-primary" disabled={savePackageMutation.isPending}>
               {savePackageMutation.isPending ? 'Saving...' : 'Save'}
             </button>
           </div>
@@ -6189,7 +6348,7 @@ Your team"
                       ref={(el) => { if (el) el.indeterminate = sectionPartial; }}
                       onChange={(e) => { e.stopPropagation(); toggleAllInSection(type, importSelections, setImportSelections); }}
                       onClick={(e) => e.stopPropagation()}
-                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4"
+                      className="checkbox"
                     />
                   )}
                   <span className={`text-sm font-medium flex-1 ${isEmpty ? 'text-gray-400 dark:text-gray-600' : 'text-gray-900 dark:text-gray-100'}`}>
@@ -6209,7 +6368,7 @@ Your team"
                             type="checkbox"
                             checked={importSelections[type]?.[idx] ?? false}
                             onChange={() => toggleItem(type, idx, importSelections, setImportSelections)}
-                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4 flex-shrink-0"
+                            className="checkbox flex-shrink-0"
                           />
                           <div className="min-w-0">
                             <div className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
@@ -6238,14 +6397,14 @@ Your team"
             <div className="flex gap-2">
               <button
                 onClick={() => setImportPreviewOpen(false)}
-                className="btn btn-secondary !py-1.5 !px-3 !text-sm"
+                className="btn btn-secondary"
               >
                 Cancel
               </button>
               <button
                 onClick={handleImportConfirmSelected}
                 disabled={getSelectedCount(importSelections) === 0}
-                className="btn btn-primary !py-1.5 !px-4 !text-sm"
+                className="btn btn-primary"
               >
                 Import Selected ({getSelectedCount(importSelections)})
               </button>
@@ -6275,7 +6434,7 @@ Your team"
                     ref={(el) => { if (el) el.indeterminate = sectionPartial; }}
                     onChange={(e) => { e.stopPropagation(); toggleAllInSection(type, exportSelections, setExportSelections); }}
                     onClick={(e) => e.stopPropagation()}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    className="checkbox"
                   />
                   <span className="text-sm font-medium text-gray-900 dark:text-gray-100 flex-1">
                     {typeLabelsMap[type] || type} ({selectedInSection}/{items.length})
@@ -6294,7 +6453,7 @@ Your team"
                             type="checkbox"
                             checked={exportSelections[type]?.[idx] ?? true}
                             onChange={() => toggleItem(type, idx, exportSelections, setExportSelections)}
-                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5 flex-shrink-0"
+                            className="checkbox flex-shrink-0"
                           />
                           <div className="min-w-0">
                             <div className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
@@ -6321,14 +6480,14 @@ Your team"
             <div className="flex gap-2">
               <button
                 onClick={() => setExportPreviewOpen(false)}
-                className="btn btn-secondary !py-1.5 !px-3 !text-sm"
+                className="btn btn-secondary"
               >
                 Cancel
               </button>
               <button
                 onClick={handleExportDownload}
                 disabled={getSelectedCount(exportSelections) === 0}
-                className="btn btn-primary !py-1.5 !px-4 !text-sm"
+                className="btn btn-primary"
               >
                 Download ({getSelectedCount(exportSelections)})
               </button>

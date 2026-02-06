@@ -567,13 +567,13 @@ export default function ClientDetailPage() {
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           {client.name}
         </h1>
       </div>
 
       {/* Client Info Section */}
-      <div className="card !p-0 overflow-hidden">
+      <div className="card card-flush overflow-hidden">
         <div className="flex items-center justify-between px-3 py-2">
           <div className="flex items-center">
             <Users className="w-4 h-4 mr-2 text-primary-600" />
@@ -616,7 +616,7 @@ export default function ClientDetailPage() {
                     handleClientSave();
                   }
                 }}
-                className="btn btn-secondary !text-xs !py-1 !px-2 flex items-center gap-1"
+                className="btn btn-secondary btn-sm flex items-center gap-1"
               >
                 {isClientLocked ? (
                   <>
@@ -636,7 +636,7 @@ export default function ClientDetailPage() {
                     e.stopPropagation();
                     handleClientCancel();
                   }}
-                  className="btn btn-secondary !text-xs !py-1 !px-2 flex items-center gap-1"
+                  className="btn btn-secondary btn-sm flex items-center gap-1"
                 >
                   <Unlock className="w-3 h-3" />
                   {t('common.cancel')}
@@ -659,7 +659,7 @@ export default function ClientDetailPage() {
                       type="text"
                       value={clientForm.name || ''}
                       onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
-                      className="input !py-1 !text-sm mt-1"
+                      className="input input-sm mt-1"
                       required
                     />
                   )}
@@ -673,7 +673,7 @@ export default function ClientDetailPage() {
                       type="text"
                       value={clientForm.address || ''}
                       onChange={(e) => setClientForm({ ...clientForm, address: e.target.value })}
-                      className="input !py-1 !text-sm mt-1"
+                      className="input input-sm mt-1"
                     />
                   )}
                 </div>
@@ -692,7 +692,7 @@ export default function ClientDetailPage() {
                         type="text"
                         value={clientForm.contactPerson || ''}
                         onChange={(e) => setClientForm({ ...clientForm, contactPerson: e.target.value })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                         required
                       />
                     )}
@@ -706,7 +706,7 @@ export default function ClientDetailPage() {
                         type="text"
                         value={clientForm.phone || ''}
                         onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                       />
                     )}
                   </div>
@@ -719,7 +719,7 @@ export default function ClientDetailPage() {
                         type="email"
                         value={clientForm.email1 || ''}
                         onChange={(e) => setClientForm({ ...clientForm, email1: e.target.value })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                         required
                       />
                     )}
@@ -763,7 +763,7 @@ export default function ClientDetailPage() {
                         type="text"
                         value={clientForm.techContact || ''}
                         onChange={(e) => setClientForm({ ...clientForm, techContact: e.target.value })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                         disabled={sameAsContact}
                       />
                     )}
@@ -777,7 +777,7 @@ export default function ClientDetailPage() {
                         type="text"
                         value={clientForm.techPhone || ''}
                         onChange={(e) => setClientForm({ ...clientForm, techPhone: e.target.value })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                         disabled={sameAsContact}
                       />
                     )}
@@ -791,7 +791,7 @@ export default function ClientDetailPage() {
                         type="email"
                         value={clientForm.techEmail || ''}
                         onChange={(e) => setClientForm({ ...clientForm, techEmail: e.target.value })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                         disabled={sameAsContact}
                       />
                     )}
@@ -812,7 +812,7 @@ export default function ClientDetailPage() {
                         type="text"
                         value={clientForm.pib || ''}
                         onChange={(e) => setClientForm({ ...clientForm, pib: e.target.value })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                       />
                     )}
                   </div>
@@ -825,7 +825,7 @@ export default function ClientDetailPage() {
                         type="text"
                         value={clientForm.mib || ''}
                         onChange={(e) => setClientForm({ ...clientForm, mib: e.target.value })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                       />
                     )}
                   </div>
@@ -841,7 +841,7 @@ export default function ClientDetailPage() {
                   <textarea
                     value={clientForm.notes || ''}
                     onChange={(e) => setClientForm({ ...clientForm, notes: e.target.value })}
-                    className="input !py-1 !text-sm mt-1"
+                    className="input input-sm mt-1"
                     rows={2}
                   />
                 )}
@@ -852,7 +852,7 @@ export default function ClientDetailPage() {
       </div>
 
       {/* Domains Section */}
-      <div className="card !p-0 overflow-hidden">
+      <div className="card card-flush overflow-hidden">
         <div className="flex items-center justify-between px-3 py-2 border-b dark:border-gray-700">
           <div className="flex items-center">
             <Globe className="w-4 h-4 mr-2 text-primary-600" />
@@ -876,7 +876,7 @@ export default function ClientDetailPage() {
               value={domainSearch}
               onChange={(e) => setDomainSearch(e.target.value)}
               placeholder={t('common.searchPlaceholder')}
-              className="input !py-1.5 !text-sm w-full pl-8"
+              className="input input-sm w-full pl-8"
             />
           </div>
           <div className="flex gap-1.5 flex-wrap">
@@ -1139,7 +1139,7 @@ export default function ClientDetailPage() {
                             )}
                             <button
                               onClick={(e) => { e.stopPropagation(); setPdfUploadDomainId(domain.id); pdfInputRef.current?.click(); }}
-                              className="btn btn-secondary !text-[11px] !py-0.5 !px-2 flex items-center gap-1"
+                              className="btn btn-secondary btn-xs flex items-center gap-1"
                             >
                               <Upload className="w-3 h-3" />
                               {t('domains.uploadPdf')}
@@ -1236,7 +1236,7 @@ export default function ClientDetailPage() {
                 }
               }}
               disabled={expireNowMutation.isPending}
-              className="!text-xs !py-1.5 !px-3 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+              className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
             >
               <AlertTriangle className="w-3 h-3" />
               {expireNowMutation.isPending ? t('common.saving') : t('common.expireNow')}

@@ -408,13 +408,13 @@ export default function DomainDetailPage() {
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           {domain.domainName}
         </h1>
       </div>
 
       {/* Domain Section */}
-      <div className="card !p-0 overflow-hidden">
+      <div className="card card-flush overflow-hidden">
         <div className="flex items-center justify-between px-3 py-2">
           <div className="flex items-center">
             <Globe className="w-4 h-4 mr-2 text-primary-600" />
@@ -460,7 +460,7 @@ export default function DomainDetailPage() {
                     handleSave();
                   }
                 }}
-                className="btn btn-secondary !text-xs !py-1 !px-2 flex items-center gap-1"
+                className="btn btn-secondary btn-sm flex items-center gap-1"
               >
                 {isDomainLocked ? (
                   <>
@@ -480,7 +480,7 @@ export default function DomainDetailPage() {
                     e.stopPropagation();
                     setIsDomainLocked(true);
                   }}
-                  className="btn btn-secondary !text-xs !py-1 !px-2 flex items-center gap-1"
+                  className="btn btn-secondary btn-sm flex items-center gap-1"
                 >
                   <Unlock className="w-3 h-3" />
                   {t('common.cancel')}
@@ -503,7 +503,7 @@ export default function DomainDetailPage() {
                       type="text"
                       value={domainForm.domainName}
                       onChange={(e) => setDomainForm({ ...domainForm, domainName: e.target.value })}
-                      className="input !py-1 !text-sm mt-1"
+                      className="input input-sm mt-1"
                     />
                   )}
                 </div>
@@ -515,7 +515,7 @@ export default function DomainDetailPage() {
                     <select
                       value={domainForm.clientId}
                       onChange={(e) => handleClientChange(e.target.value ? Number(e.target.value) : '')}
-                      className="input !py-1 !text-sm mt-1"
+                      className="input input-sm mt-1"
                     >
                       <option value="">{t('common.noClient')}</option>
                       {clients.map((client) => (
@@ -554,7 +554,7 @@ export default function DomainDetailPage() {
                         type="text"
                         value={domainForm.primaryName}
                         onChange={(e) => setDomainForm({ ...domainForm, primaryName: e.target.value })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                         disabled={sameAsPrimaryContact}
                         required
                       />
@@ -569,7 +569,7 @@ export default function DomainDetailPage() {
                         type="text"
                         value={domainForm.primaryPhone}
                         onChange={(e) => setDomainForm({ ...domainForm, primaryPhone: e.target.value })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                         disabled={sameAsPrimaryContact}
                         required
                       />
@@ -584,7 +584,7 @@ export default function DomainDetailPage() {
                         type="email"
                         value={domainForm.primaryEmail}
                         onChange={(e) => setDomainForm({ ...domainForm, primaryEmail: e.target.value })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                         disabled={sameAsPrimaryContact}
                         required
                       />
@@ -619,7 +619,7 @@ export default function DomainDetailPage() {
                         type="text"
                         value={domainForm.techName}
                         onChange={(e) => setDomainForm({ ...domainForm, techName: e.target.value })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                         disabled={sameAsTechContact}
                         required
                       />
@@ -634,7 +634,7 @@ export default function DomainDetailPage() {
                         type="text"
                         value={domainForm.techPhone}
                         onChange={(e) => setDomainForm({ ...domainForm, techPhone: e.target.value })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                         disabled={sameAsTechContact}
                         required
                       />
@@ -649,7 +649,7 @@ export default function DomainDetailPage() {
                         type="email"
                         value={domainForm.techEmail}
                         onChange={(e) => setDomainForm({ ...domainForm, techEmail: e.target.value })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                         disabled={sameAsTechContact}
                         required
                       />
@@ -671,7 +671,7 @@ export default function DomainDetailPage() {
                       <select
                         value={hostingForm.packageId}
                         onChange={(e) => setHostingForm({ ...hostingForm, packageId: e.target.value ? Number(e.target.value) : '' })}
-                        className="input !py-1 !text-sm"
+                        className="input input-sm"
                       >
                         <option value="">{t('common.noPackage')}</option>
                         {packages.map((pkg) => (
@@ -736,7 +736,7 @@ export default function DomainDetailPage() {
                               ...hostingForm,
                               expiryDate: calculateExpiryDate(originalExpiryDate || hosting?.expiryDate || getTodayDate(), btn.years)
                             })}
-                            className="btn btn-secondary !text-[11px] !py-0.5 !px-1"
+                            className="btn btn-secondary btn-xs"
                           >
                             {'labelKey' in btn ? t(btn.labelKey as string) : btn.label}
                           </button>
@@ -747,7 +747,7 @@ export default function DomainDetailPage() {
                       <button
                         type="button"
                         onClick={() => setExtendModalOpen(true)}
-                        className="btn btn-primary !text-xs !py-1 !px-2 flex items-center gap-1 ml-auto"
+                        className="btn btn-primary btn-sm flex items-center gap-1 ml-auto"
                       >
                         <Calendar className="w-3 h-3" />
                         {t('common.extend')}
@@ -795,7 +795,7 @@ export default function DomainDetailPage() {
                     />
                     <button
                       onClick={() => pdfInputRef.current?.click()}
-                      className="btn btn-secondary !text-[11px] !py-0.5 !px-2 flex items-center gap-1"
+                      className="btn btn-secondary btn-xs flex items-center gap-1"
                     >
                       <Upload className="w-3 h-3" />
                       {t('domains.uploadPdf')}
@@ -813,7 +813,7 @@ export default function DomainDetailPage() {
                   <textarea
                     value={domainForm.notes}
                     onChange={(e) => setDomainForm({ ...domainForm, notes: e.target.value })}
-                    className="input !py-1 !text-sm mt-1"
+                    className="input input-sm mt-1"
                     rows={2}
                   />
                 )}
@@ -893,7 +893,7 @@ export default function DomainDetailPage() {
                 }
               }}
               disabled={expireNowMutation.isPending}
-              className="!text-xs !py-1.5 !px-3 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+              className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
             >
               <AlertTriangle className="w-3 h-3" />
               {expireNowMutation.isPending ? t('common.saving') : t('common.expireNow')}

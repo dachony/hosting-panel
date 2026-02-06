@@ -297,7 +297,7 @@ export default function AuditLogPage() {
         {t('nav.auditLog')}
       </h1>
 
-      <div className="card !p-0 overflow-hidden">
+      <div className="card card-flush overflow-hidden">
         <div className="flex flex-wrap gap-2 items-center px-3 py-2 border-b border-gray-200 dark:border-gray-700">
           <div className="relative flex-1 min-w-[180px] max-w-xs">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
@@ -306,12 +306,12 @@ export default function AuditLogPage() {
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
               placeholder={t('common.searchPlaceholder')}
-              className="input !py-1 !text-xs w-full pl-7"
+              className="input input-sm text-xs w-full pl-7"
             />
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`btn btn-secondary !py-1 !px-2 !text-xs flex items-center gap-1 ${showFilters ? 'bg-primary-100 dark:bg-primary-900' : ''}`}
+            className={`btn btn-secondary btn-sm flex items-center gap-1 ${showFilters ? 'bg-primary-100 dark:bg-primary-900' : ''}`}
           >
             <Filter className="w-3 h-3" />
             Filters
@@ -323,7 +323,7 @@ export default function AuditLogPage() {
             <select
               value={entityTypeFilter}
               onChange={(e) => { setEntityTypeFilter(e.target.value); setPage(1); }}
-              className="input !py-1 !text-xs !w-auto"
+              className="input input-sm text-xs w-auto"
             >
               <option value="">All types</option>
               {entityTypesData?.entityTypes.map((type) => (
@@ -335,7 +335,7 @@ export default function AuditLogPage() {
             <select
               value={actionFilter}
               onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
-              className="input !py-1 !text-xs !w-auto"
+              className="input input-sm text-xs w-auto"
             >
               <option value="">All actions</option>
               {actionsData?.actions.map((action) => (
@@ -477,7 +477,7 @@ export default function AuditLogPage() {
                   <button
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="btn btn-secondary !py-0.5 !px-1.5 disabled:opacity-50"
+                    className="btn btn-secondary btn-xs disabled:opacity-50"
                   >
                     <ChevronLeft className="w-3 h-3" />
                   </button>
@@ -487,7 +487,7 @@ export default function AuditLogPage() {
                   <button
                     onClick={() => setPage(p => Math.min(data.pagination.totalPages, p + 1))}
                     disabled={page === data.pagination.totalPages}
-                    className="btn btn-secondary !py-0.5 !px-1.5 disabled:opacity-50"
+                    className="btn btn-secondary btn-xs disabled:opacity-50"
                   >
                     <ChevronRight className="w-3 h-3" />
                   </button>
