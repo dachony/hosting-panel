@@ -168,8 +168,14 @@
     "willBeDeleted": "Biće obrisano",
     "expiringItemsNext30Days": "Stavke koje ističu (narednih 30 dana)",
     "noExpiringItems": "Nema stavki koje ističu",
-    "willBeDeletedExpired60": "Biće obrisano (isteklo 60+ dana)",
-    "noItemsPendingDeletion": "Nema stavki za brisanje"
+    "willBeDeletedExpired60": "Za brisanje (isteklo 60+ dana)",
+    "noItemsPendingDeletion": "Nema stavki za brisanje",
+    "expired": "Isteklo",
+    "expiredItems": "Isteklo (0-7 dana)",
+    "noExpiredItems": "Nema isteklih stavki",
+    "forDeletion": "Za brisanje",
+    "forDeletionItems": "Za brisanje (7-60 dana)",
+    "noForDeletionItems": "Nema stavki za brisanje"
   },
   "clients": {
     "title": "Klijenti",

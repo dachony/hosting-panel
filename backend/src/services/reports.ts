@@ -1,5 +1,5 @@
 import { db, schema } from '../db/index.js';
-import { eq, and, lte, gte, count, isNotNull } from 'drizzle-orm';
+import { eq, and, lte, gte, gt, lt, count, isNotNull } from 'drizzle-orm';
 import { formatDate, addDaysToDate, daysUntilExpiry, getDomainStatus, DomainStatus } from '../utils/dates.js';
 import { ReportConfig } from '../db/schema.js';
 
@@ -11,6 +11,8 @@ export interface DashboardStats {
   totalActiveHosting: number;
   expiringDomains: number;
   expiringHosting: number;
+  expiredCount: number;
+  forDeletionCount: number;
   willBeDeletedCount: number;
 }
 
@@ -28,6 +30,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const today = formatDate(new Date());
   const thirtyDaysLater = addDaysToDate(new Date(), 30);
   const sixtyDaysAgo = addDaysToDate(new Date(), -60); // Items expired 60+ days ago will be deleted
+  const sevenDaysAgo = addDaysToDate(new Date(), -7);
 
   const [
     clientsResult,
@@ -42,6 +45,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     expiringMailHostingResult,
     willBeDeletedWebResult,
     willBeDeletedMailResult,
+    expiredWebResult,
+    expiredMailResult,
+    forDeletionWebResult,
+    forDeletionMailResult,
   ] = await Promise.all([
     db.select({ count: count() }).from(schema.clients),
     db.select({ count: count() }).from(schema.domains),
@@ -67,6 +74,12 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     // Will be deleted: expired more than 60 days ago
     db.select({ count: count() }).from(schema.webHosting).where(and(isNotNull(schema.webHosting.domainId), lte(schema.webHosting.expiryDate, sixtyDaysAgo))),
     db.select({ count: count() }).from(schema.mailHosting).where(and(isNotNull(schema.mailHosting.domainId), lte(schema.mailHosting.expiryDate, sixtyDaysAgo))),
+    // Expired: 0 to 7 days ago
+    db.select({ count: count() }).from(schema.webHosting).where(and(isNotNull(schema.webHosting.domainId), lt(schema.webHosting.expiryDate, today), gt(schema.webHosting.expiryDate, sevenDaysAgo))),
+    db.select({ count: count() }).from(schema.mailHosting).where(and(isNotNull(schema.mailHosting.domainId), lt(schema.mailHosting.expiryDate, today), gt(schema.mailHosting.expiryDate, sevenDaysAgo))),
+    // For Deletion: 7 to 60 days ago
+    db.select({ count: count() }).from(schema.webHosting).where(and(isNotNull(schema.webHosting.domainId), lte(schema.webHosting.expiryDate, sevenDaysAgo), gt(schema.webHosting.expiryDate, sixtyDaysAgo))),
+    db.select({ count: count() }).from(schema.mailHosting).where(and(isNotNull(schema.mailHosting.domainId), lte(schema.mailHosting.expiryDate, sevenDaysAgo), gt(schema.mailHosting.expiryDate, sixtyDaysAgo))),
   ]);
 
   return {
@@ -77,6 +90,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     totalActiveHosting: activeWebHostingResult[0].count + activeMailHostingResult[0].count,
     expiringDomains: expiringDomainsResult[0].count,
     expiringHosting: expiringWebHostingResult[0].count + expiringMailHostingResult[0].count,
+    expiredCount: expiredWebResult[0].count + expiredMailResult[0].count,
+    forDeletionCount: forDeletionWebResult[0].count + forDeletionMailResult[0].count,
     willBeDeletedCount: willBeDeletedWebResult[0].count + willBeDeletedMailResult[0].count,
   };
 }
@@ -143,6 +158,120 @@ export async function getExpiringItems(days: number = 30): Promise<ExpiringItem[
       expiryDate: d.expiryDate || '',
       daysUntilExpiry: daysUntilExpiry(d.expiryDate || ''),
     })),
+    ...hosting.filter(h => h.domainId != null).map(h => ({
+      id: h.id,
+      domainId: h.domainId,
+      type: 'hosting' as const,
+      name: h.domainName || h.packageName,
+      clientName: h.clientName,
+      expiryDate: h.expiryDate,
+      daysUntilExpiry: daysUntilExpiry(h.expiryDate),
+    })),
+    ...mail.filter(m => m.domainId != null).map(m => ({
+      id: m.id,
+      domainId: m.domainId,
+      type: 'mail' as const,
+      name: m.domainName || m.packageName || 'Mail hosting',
+      clientName: m.clientName,
+      expiryDate: m.expiryDate,
+      daysUntilExpiry: daysUntilExpiry(m.expiryDate),
+    })),
+  ];
+
+  return items.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+}
+
+export async function getExpiredItems(): Promise<ExpiringItem[]> {
+  const today = formatDate(new Date());
+  const sevenDaysAgo = addDaysToDate(new Date(), -7);
+
+  const [hosting, mail] = await Promise.all([
+    db.select({
+      id: schema.webHosting.id,
+      domainId: schema.webHosting.domainId,
+      packageName: schema.webHosting.packageName,
+      expiryDate: schema.webHosting.expiryDate,
+      clientName: schema.clients.name,
+      domainName: schema.domains.domainName,
+    })
+    .from(schema.webHosting)
+    .leftJoin(schema.clients, eq(schema.webHosting.clientId, schema.clients.id))
+    .leftJoin(schema.domains, eq(schema.webHosting.domainId, schema.domains.id))
+    .where(and(lt(schema.webHosting.expiryDate, today), gt(schema.webHosting.expiryDate, sevenDaysAgo))),
+
+    db.select({
+      id: schema.mailHosting.id,
+      domainId: schema.mailHosting.domainId,
+      expiryDate: schema.mailHosting.expiryDate,
+      clientName: schema.clients.name,
+      domainName: schema.domains.domainName,
+      packageName: schema.mailPackages.name,
+    })
+    .from(schema.mailHosting)
+    .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
+    .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
+    .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
+    .where(and(lt(schema.mailHosting.expiryDate, today), gt(schema.mailHosting.expiryDate, sevenDaysAgo))),
+  ]);
+
+  const items: ExpiringItem[] = [
+    ...hosting.filter(h => h.domainId != null).map(h => ({
+      id: h.id,
+      domainId: h.domainId,
+      type: 'hosting' as const,
+      name: h.domainName || h.packageName,
+      clientName: h.clientName,
+      expiryDate: h.expiryDate,
+      daysUntilExpiry: daysUntilExpiry(h.expiryDate),
+    })),
+    ...mail.filter(m => m.domainId != null).map(m => ({
+      id: m.id,
+      domainId: m.domainId,
+      type: 'mail' as const,
+      name: m.domainName || m.packageName || 'Mail hosting',
+      clientName: m.clientName,
+      expiryDate: m.expiryDate,
+      daysUntilExpiry: daysUntilExpiry(m.expiryDate),
+    })),
+  ];
+
+  return items.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+}
+
+export async function getForDeletionItems(): Promise<ExpiringItem[]> {
+  const sevenDaysAgo = addDaysToDate(new Date(), -7);
+  const sixtyDaysAgo = addDaysToDate(new Date(), -60);
+
+  const [hosting, mail] = await Promise.all([
+    db.select({
+      id: schema.webHosting.id,
+      domainId: schema.webHosting.domainId,
+      packageName: schema.webHosting.packageName,
+      expiryDate: schema.webHosting.expiryDate,
+      clientName: schema.clients.name,
+      domainName: schema.domains.domainName,
+    })
+    .from(schema.webHosting)
+    .leftJoin(schema.clients, eq(schema.webHosting.clientId, schema.clients.id))
+    .leftJoin(schema.domains, eq(schema.webHosting.domainId, schema.domains.id))
+    .where(and(lte(schema.webHosting.expiryDate, sevenDaysAgo), gt(schema.webHosting.expiryDate, sixtyDaysAgo))),
+
+    db.select({
+      id: schema.mailHosting.id,
+      domainId: schema.mailHosting.domainId,
+      expiryDate: schema.mailHosting.expiryDate,
+      clientName: schema.clients.name,
+      domainName: schema.domains.domainName,
+      packageName: schema.mailPackages.name,
+    })
+    .from(schema.mailHosting)
+    .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
+    .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
+    .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
+    .where(and(lte(schema.mailHosting.expiryDate, sevenDaysAgo), gt(schema.mailHosting.expiryDate, sixtyDaysAgo))),
+  ]);
+
+  const items: ExpiringItem[] = [
     ...hosting.filter(h => h.domainId != null).map(h => ({
       id: h.id,
       domainId: h.domainId,

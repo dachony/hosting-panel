@@ -168,8 +168,14 @@
     "willBeDeleted": "Will Be Deleted",
     "expiringItemsNext30Days": "Expiring Items (next 30 days)",
     "noExpiringItems": "No expiring items",
-    "willBeDeletedExpired60": "Will Be Deleted (expired 60+ days)",
-    "noItemsPendingDeletion": "No items pending deletion"
+    "willBeDeletedExpired60": "For Deleted (expired 60+ days)",
+    "noItemsPendingDeletion": "No items pending deletion",
+    "expired": "Expired",
+    "expiredItems": "Expired (0-7 days)",
+    "noExpiredItems": "No expired items",
+    "forDeletion": "For Deletion",
+    "forDeletionItems": "For Deletion (7-60 days)",
+    "noForDeletionItems": "No items for deletion"
   },
   "clients": {
     "title": "Clients",
