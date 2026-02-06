@@ -90,7 +90,6 @@ export default function DomainDetailPage() {
     { value: '1year', label: '1 year' },
     { value: '2years', label: '2 years' },
     { value: '3years', label: '3 years' },
-    { value: '5years', label: '5 years' },
     { value: 'unlimited', label: 'Unlimited' },
   ];
 
