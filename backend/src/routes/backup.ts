@@ -387,6 +387,21 @@ backup.post('/import', async (c) => {
       if (data.appSettings) {
         results.appSettings = await importItems('appSettings', data.appSettings as Record<string, unknown>[]);
       }
+      if (data.mailServers) {
+        results.mailServers = await importItems('mailServers', data.mailServers as Record<string, unknown>[]);
+      }
+      if (data.mailSecurity) {
+        results.mailSecurity = await importItems('mailSecurity', data.mailSecurity as Record<string, unknown>[]);
+      }
+      if (data.companyInfo) {
+        results.companyInfo = await importItems('companyInfo', data.companyInfo as Record<string, unknown>[]);
+      }
+      if (data.bankAccounts) {
+        results.bankAccounts = await importItems('bankAccounts', data.bankAccounts as Record<string, unknown>[]);
+      }
+      if (data.reportSettings) {
+        results.reportSettings = await importItems('reportSettings', data.reportSettings as Record<string, unknown>[]);
+      }
     }
 
     return c.json({
@@ -487,6 +502,31 @@ async function importItems(type: string, items: Record<string, unknown>[]): Prom
         }
         case 'mailHosting': {
           await db.insert(schema.mailHosting).values(data as typeof schema.mailHosting.$inferInsert).onConflictDoNothing();
+          result.imported++;
+          break;
+        }
+        case 'mailServers': {
+          await db.insert(schema.mailServers).values(data as typeof schema.mailServers.$inferInsert).onConflictDoNothing();
+          result.imported++;
+          break;
+        }
+        case 'mailSecurity': {
+          await db.insert(schema.mailSecurity).values(data as typeof schema.mailSecurity.$inferInsert).onConflictDoNothing();
+          result.imported++;
+          break;
+        }
+        case 'companyInfo': {
+          await db.insert(schema.companyInfo).values(data as typeof schema.companyInfo.$inferInsert).onConflictDoNothing();
+          result.imported++;
+          break;
+        }
+        case 'bankAccounts': {
+          await db.insert(schema.bankAccounts).values(data as typeof schema.bankAccounts.$inferInsert).onConflictDoNothing();
+          result.imported++;
+          break;
+        }
+        case 'reportSettings': {
+          await db.insert(schema.reportSettings).values(data as typeof schema.reportSettings.$inferInsert).onConflictDoNothing();
           result.imported++;
           break;
         }
