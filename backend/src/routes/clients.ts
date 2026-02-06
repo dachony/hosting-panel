@@ -5,6 +5,7 @@ import { authMiddleware, superAdminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp, daysUntilExpiry, addDaysToDate, formatDate } from '../utils/dates.js';
 import { audit } from '../services/audit.js';
+import { parseId } from '../utils/validation.js';
 
 const clients = new Hono();
 
@@ -66,7 +67,8 @@ clients.get('/', async (c) => {
 });
 
 clients.get('/:id', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid client ID' }, 400);
   const client = await db.select().from(schema.clients).where(eq(schema.clients.id, id)).get();
 
   if (!client) {
@@ -131,7 +133,8 @@ clients.post('/', async (c) => {
 
 clients.put('/:id', async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid client ID' }, 400);
     const body = await c.req.json();
     const data = clientSchema.partial().parse(body);
 
@@ -157,7 +160,8 @@ clients.put('/:id', async (c) => {
 });
 
 clients.delete('/:id', superAdminMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid client ID' }, 400);
 
   const existing = await db.select().from(schema.clients).where(eq(schema.clients.id, id)).get();
   if (!existing) {

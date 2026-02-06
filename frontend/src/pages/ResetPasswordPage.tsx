@@ -27,7 +27,7 @@ export default function ResetPasswordPage() {
     fetch('/api/public/branding')
       .then(res => res.json())
       .then(data => setBranding(data))
-      .catch(() => {});
+      .catch((e) => console.warn('Failed to load branding', e));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,7 +38,7 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       toast.error(t('auth.passwordMinLength'));
       return;
     }
@@ -141,7 +141,7 @@ export default function ResetPasswordPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="input"
                   required
-                  minLength={6}
+                  minLength={8}
                   placeholder={t('auth.minCharacters')}
                 />
               </div>

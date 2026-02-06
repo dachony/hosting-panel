@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { db, schema } from '../db/index.js';
 import { desc, eq, like, or, and, gte, lte, lt, sql } from 'drizzle-orm';
 import { authMiddleware, superAdminMiddleware } from '../middleware/auth.js';
+import { safeParseInt, isValidIsoDate, escapeLike } from '../utils/validation.js';
 
 const audit = new Hono();
 
@@ -9,8 +10,8 @@ audit.use('*', authMiddleware);
 
 // Get audit logs with filtering and pagination
 audit.get('/', async (c) => {
-  const page = parseInt(c.req.query('page') || '1');
-  const limit = parseInt(c.req.query('limit') || '50');
+  const page = safeParseInt(c.req.query('page'), 1) ?? 1;
+  const limit = Math.min(safeParseInt(c.req.query('limit'), 50) ?? 50, 200);
   const search = c.req.query('search') || '';
   const entityType = c.req.query('entityType') || '';
   const action = c.req.query('action') || '';
@@ -18,19 +19,27 @@ audit.get('/', async (c) => {
   const dateFrom = c.req.query('dateFrom') || '';
   const dateTo = c.req.query('dateTo') || '';
 
+  if (dateFrom && !isValidIsoDate(dateFrom)) {
+    return c.json({ error: 'Invalid dateFrom format (expected YYYY-MM-DD)' }, 400);
+  }
+  if (dateTo && !isValidIsoDate(dateTo)) {
+    return c.json({ error: 'Invalid dateTo format (expected YYYY-MM-DD)' }, 400);
+  }
+
   const offset = (page - 1) * limit;
 
   // Build conditions
   const conditions = [];
 
   if (search) {
+    const escaped = escapeLike(search);
     conditions.push(
       or(
-        like(schema.auditLogs.userName, `%${search}%`),
-        like(schema.auditLogs.userEmail, `%${search}%`),
-        like(schema.auditLogs.entityName, `%${search}%`),
-        like(schema.auditLogs.action, `%${search}%`),
-        like(schema.auditLogs.entityType, `%${search}%`)
+        like(schema.auditLogs.userName, `%${escaped}%`),
+        like(schema.auditLogs.userEmail, `%${escaped}%`),
+        like(schema.auditLogs.entityName, `%${escaped}%`),
+        like(schema.auditLogs.action, `%${escaped}%`),
+        like(schema.auditLogs.entityType, `%${escaped}%`)
       )
     );
   }
@@ -44,7 +53,10 @@ audit.get('/', async (c) => {
   }
 
   if (userId) {
-    conditions.push(eq(schema.auditLogs.userId, parseInt(userId)));
+    const parsedUserId = safeParseInt(userId);
+    if (parsedUserId !== null) {
+      conditions.push(eq(schema.auditLogs.userId, parsedUserId));
+    }
   }
 
   if (dateFrom) {
@@ -161,7 +173,7 @@ audit.get('/stats', async (c) => {
 
 // Delete old audit logs (superadmin only)
 audit.delete('/old', superAdminMiddleware, async (c) => {
-  const days = parseInt(c.req.query('days') || '90');
+  const days = safeParseInt(c.req.query('days'), 90) ?? 90;
 
   if (days < 0) {
     return c.json({ error: 'Invalid days parameter' }, 400);
@@ -216,7 +228,7 @@ audit.delete('/old', superAdminMiddleware, async (c) => {
 // Export audit logs
 audit.get('/export', superAdminMiddleware, async (c) => {
   const format = c.req.query('format') || 'json';
-  const days = parseInt(c.req.query('days') || '0');
+  const days = safeParseInt(c.req.query('days'), 0) ?? 0;
 
   let whereClause;
   if (days > 0) {

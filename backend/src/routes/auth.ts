@@ -568,7 +568,7 @@ auth.post('/forgot-password', async (c) => {
 // Reset password with token
 const resetPasswordSchema = z.object({
   token: z.string().min(1),
-  password: z.string().min(6),
+  password: z.string().min(8),
 });
 
 auth.post('/reset-password', async (c) => {
@@ -626,7 +626,7 @@ const setupSchema = z.object({
   lastName: z.string().min(1),
   email: z.string().email(),
   phone: z.string().optional().default(''),
-  password: z.string().min(6),
+  password: z.string().min(8),
 });
 
 auth.post('/setup', async (c) => {

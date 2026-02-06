@@ -21,7 +21,7 @@ export default function SetupPage() {
     fetch('/api/public/branding')
       .then(res => res.json())
       .then(data => setBranding(data))
-      .catch(() => {});
+      .catch((e) => console.warn('Failed to load branding', e));
   }, []);
 
   const [firstName, setFirstName] = useState('');
@@ -40,7 +40,7 @@ export default function SetupPage() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       toast.error(t('auth.passwordMinLength'));
       return;
     }
@@ -62,8 +62,8 @@ export default function SetupPage() {
       const data = await res.json();
       completeSetup(data.token, data.user);
       navigate('/');
-    } catch (err: any) {
-      toast.error(err.message || t('common.errorSaving'));
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t('common.errorSaving'));
     } finally {
       setIsLoading(false);
     }
@@ -143,7 +143,7 @@ export default function SetupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input"
-                minLength={6}
+                minLength={8}
                 required
               />
             </div>
@@ -155,7 +155,7 @@ export default function SetupPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="input"
-                minLength={6}
+                minLength={8}
                 required
               />
             </div>

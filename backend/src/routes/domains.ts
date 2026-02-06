@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { authMiddleware, superAdminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
+import { parseId } from '../utils/validation.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -50,7 +51,8 @@ domains.get('/', async (c) => {
 });
 
 domains.get('/:id', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid domain ID' }, 400);
 
   const domain = await db
     .select({
@@ -104,7 +106,8 @@ domains.post('/', async (c) => {
 
 domains.put('/:id', async (c) => {
   try {
-    const id = parseInt(c.req.param('id'));
+    const id = parseId(c.req.param('id'));
+    if (id === null) return c.json({ error: 'Invalid domain ID' }, 400);
     const body = await c.req.json();
     const data = domainSchema.partial().parse(body);
 
@@ -148,7 +151,13 @@ function sanitizeFilename(filename: string): string {
 }
 
 function getDomainPdfPath(domainId: number, filename: string): string {
-  return path.join(PDF_DIR, `${domainId}_${sanitizeFilename(filename)}`);
+  const filePath = path.join(PDF_DIR, `${domainId}_${sanitizeFilename(filename)}`);
+  // Prevent path traversal
+  const resolved = path.resolve(filePath);
+  if (!resolved.startsWith(path.resolve(PDF_DIR) + path.sep) && resolved !== path.resolve(PDF_DIR)) {
+    throw new Error('Invalid file path');
+  }
+  return filePath;
 }
 
 function deletePdfFile(domainId: number, pdfFilename: string | null) {
@@ -161,7 +170,8 @@ function deletePdfFile(domainId: number, pdfFilename: string | null) {
 
 // Upload PDF for a domain
 domains.post('/:id/pdf', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid domain ID' }, 400);
 
   const existing = await db.select().from(schema.domains).where(eq(schema.domains.id, id)).get();
   if (!existing) {
@@ -203,7 +213,8 @@ domains.post('/:id/pdf', async (c) => {
 
 // Download PDF for a domain
 domains.get('/:id/pdf', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid domain ID' }, 400);
 
   const domain = await db.select().from(schema.domains).where(eq(schema.domains.id, id)).get();
   if (!domain || !domain.pdfFilename) {
@@ -226,7 +237,8 @@ domains.get('/:id/pdf', async (c) => {
 
 // Delete PDF for a domain
 domains.delete('/:id/pdf', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid domain ID' }, 400);
 
   const domain = await db.select().from(schema.domains).where(eq(schema.domains.id, id)).get();
   if (!domain) {
@@ -243,7 +255,8 @@ domains.delete('/:id/pdf', async (c) => {
 });
 
 domains.post('/:id/toggle', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid domain ID' }, 400);
 
   const existing = await db.select().from(schema.domains).where(eq(schema.domains.id, id)).get();
   if (!existing) {
@@ -262,7 +275,8 @@ domains.post('/:id/toggle', async (c) => {
 });
 
 domains.delete('/:id', superAdminMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseId(c.req.param('id'));
+  if (id === null) return c.json({ error: 'Invalid domain ID' }, 400);
 
   const existing = await db.select().from(schema.domains).where(eq(schema.domains.id, id)).get();
   if (!existing) {
