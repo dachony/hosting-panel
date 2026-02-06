@@ -57,6 +57,12 @@ interface EmailStats {
   estimatedSize: number;
 }
 
+interface PdfStats {
+  totalSize: number;
+  fileCount: number;
+  domainsWithPdf: number;
+}
+
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -119,6 +125,7 @@ export default function SystemStatusPage() {
   const queryClient = useQueryClient();
   const [confirmDeleteAudit, setConfirmDeleteAudit] = useState<number | null>(null);
   const [confirmDeleteEmails, setConfirmDeleteEmails] = useState<number | null>(null);
+  const [confirmDeletePdfs, setConfirmDeletePdfs] = useState<number | null>(null);
 
   const { data, isLoading, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['system-status'],
@@ -136,6 +143,11 @@ export default function SystemStatusPage() {
     queryFn: () => api.get<EmailStats>('/api/system/emails/stats'),
   });
 
+  const { data: pdfStats } = useQuery({
+    queryKey: ['pdf-stats'],
+    queryFn: () => api.get<PdfStats>('/api/system/pdfs/stats'),
+  });
+
   const deleteAuditMutation = useMutation({
     mutationFn: (days: number) => api.delete(`/api/audit/old?days=${days}`),
     onSuccess: () => {
@@ -150,6 +162,15 @@ export default function SystemStatusPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['email-stats'] });
       setConfirmDeleteEmails(null);
+    },
+  });
+
+  const deletePdfsMutation = useMutation({
+    mutationFn: (days: number) => api.delete(`/api/system/pdfs?days=${days}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pdf-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['domains'] });
+      setConfirmDeletePdfs(null);
     },
   });
 
@@ -524,6 +545,71 @@ export default function SystemStatusPage() {
                         key={days}
                         onClick={() => setConfirmDeleteEmails(days)}
                         disabled={!emailStats?.total}
+                        className={`!py-0.5 !px-2 !text-xs rounded border transition-colors ${
+                          days === 0
+                            ? 'border-red-300 text-red-600 hover:bg-red-50 dark:border-red-500/50 dark:text-red-400 dark:hover:bg-red-500/10'
+                            : 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
+                        } disabled:opacity-40 disabled:cursor-not-allowed`}
+                      >
+                        {label}
+                      </button>
+                    )
+                  ))}
+                </div>
+              </div>
+            </div>
+          </StatCard>
+
+          {/* PDF Documents */}
+          <StatCard title={t('systemStatus.pdfDocuments')} icon={FileText}>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-gray-500">{t('systemStatus.total')}</span>
+                  <span className="ml-2 font-medium">{pdfStats?.fileCount || 0}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">{t('systemStatus.size')}</span>
+                  <span className="ml-2 font-medium">{formatBytes(pdfStats?.totalSize || 0)}</span>
+                </div>
+              </div>
+              <div className="text-xs text-gray-500">
+                {t('systemStatus.domainsWithPdf')}: {pdfStats?.domainsWithPdf || 0}
+              </div>
+
+              {/* Delete PDFs */}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                  <span className="text-xs font-medium text-gray-500 uppercase">{t('systemStatus.deletePdfs')}</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: t('systemStatus.olderThan1Month'), days: 30 },
+                    { label: t('systemStatus.olderThan3Months'), days: 90 },
+                    { label: t('common.all'), days: 0 },
+                  ].map(({ label, days }) => (
+                    confirmDeletePdfs === days ? (
+                      <div key={days} className="flex items-center gap-1">
+                        <button
+                          onClick={() => deletePdfsMutation.mutate(days)}
+                          disabled={deletePdfsMutation.isPending}
+                          className="!py-0.5 !px-2 !text-xs rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
+                        >
+                          {deletePdfsMutation.isPending ? t('systemStatus.deleting') : t('common.confirm')}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeletePdfs(null)}
+                          className="!py-0.5 !px-1.5 !text-xs rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          {t('common.cancel')}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        key={days}
+                        onClick={() => setConfirmDeletePdfs(days)}
+                        disabled={!pdfStats?.fileCount}
                         className={`!py-0.5 !px-2 !text-xs rounded border transition-colors ${
                           days === 0
                             ? 'border-red-300 text-red-600 hover:bg-red-50 dark:border-red-500/50 dark:text-red-400 dark:hover:bg-red-500/10'

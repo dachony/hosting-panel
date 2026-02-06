@@ -404,6 +404,9 @@
     "deleting": "Brisanje...",
     "emailLogs": "Email dnevnici",
     "emailsStoredInDb": "Emailovi su sačuvani u bazi podataka",
+    "pdfDocuments": "PDF Dokumenti",
+    "domainsWithPdf": "Domeni sa PDF-om",
+    "deletePdfs": "Obriši PDF-ove",
     "errorLoading": "Greška pri učitavanju statusa sistema"
   }
 }

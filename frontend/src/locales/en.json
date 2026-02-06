@@ -404,6 +404,9 @@
     "deleting": "Deleting...",
     "emailLogs": "Email Logs",
     "emailsStoredInDb": "Emails are stored in the database",
+    "pdfDocuments": "PDF Documents",
+    "domainsWithPdf": "Domains with PDF",
+    "deletePdfs": "Delete PDFs",
     "errorLoading": "Error loading system status"
   }
 }

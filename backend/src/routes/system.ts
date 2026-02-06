@@ -1,9 +1,10 @@
 import { Hono } from 'hono';
 import { db, schema } from '../db/index.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { sql, eq, or, like, desc } from 'drizzle-orm';
+import { sql, eq, or, like, desc, isNotNull } from 'drizzle-orm';
 import os from 'os';
 import fs from 'fs';
+import path from 'path';
 
 const system = new Hono();
 
@@ -220,6 +221,86 @@ system.delete('/emails', async (c) => {
   } catch (error) {
     console.error('Delete emails error:', error);
     return c.json({ error: 'Failed to delete email logs' }, 500);
+  }
+});
+
+// PDF Documents stats
+const PDF_DIR = '/app/data/pdfs';
+
+system.get('/pdfs/stats', async (c) => {
+  try {
+    let totalSize = 0;
+    let fileCount = 0;
+
+    if (fs.existsSync(PDF_DIR)) {
+      const files = fs.readdirSync(PDF_DIR);
+      for (const file of files) {
+        const filePath = path.join(PDF_DIR, file);
+        const stat = fs.statSync(filePath);
+        if (stat.isFile()) {
+          totalSize += stat.size;
+          fileCount++;
+        }
+      }
+    }
+
+    // Count domains with PDFs
+    const domainsWithPdf = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.domains)
+      .where(isNotNull(schema.domains.pdfFilename));
+
+    return c.json({
+      totalSize,
+      fileCount,
+      domainsWithPdf: domainsWithPdf[0]?.count || 0,
+    });
+  } catch (error) {
+    console.error('PDF stats error:', error);
+    return c.json({ totalSize: 0, fileCount: 0, domainsWithPdf: 0 }, 500);
+  }
+});
+
+// Delete old PDF documents
+system.delete('/pdfs', async (c) => {
+  try {
+    const days = parseInt(c.req.query('days') || '0');
+
+    if (!fs.existsSync(PDF_DIR)) {
+      return c.json({ message: 'No PDF directory', deleted: 0 });
+    }
+
+    const files = fs.readdirSync(PDF_DIR);
+    const cutoffTime = days > 0 ? Date.now() - days * 24 * 60 * 60 * 1000 : Infinity;
+    let deletedCount = 0;
+
+    for (const file of files) {
+      const filePath = path.join(PDF_DIR, file);
+      const stat = fs.statSync(filePath);
+
+      if (!stat.isFile()) continue;
+
+      const shouldDelete = days === 0 || stat.mtimeMs < cutoffTime;
+      if (!shouldDelete) continue;
+
+      // Extract domainId from filename (format: {domainId}_{filename})
+      const domainIdStr = file.split('_')[0];
+      const domainId = parseInt(domainIdStr);
+
+      fs.unlinkSync(filePath);
+      deletedCount++;
+
+      // Clear pdfFilename in database
+      if (!isNaN(domainId)) {
+        await db.update(schema.domains)
+          .set({ pdfFilename: null })
+          .where(eq(schema.domains.id, domainId));
+      }
+    }
+
+    return c.json({ message: `Deleted ${deletedCount} PDF files`, deleted: deletedCount });
+  } catch (error) {
+    console.error('Delete PDFs error:', error);
+    return c.json({ error: 'Failed to delete PDF files' }, 500);
   }
 });
 
