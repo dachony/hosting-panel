@@ -420,13 +420,13 @@ notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
 
     // For client-type notifications with primary recipients, use the scheduler logic
     if (setting.type === 'client' && setting.recipientType === 'primary') {
-      await triggerClientNotification(setting);
+      const sentCount = await triggerClientNotification(setting);
 
       await db.update(schema.notificationSettings)
         .set({ lastSent: new Date().toISOString(), updatedAt: getCurrentTimestamp() })
         .where(eq(schema.notificationSettings.id, id));
 
-      return c.json({ message: 'Client notifications triggered (sent to matching domain/hosting contacts)' });
+      return c.json({ message: `Sent ${sentCount} notification(s) to matching domain/hosting contacts` });
     }
 
     // Determine recipient for non-client types
