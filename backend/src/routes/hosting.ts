@@ -11,7 +11,7 @@ hosting.use('*', authMiddleware);
 
 const hostingSchema = z.object({
   clientId: z.number().optional().nullable(),
-  domainId: z.number().optional().nullable(),
+  domainId: z.number({ required_error: 'Domain is required' }),
   packageId: z.number().optional().nullable(),
   startDate: z.string().optional().nullable(),
   expiryDate: z.string(),

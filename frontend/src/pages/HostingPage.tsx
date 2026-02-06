@@ -329,6 +329,8 @@ export default function HostingPage() {
   };
 
   const filteredHosting = (hostingData?.hosting || []).filter((h) => {
+    // Skip hosting records without a domain (orphaned data)
+    if (!h.domainId) return false;
     const isUnhosted = h.daysUntilExpiry === null;
 
     // Status filter (if any filters are selected)
