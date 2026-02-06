@@ -26,6 +26,9 @@ interface HostingWithDetails extends Hosting {
   clientTechContact?: string | null;
   clientTechPhone?: string | null;
   clientTechEmail?: string | null;
+  domainPrimaryName?: string | null;
+  domainPrimaryPhone?: string | null;
+  domainPrimaryEmail?: string | null;
   domainTechName?: string | null;
   domainTechPhone?: string | null;
   domainTechEmail?: string | null;
@@ -535,9 +538,9 @@ export default function HostingPage() {
                   <div className="space-y-2 text-xs">
                     <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
                       <div className="text-gray-500 dark:text-gray-400 font-medium mb-1">{t('common.primaryContact')}</div>
-                      <div className="text-gray-700 dark:text-gray-300">{hosting.clientContactPerson || '-'}</div>
-                      <div className="text-gray-500 dark:text-gray-400">{hosting.clientPhone || '-'}</div>
-                      <div className="text-gray-500 dark:text-gray-400 truncate">{hosting.clientEmail || '-'}</div>
+                      <div className="text-gray-700 dark:text-gray-300">{hosting.domainPrimaryName || hosting.clientContactPerson || '-'}</div>
+                      <div className="text-gray-500 dark:text-gray-400">{hosting.domainPrimaryPhone || hosting.clientPhone || '-'}</div>
+                      <div className="text-gray-500 dark:text-gray-400 truncate">{hosting.domainPrimaryEmail || hosting.clientEmail || '-'}</div>
                     </div>
 
                     <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
@@ -626,11 +629,11 @@ export default function HostingPage() {
                     <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                       <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.primaryContact')}</span>
                       <span className="text-gray-400">{t('common.name')}:</span>
-                      <span>{hosting.clientContactPerson || '-'},</span>
+                      <span>{hosting.domainPrimaryName || hosting.clientContactPerson || '-'},</span>
                       <span className="text-gray-400">{t('common.phone')}:</span>
-                      <span>{hosting.clientPhone || '-'},</span>
+                      <span>{hosting.domainPrimaryPhone || hosting.clientPhone || '-'},</span>
                       <span className="text-gray-400">{t('common.email')}:</span>
-                      <span className="truncate">{hosting.clientEmail || '-'}</span>
+                      <span className="truncate">{hosting.domainPrimaryEmail || hosting.clientEmail || '-'}</span>
                     </div>
                     <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                       <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.technicalContact')}</span>
