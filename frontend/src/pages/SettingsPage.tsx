@@ -1152,7 +1152,7 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
       setTriggerModalOpen(false);
     },
-    onError: (error: any) => toast.error(error?.response?.data?.error || 'Error triggering notification'),
+    onError: (error: any) => toast.error(error?.message || 'Error triggering notification'),
   });
 
   const testTemplateMutation = useMutation({
@@ -1198,9 +1198,9 @@ export default function SettingsPage() {
       setUserModalOpen(false);
       setSelectedUser(null);
     },
-    onError: (error: Error & { response?: { data?: { error?: string; details?: string[] } } }) => {
-      const msg = error.response?.data?.error || 'Error saving';
-      const details = error.response?.data?.details;
+    onError: (error: Error & { details?: string[] }) => {
+      const msg = error.message || 'Error saving';
+      const details = error.details;
       if (details && details.length > 0) {
         toast.error(`${msg}: ${details.join(', ')}`);
       } else {
