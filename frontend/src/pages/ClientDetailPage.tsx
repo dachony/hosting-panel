@@ -1107,6 +1107,8 @@ export default function ClientDetailPage() {
                             </div>
                           </>
                         )}
+                      </div>
+
                       {/* PDF Document */}
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border dark:border-gray-700">
                         <div className="flex items-center justify-between">
