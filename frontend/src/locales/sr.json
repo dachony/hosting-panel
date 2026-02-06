@@ -181,8 +181,10 @@
     "noClients": "Nema klijenata",
     "clientCreated": "Klijent je kreiran",
     "clientUpdated": "Klijent je ažuriran",
+    "clientDeleted": "Klijent je obrisan",
     "clientNotFound": "Klijent nije pronađen",
-    "deleteConfirm": "Da li ste sigurni da želite da obrišete ovog klijenta?"
+    "deleteClient": "Brisanje klijenta",
+    "deleteConfirm": "Da li ste sigurni da želite da obrišete klijenta \"{{name}}\"? Ova radnja se ne može poništiti."
   },
   "domains": {
     "title": "Domeni",
@@ -197,9 +199,11 @@
     "notes": "Napomene",
     "noDomains": "Nema domena",
     "daysUntilExpiry": "Dana do isteka",
-    "deleteConfirm": "Da li ste sigurni da želite da obrišete ovaj domen?",
+    "deleteDomain": "Brisanje domena",
+    "deleteConfirm": "Da li ste sigurni da želite da obrišete domen \"{{name}}\"? Ova radnja se ne može poništiti.",
     "domainCreated": "Domen je kreiran",
     "domainUpdated": "Domen je ažuriran",
+    "domainDeleted": "Domen je obrisan",
     "errorCreatingDomain": "Greška pri kreiranju domena",
     "errorUpdatingDomain": "Greška pri ažuriranju domena",
     "domainNotFound": "Domen nije pronađen",

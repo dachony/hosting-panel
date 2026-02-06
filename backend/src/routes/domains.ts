@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, superAdminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 
@@ -128,7 +128,7 @@ domains.put('/:id', async (c) => {
   }
 });
 
-domains.delete('/:id', async (c) => {
+domains.delete('/:id', superAdminMiddleware, async (c) => {
   const id = parseInt(c.req.param('id'));
 
   const existing = await db.select().from(schema.domains).where(eq(schema.domains.id, id)).get();

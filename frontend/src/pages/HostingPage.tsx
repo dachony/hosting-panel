@@ -6,8 +6,10 @@ import { api } from '../api/client';
 import { Hosting, ExpiryStatus, Client, Domain, Package } from '../types';
 import Modal from '../components/common/Modal';
 import DateInput from '../components/common/DateInput';
-import { Search, Filter, Plus, Globe, Loader2, Pencil, LayoutList, LayoutGrid, Power, PowerOff, Server, Shield } from 'lucide-react';
+import { Search, Filter, Plus, Globe, Loader2, Pencil, Trash2, LayoutList, LayoutGrid, Power, PowerOff, Server, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '../components/common/ConfirmDialog';
+import { useAuth } from '../context/AuthContext';
 
 const ALL_STATUSES: ExpiryStatus[] = ['green', 'yellow', 'orange', 'red', 'forDeletion', 'deleted'];
 
@@ -111,7 +113,10 @@ export default function HostingPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const { isSuperAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [domainToDelete, setDomainToDelete] = useState<{ domainId: number; domainName: string } | null>(null);
   const [statusFilters, setStatusFilters] = useState<Set<ExpiryStatus>>(new Set());
   const [enabledFilter, setEnabledFilter] = useState<EnabledStatus | 'all'>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -222,6 +227,18 @@ export default function HostingPage() {
       resetDomainForm();
     },
     onError: () => toast.error(t('domains.errorCreatingDomain')),
+  });
+
+  const deleteDomainMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/api/domains/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hosting'] });
+      queryClient.invalidateQueries({ queryKey: ['domains'] });
+      toast.success(t('domains.domainDeleted'));
+      setDeleteDialogOpen(false);
+      setDomainToDelete(null);
+    },
+    onError: () => toast.error(t('common.errorDeleting')),
   });
 
   const resetDomainForm = () => {
@@ -559,12 +576,22 @@ export default function HostingPage() {
                         {hosting.isActive !== false ? t('common.enabled') : t('common.disabled')}
                       </div>
                     )}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); navigate(`/domains/${hosting.domainId}`); }}
-                      className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
-                    >
-                      <Pencil className="w-3 h-3" />{t('common.edit')}
-                    </button>
+                    <div className="flex gap-2">
+                      {isSuperAdmin && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDomainToDelete({ domainId: hosting.domainId!, domainName: hosting.domainName || '' }); setDeleteDialogOpen(true); }}
+                          className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigate(`/domains/${hosting.domainId}`); }}
+                        className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                      >
+                        <Pencil className="w-3 h-3" />{t('common.edit')}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -666,12 +693,22 @@ export default function HostingPage() {
                   ) : (
                     <StatusBadge status={status} days={hosting.daysUntilExpiry!} />
                   )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); navigate(`/domains/${hosting.domainId}`); }}
-                    className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150 flex-shrink-0"
-                  >
-                    <Pencil className="w-3 h-3" />{t('common.edit')}
-                  </button>
+                  <div className="flex gap-2 flex-shrink-0">
+                    {isSuperAdmin && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDomainToDelete({ domainId: hosting.domainId!, domainName: hosting.domainName || '' }); setDeleteDialogOpen(true); }}
+                        className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); navigate(`/domains/${hosting.domainId}`); }}
+                      className="!text-xs !py-1 !px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                    >
+                      <Pencil className="w-3 h-3" />{t('common.edit')}
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -926,6 +963,15 @@ export default function HostingPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => { setDeleteDialogOpen(false); setDomainToDelete(null); }}
+        onConfirm={() => domainToDelete && deleteDomainMutation.mutate(domainToDelete.domainId)}
+        title={t('domains.deleteDomain')}
+        message={t('domains.deleteConfirm', { name: domainToDelete?.domainName })}
+        isLoading={deleteDomainMutation.isPending}
+      />
     </div>
   );
 }

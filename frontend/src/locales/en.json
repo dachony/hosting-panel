@@ -181,8 +181,10 @@
     "noClients": "No clients",
     "clientCreated": "Client created",
     "clientUpdated": "Client updated",
+    "clientDeleted": "Client deleted",
     "clientNotFound": "Client not found",
-    "deleteConfirm": "Are you sure you want to delete this client?"
+    "deleteClient": "Delete Client",
+    "deleteConfirm": "Are you sure you want to delete client \"{{name}}\"? This action cannot be undone."
   },
   "domains": {
     "title": "Domains",
@@ -197,9 +199,11 @@
     "notes": "Notes",
     "noDomains": "No domains",
     "daysUntilExpiry": "Days Until Expiry",
-    "deleteConfirm": "Are you sure you want to delete this domain?",
+    "deleteDomain": "Delete Domain",
+    "deleteConfirm": "Are you sure you want to delete domain \"{{name}}\"? This action cannot be undone.",
     "domainCreated": "Domain created",
     "domainUpdated": "Domain updated",
+    "domainDeleted": "Domain deleted",
     "errorCreatingDomain": "Error creating domain",
     "errorUpdatingDomain": "Error updating domain",
     "domainNotFound": "Domain not found",
