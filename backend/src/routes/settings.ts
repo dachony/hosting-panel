@@ -168,6 +168,16 @@ settings.put('/system-notifications', superAdminMiddleware, async (c) => {
   }
 });
 
+// Allowlist for generic /:key routes
+const ALLOWED_SETTINGS_KEYS = new Set([
+  'system',
+  'system-notifications',
+  'theme',
+  'mail',
+  'security',
+  'backup',
+]);
+
 // Get single setting
 settings.get('/:key', async (c) => {
   const key = c.req.param('key');
@@ -184,6 +194,11 @@ settings.get('/:key', async (c) => {
 settings.put('/:key', superAdminMiddleware, async (c) => {
   try {
     const key = c.req.param('key');
+
+    if (!ALLOWED_SETTINGS_KEYS.has(key)) {
+      return c.json({ error: 'Setting key not allowed' }, 400);
+    }
+
     const body = await c.req.json();
     const { value } = body;
 
@@ -206,6 +221,10 @@ settings.put('/:key', superAdminMiddleware, async (c) => {
 // Delete setting
 settings.delete('/:key', superAdminMiddleware, async (c) => {
   const key = c.req.param('key');
+
+  if (!ALLOWED_SETTINGS_KEYS.has(key)) {
+    return c.json({ error: 'Setting key not allowed' }, 400);
+  }
 
   const existing = await db.select().from(schema.appSettings).where(eq(schema.appSettings.key, key)).get();
   if (!existing) {
