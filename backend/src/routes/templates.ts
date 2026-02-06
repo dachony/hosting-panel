@@ -61,8 +61,16 @@ const systemConfigSchema = z.object({
     passwordChanges: z.boolean(),
     resourceUsage: z.boolean(),
     databaseSize: z.boolean(),
+    auditLogs: z.boolean(),
+    emailLogs: z.boolean(),
+    pdfDocuments: z.boolean(),
   }),
   period: z.enum(['today', 'last7days', 'last30days', 'all']),
+  thresholds: z.object({
+    auditLogsCount: z.number().optional(),
+    emailLogsCount: z.number().optional(),
+    pdfSizeMb: z.number().optional(),
+  }).optional(),
 }).nullable().optional();
 
 const templateSchema = z.object({
