@@ -429,12 +429,17 @@ async function importItems(type: string, items: Record<string, unknown>[]): Prom
       switch (type) {
         case 'clients': {
           const validated = clientSchema.parse(data);
-          await db.insert(schema.clients).values(validated as typeof schema.clients.$inferInsert).onConflictDoNothing();
+          const existing = await db.select().from(schema.clients).where(eq(schema.clients.name, validated.name)).get();
+          if (existing) { result.skipped++; break; }
+          await db.insert(schema.clients).values(validated as typeof schema.clients.$inferInsert);
           result.imported++;
           break;
         }
         case 'domains': {
           const validated = domainSchema.parse(data);
+          // Skip if domain already exists
+          const existingDomain = await db.select().from(schema.domains).where(eq(schema.domains.domainName, validated.domainName)).get();
+          if (existingDomain) { result.skipped++; break; }
           // Try to find client by name if clientName provided
           if (validated.clientName && !validated.clientId) {
             const client = await db.select().from(schema.clients).where(eq(schema.clients.name, validated.clientName)).get();
@@ -442,7 +447,7 @@ async function importItems(type: string, items: Record<string, unknown>[]): Prom
               (validated as { clientId?: number }).clientId = client.id;
             }
           }
-          await db.insert(schema.domains).values(validated as typeof schema.domains.$inferInsert).onConflictDoNothing();
+          await db.insert(schema.domains).values(validated as typeof schema.domains.$inferInsert);
           result.imported++;
           break;
         }
@@ -461,12 +466,20 @@ async function importItems(type: string, items: Record<string, unknown>[]): Prom
             const pkg = await db.select().from(schema.mailPackages).where(eq(schema.mailPackages.name, validated.packageName)).get();
             if (pkg) (validated as { packageId?: number }).packageId = pkg.id;
           }
-          await db.insert(schema.webHosting).values(validated as typeof schema.webHosting.$inferInsert).onConflictDoNothing();
+          // Skip if hosting for same domain already exists
+          if ((validated as { domainId?: number }).domainId) {
+            const existingHosting = await db.select().from(schema.webHosting).where(eq(schema.webHosting.domainId, (validated as { domainId: number }).domainId)).get();
+            if (existingHosting) { result.skipped++; break; }
+          }
+          await db.insert(schema.webHosting).values(validated as typeof schema.webHosting.$inferInsert);
           result.imported++;
           break;
         }
         case 'packages': {
           const validated = packageSchema.parse(data);
+          // Skip if package with same name exists
+          const existingPkg = await db.select().from(schema.mailPackages).where(eq(schema.mailPackages.name, validated.name)).get();
+          if (existingPkg) { result.skipped++; break; }
           const features = validated.features ? validated.features.split('|') : null;
           await db.insert(schema.mailPackages).values({
             name: validated.name,
@@ -475,17 +488,27 @@ async function importItems(type: string, items: Record<string, unknown>[]): Prom
             storageGb: validated.storageGb,
             price: validated.price,
             features,
-          }).onConflictDoNothing();
+          });
           result.imported++;
           break;
         }
         case 'templates': {
-          await db.insert(schema.emailTemplates).values(data as typeof schema.emailTemplates.$inferInsert).onConflictDoNothing();
+          const tplName = (data as { name?: string }).name;
+          if (tplName) {
+            const existing = await db.select().from(schema.emailTemplates).where(eq(schema.emailTemplates.name, tplName)).get();
+            if (existing) { result.skipped++; break; }
+          }
+          await db.insert(schema.emailTemplates).values(data as typeof schema.emailTemplates.$inferInsert);
           result.imported++;
           break;
         }
         case 'notificationSettings': {
-          await db.insert(schema.notificationSettings).values(data as typeof schema.notificationSettings.$inferInsert).onConflictDoNothing();
+          const nsName = (data as { name?: string }).name;
+          if (nsName) {
+            const existing = await db.select().from(schema.notificationSettings).where(eq(schema.notificationSettings.name, nsName)).get();
+            if (existing) { result.skipped++; break; }
+          }
+          await db.insert(schema.notificationSettings).values(data as typeof schema.notificationSettings.$inferInsert);
           result.imported++;
           break;
         }
@@ -501,27 +524,53 @@ async function importItems(type: string, items: Record<string, unknown>[]): Prom
           break;
         }
         case 'mailHosting': {
-          await db.insert(schema.mailHosting).values(data as typeof schema.mailHosting.$inferInsert).onConflictDoNothing();
+          // Skip if mail hosting for same domain already exists
+          const mhDomainId = (data as { domainId?: number }).domainId;
+          if (mhDomainId) {
+            const existing = await db.select().from(schema.mailHosting).where(eq(schema.mailHosting.domainId, mhDomainId)).get();
+            if (existing) { result.skipped++; break; }
+          }
+          await db.insert(schema.mailHosting).values(data as typeof schema.mailHosting.$inferInsert);
           result.imported++;
           break;
         }
         case 'mailServers': {
-          await db.insert(schema.mailServers).values(data as typeof schema.mailServers.$inferInsert).onConflictDoNothing();
+          const msName = (data as { name?: string }).name;
+          if (msName) {
+            const existing = await db.select().from(schema.mailServers).where(eq(schema.mailServers.name, msName)).get();
+            if (existing) { result.skipped++; break; }
+          }
+          await db.insert(schema.mailServers).values(data as typeof schema.mailServers.$inferInsert);
           result.imported++;
           break;
         }
         case 'mailSecurity': {
-          await db.insert(schema.mailSecurity).values(data as typeof schema.mailSecurity.$inferInsert).onConflictDoNothing();
+          const mscName = (data as { name?: string }).name;
+          if (mscName) {
+            const existing = await db.select().from(schema.mailSecurity).where(eq(schema.mailSecurity.name, mscName)).get();
+            if (existing) { result.skipped++; break; }
+          }
+          await db.insert(schema.mailSecurity).values(data as typeof schema.mailSecurity.$inferInsert);
           result.imported++;
           break;
         }
         case 'companyInfo': {
-          await db.insert(schema.companyInfo).values(data as typeof schema.companyInfo.$inferInsert).onConflictDoNothing();
+          const ciName = (data as { name?: string }).name;
+          if (ciName) {
+            const existing = await db.select().from(schema.companyInfo).where(eq(schema.companyInfo.name, ciName)).get();
+            if (existing) { result.skipped++; break; }
+          }
+          await db.insert(schema.companyInfo).values(data as typeof schema.companyInfo.$inferInsert);
           result.imported++;
           break;
         }
         case 'bankAccounts': {
-          await db.insert(schema.bankAccounts).values(data as typeof schema.bankAccounts.$inferInsert).onConflictDoNothing();
+          const baName = (data as { bankName?: string }).bankName;
+          if (baName) {
+            const existing = await db.select().from(schema.bankAccounts).where(eq(schema.bankAccounts.bankName, baName)).get();
+            if (existing) { result.skipped++; break; }
+          }
+          await db.insert(schema.bankAccounts).values(data as typeof schema.bankAccounts.$inferInsert);
           result.imported++;
           break;
         }

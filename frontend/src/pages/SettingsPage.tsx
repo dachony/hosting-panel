@@ -5860,6 +5860,25 @@ Your team"
             </div>
           )}
 
+          {/* Select All / Deselect All */}
+          {importPreviewData && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setImportSelections(initializeSelections(importPreviewData, true))}
+                className="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 font-medium"
+              >
+                Select All
+              </button>
+              <span className="text-gray-300 dark:text-gray-600">|</span>
+              <button
+                onClick={() => setImportSelections(initializeSelections(importPreviewData, false))}
+                className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 font-medium"
+              >
+                Deselect All
+              </button>
+            </div>
+          )}
+
           {/* Category list */}
           {importPreviewData && Object.entries(importPreviewData).map(([type, items]) => {
             const isEmpty = items.length === 0;
@@ -5879,7 +5898,7 @@ Your team"
                       ref={(el) => { if (el) el.indeterminate = sectionPartial; }}
                       onChange={(e) => { e.stopPropagation(); toggleAllInSection(type, importSelections, setImportSelections); }}
                       onClick={(e) => e.stopPropagation()}
-                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4"
                     />
                   )}
                   <span className={`text-sm font-medium flex-1 ${isEmpty ? 'text-gray-400 dark:text-gray-600' : 'text-gray-900 dark:text-gray-100'}`}>
@@ -5892,14 +5911,14 @@ Your team"
                     {items.map((item, idx) => {
                       const subtitle = getItemSubtitle(type, item as Record<string, unknown>);
                       return (
-                        <label key={idx} className={`flex items-center gap-2 px-3 py-2 pl-8 cursor-pointer transition-colors ${
+                        <label key={idx} className={`flex items-center gap-3 px-3 py-2.5 pl-8 cursor-pointer transition-colors select-none ${
                           importSelections[type]?.[idx] ? 'bg-primary-50/50 dark:bg-primary-900/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/20'
                         }`}>
                           <input
                             type="checkbox"
                             checked={importSelections[type]?.[idx] ?? false}
                             onChange={() => toggleItem(type, idx, importSelections, setImportSelections)}
-                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5 flex-shrink-0"
+                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4 flex-shrink-0"
                           />
                           <div className="min-w-0">
                             <div className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
