@@ -59,7 +59,7 @@ async function checkExpiringDomains(targetDate: string, daysRemaining: number, s
     })
     .from(schema.domains)
     .leftJoin(schema.clients, eq(schema.domains.clientId, schema.clients.id))
-    .where(eq(schema.domains.expiryDate, targetDate));
+    .where(and(eq(schema.domains.expiryDate, targetDate), eq(schema.domains.isActive, true)));
 
   for (const domain of domains) {
     const recipientEmail = setting.recipientType === 'custom'
@@ -407,6 +407,7 @@ async function sendDailyReport() {
     .from(schema.domains)
     .leftJoin(schema.clients, eq(schema.domains.clientId, schema.clients.id))
     .where(and(
+      eq(schema.domains.isActive, true),
       gte(schema.domains.expiryDate, today),
       lte(schema.domains.expiryDate, weekLater)
     ));

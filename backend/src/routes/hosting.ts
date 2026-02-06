@@ -44,6 +44,7 @@ hosting.get('/', async (c) => {
       domainTechName: schema.domains.contactEmail1,
       domainTechPhone: schema.domains.contactEmail2,
       domainTechEmail: schema.domains.contactEmail3,
+      domainIsActive: schema.domains.isActive,
       packageName: schema.mailPackages.name,
       packageDescription: schema.mailPackages.description,
       packageMaxMailboxes: schema.mailPackages.maxMailboxes,
@@ -83,6 +84,7 @@ hosting.get('/', async (c) => {
       domainTechName: schema.domains.contactEmail1,
       domainTechPhone: schema.domains.contactEmail2,
       domainTechEmail: schema.domains.contactEmail3,
+      domainIsActive: schema.domains.isActive,
       notes: schema.domains.notes,
       createdAt: schema.domains.createdAt,
     })
@@ -115,6 +117,7 @@ hosting.get('/', async (c) => {
     domainTechName: d.domainTechName,
     domainTechPhone: d.domainTechPhone,
     domainTechEmail: d.domainTechEmail,
+    domainIsActive: d.domainIsActive,
     packageName: null,
     packageDescription: null,
     packageMaxMailboxes: null,

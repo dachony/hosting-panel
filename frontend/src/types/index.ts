@@ -73,6 +73,7 @@ export interface Domain {
   contactEmail3?: string | null;
   notes?: string | null;
   pdfFilename?: string | null;
+  isActive: boolean;
   createdAt: string;
   clientName?: string | null;
 }

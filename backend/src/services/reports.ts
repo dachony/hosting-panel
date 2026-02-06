@@ -45,7 +45,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   ] = await Promise.all([
     db.select({ count: count() }).from(schema.clients),
     db.select({ count: count() }).from(schema.domains),
-    db.select({ count: count() }).from(schema.domains).where(gte(schema.domains.expiryDate, today)),
+    db.select({ count: count() }).from(schema.domains).where(and(eq(schema.domains.isActive, true), gte(schema.domains.expiryDate, today))),
     db.select({ count: count() }).from(schema.webHosting).where(isNotNull(schema.webHosting.domainId)),
     db.select({ count: count() }).from(schema.mailHosting).where(isNotNull(schema.mailHosting.domainId)),
     db.select({ count: count() }).from(schema.webHosting).where(and(isNotNull(schema.webHosting.domainId), gte(schema.webHosting.expiryDate, today))),
@@ -264,6 +264,7 @@ export async function generateHostingListHtml(config: ReportConfig): Promise<str
       isEnabled: schema.webHosting.isEnabled,
       clientName: schema.clients.name,
       domainName: schema.domains.domainName,
+      domainIsActive: schema.domains.isActive,
     })
     .from(schema.webHosting)
     .leftJoin(schema.clients, eq(schema.webHosting.clientId, schema.clients.id))
@@ -275,6 +276,7 @@ export async function generateHostingListHtml(config: ReportConfig): Promise<str
       isActive: schema.mailHosting.isActive,
       clientName: schema.clients.name,
       domainName: schema.domains.domainName,
+      domainIsActive: schema.domains.isActive,
       packageName: schema.mailPackages.name,
     })
     .from(schema.mailHosting)
@@ -283,9 +285,9 @@ export async function generateHostingListHtml(config: ReportConfig): Promise<str
     .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id)),
   ]);
 
-  // Transform to unified format with status
+  // Transform to unified format with status (exclude inactive domains)
   const items: HostingItem[] = [
-    ...webHosting.map(h => {
+    ...webHosting.filter(h => h.domainIsActive !== false).map(h => {
       const days = daysUntilExpiry(h.expiryDate);
       return {
         id: h.id,
@@ -299,7 +301,7 @@ export async function generateHostingListHtml(config: ReportConfig): Promise<str
         isEnabled: h.isEnabled !== false,
       };
     }),
-    ...mailHosting.map(m => {
+    ...mailHosting.filter(m => m.domainIsActive !== false).map(m => {
       const days = daysUntilExpiry(m.expiryDate);
       return {
         id: m.id,

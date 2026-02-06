@@ -187,11 +187,11 @@ export default function DomainDetailPage() {
     onError: () => toast.error(t('domains.errorUpdatingHosting')),
   });
 
-  // Toggle hosting status mutation
+  // Toggle domain active status mutation
   const toggleMutation = useMutation({
-    mutationFn: () => api.post(`/api/hosting/${hosting?.id}/toggle`, {}),
+    mutationFn: () => api.post(`/api/domains/${id}/toggle`, {}),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['domain-hosting', id] });
+      queryClient.invalidateQueries({ queryKey: ['domain', id] });
       queryClient.invalidateQueries({ queryKey: ['hosting'] });
       toast.success(t('domains.statusUpdated'));
     },
@@ -722,34 +722,6 @@ export default function DomainDetailPage() {
                   </div>
                 )}
               </div>
-
-              {/* Status Toggle */}
-              {hosting && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.status')}</span>
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        hosting.isActive !== false
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                      }`}>
-                        {hosting.isActive !== false ? t('common.enabled') : t('common.disabled')}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => toggleMutation.mutate()}
-                      className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                        hosting.isActive !== false
-                          ? 'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400'
-                          : 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400'
-                      }`}
-                    >
-                      {hosting.isActive !== false ? t('common.disable') : t('common.enable')}
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {/* PDF Document */}
               <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">

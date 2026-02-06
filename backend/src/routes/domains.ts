@@ -39,6 +39,7 @@ domains.get('/', async (c) => {
       contactEmail3: schema.domains.contactEmail3,
       notes: schema.domains.notes,
       pdfFilename: schema.domains.pdfFilename,
+      isActive: schema.domains.isActive,
       createdAt: schema.domains.createdAt,
       clientName: schema.clients.name,
     })
@@ -64,6 +65,7 @@ domains.get('/:id', async (c) => {
       contactEmail3: schema.domains.contactEmail3,
       notes: schema.domains.notes,
       pdfFilename: schema.domains.pdfFilename,
+      isActive: schema.domains.isActive,
       createdAt: schema.domains.createdAt,
       clientName: schema.clients.name,
     })
@@ -238,6 +240,25 @@ domains.delete('/:id/pdf', async (c) => {
     .where(eq(schema.domains.id, id));
 
   return c.json({ message: 'PDF deleted' });
+});
+
+domains.post('/:id/toggle', async (c) => {
+  const id = parseInt(c.req.param('id'));
+
+  const existing = await db.select().from(schema.domains).where(eq(schema.domains.id, id)).get();
+  if (!existing) {
+    return c.json({ error: 'Domain not found' }, 404);
+  }
+
+  const [updated] = await db.update(schema.domains)
+    .set({
+      isActive: !existing.isActive,
+      updatedAt: getCurrentTimestamp(),
+    })
+    .where(eq(schema.domains.id, id))
+    .returning();
+
+  return c.json({ domain: updated });
 });
 
 domains.delete('/:id', superAdminMiddleware, async (c) => {

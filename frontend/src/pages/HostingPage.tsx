@@ -32,6 +32,7 @@ interface HostingWithDetails extends Hosting {
   domainTechName?: string | null;
   domainTechPhone?: string | null;
   domainTechEmail?: string | null;
+  domainIsActive?: boolean;
   packageDescription?: string | null;
   packageMaxMailboxes?: number | null;
   packageStorageGb?: number | null;
@@ -360,12 +361,11 @@ export default function HostingPage() {
       if (!statusFilters.has(status)) return false;
     }
 
-    // Enabled/disabled filter
+    // Enabled/disabled filter (uses domain-level isActive)
     if (enabledFilter !== 'all') {
-      if (isUnhosted) return false; // unhosted only visible when "all" enabled filter
-      const isEnabled = h.isActive !== false;
-      if (enabledFilter === 'enabled' && !isEnabled) return false;
-      if (enabledFilter === 'disabled' && isEnabled) return false;
+      const isDomainActive = h.domainIsActive !== false;
+      if (enabledFilter === 'enabled' && !isDomainActive) return false;
+      if (enabledFilter === 'disabled' && isDomainActive) return false;
     }
 
     // Search filter
@@ -439,33 +439,6 @@ export default function HostingPage() {
                 </button>
               ))}
 
-              {/* Enabled/Disabled filter separator */}
-              <span className="text-gray-300 dark:text-gray-600">|</span>
-
-              <button
-                onClick={() => setEnabledFilter(enabledFilter === 'enabled' ? 'all' : 'enabled')}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
-                  enabledFilter === 'enabled'
-                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 ring-2 ring-offset-1 dark:ring-offset-gray-800'
-                    : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-                style={enabledFilter === 'enabled' ? { '--tw-ring-color': '#10b981' } as React.CSSProperties : undefined}
-              >
-                <Power className="w-3 h-3" />
-                {t('common.enabled')}
-              </button>
-              <button
-                onClick={() => setEnabledFilter(enabledFilter === 'disabled' ? 'all' : 'disabled')}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
-                  enabledFilter === 'disabled'
-                    ? 'bg-gray-500/20 text-gray-600 dark:text-gray-400 ring-2 ring-offset-1 dark:ring-offset-gray-800'
-                    : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-                style={enabledFilter === 'disabled' ? { '--tw-ring-color': '#6b7280' } as React.CSSProperties : undefined}
-              >
-                <PowerOff className="w-3 h-3" />
-                {t('common.disabled')}
-              </button>
             </div>
           </div>
 
@@ -565,20 +538,6 @@ export default function HostingPage() {
 
                   {/* Footer */}
                   <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">
-                    {isUnhosted ? (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                        {t('common.noPackage')}
-                      </span>
-                    ) : (
-                      <div className={`px-2 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 ${
-                        hosting.isActive !== false
-                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                          : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
-                      }`}>
-                        {hosting.isActive !== false ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
-                        {hosting.isActive !== false ? t('common.enabled') : t('common.disabled')}
-                      </div>
-                    )}
                     <div className="flex gap-2">
                       {isSuperAdmin && (
                         <button
@@ -664,21 +623,7 @@ export default function HostingPage() {
                     </div>
                   )}
 
-                  {/* Enabled/Disabled & Status & Edit */}
-                  {isUnhosted ? (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                      —
-                    </span>
-                  ) : (
-                    <div className={`px-2 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 ${
-                      hosting.isActive !== false
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                        : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
-                    }`}>
-                      {hosting.isActive !== false ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
-                      {hosting.isActive !== false ? t('common.on') : t('common.off')}
-                    </div>
-                  )}
+                  {/* Status & Edit */}
                   {isUnhosted ? (
                     <span className="px-2 py-1 rounded text-xs font-medium bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
                       {t('common.noPackage')}

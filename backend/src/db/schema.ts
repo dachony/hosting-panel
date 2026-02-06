@@ -57,6 +57,7 @@ export const domains = sqliteTable('domains', {
   contactEmail3: text('contact_email3'),
   notes: text('notes'),
   pdfFilename: text('pdf_filename'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
