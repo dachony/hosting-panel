@@ -190,12 +190,14 @@ export default function DashboardPage() {
                 <div
                   key={`missing-${item.id}`}
                   onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
-                  className="flex items-center px-3 py-2 cursor-pointer hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition-colors text-xs gap-3"
+                  className="flex items-center px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-xs gap-3"
                 >
                   <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
                   <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <span className="text-amber-600 dark:text-amber-400 font-semibold w-12 shrink-0 text-right">{item.daysUntilExpiry}d</span>
+                  <div className="w-36 shrink-0">
+                    <StatusBadge days={item.daysUntilExpiry} />
+                  </div>
                 </div>
               ))}
             </div>
@@ -261,7 +263,7 @@ export default function DashboardPage() {
                 <div
                   key={`expired-${item.type}-${item.id}`}
                   onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
-                  className="flex items-center px-3 py-2 bg-red-50/30 dark:bg-red-900/10 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/20 transition-colors text-xs gap-3"
+                  className="flex items-center px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-xs gap-3"
                 >
                   <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
@@ -296,7 +298,7 @@ export default function DashboardPage() {
                 <div
                   key={`fordel-${item.type}-${item.id}`}
                   onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
-                  className="flex items-center px-3 py-2 bg-purple-50/30 dark:bg-purple-900/10 cursor-pointer hover:bg-purple-100/50 dark:hover:bg-purple-900/20 transition-colors text-xs gap-3"
+                  className="flex items-center px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-xs gap-3"
                 >
                   <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
@@ -331,7 +333,7 @@ export default function DashboardPage() {
                 <div
                   key={`delete-${item.type}-${item.id}`}
                   onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
-                  className="flex items-center px-3 py-2 bg-gray-50/50 dark:bg-gray-800/50 cursor-pointer hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors text-xs gap-3"
+                  className="flex items-center px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-xs gap-3"
                 >
                   <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>

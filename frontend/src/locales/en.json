@@ -192,7 +192,7 @@
     "noExpiringItems": "No expiring items",
     "missingOffers": "Missing Offers",
     "noMissingOffers": "All offers have been sent",
-    "willBeDeletedExpired60": "For Deleted (expired 60+ days)",
+    "willBeDeletedExpired60": "Deleted",
     "noItemsPendingDeletion": "No items pending deletion",
     "expired": "Expired",
     "expiredItems": "Expired (0-7 days)",
