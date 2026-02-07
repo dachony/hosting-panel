@@ -21,6 +21,7 @@
     "react-i18next": "^14.0.1",
     "react-router-dom": "^6.21.3",
     "dompurify": "^3.0.8",
+    "fflate": "^0.8.2",
     "zod": "^3.22.4"
   },
   "devDependencies": {
