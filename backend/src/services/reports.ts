@@ -3,6 +3,12 @@ import { eq, and, lte, gte, gt, lt, count, isNotNull, isNull } from 'drizzle-orm
 import { formatDate, addDaysToDate, daysUntilExpiry, getDomainStatus, DomainStatus } from '../utils/dates.js';
 import { ReportConfig } from '../db/schema.js';
 import PDFDocument from 'pdfkit';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const FONT_REGULAR = path.join(__dirname, '..', '..', 'src', 'fonts', 'Roboto-Regular.ttf');
+const FONT_BOLD = path.join(__dirname, '..', '..', 'src', 'fonts', 'Roboto-Bold.ttf');
 
 export interface DashboardStats {
   totalClients: number;
@@ -424,14 +430,16 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
+    doc.registerFont('Roboto', FONT_REGULAR);
+    doc.registerFont('Roboto-Bold', FONT_BOLD);
     const chunks: Buffer[] = [];
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
     // Title
-    doc.fontSize(16).font('Helvetica-Bold').text('Hosting Report', { align: 'center' });
-    doc.fontSize(9).font('Helvetica').text(`Generated: ${now}`, { align: 'center' });
+    doc.fontSize(16).font('Roboto-Bold').text('Hosting Report', { align: 'center' });
+    doc.fontSize(9).font('Roboto').text(`Generated: ${now}`, { align: 'center' });
     doc.moveDown(1);
 
     if (items.length === 0) {
@@ -464,7 +472,7 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
 
     const drawTableHeader = () => {
       let x = tableLeft;
-      doc.fontSize(headerFontSize).font('Helvetica-Bold');
+      doc.fontSize(headerFontSize).font('Roboto-Bold');
       doc.rect(x, doc.y, tableWidth, headerHeight).fill('#e5e7eb');
       const headerY = doc.y + 5;
       for (const col of cols) {
@@ -503,14 +511,14 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
         formatDisplayDate(item.expiryDate),
       ];
 
-      doc.fontSize(fontSize).font('Helvetica');
+      doc.fontSize(fontSize).font('Roboto');
       for (let i = 0; i < cols.length; i++) {
         // Days column (index 2) in bold status color
         if (i === 2) {
           const sc = statusColors[item.status];
-          doc.fill(sc.text).font('Helvetica-Bold')
+          doc.fill(sc.text).font('Roboto-Bold')
             .text(values[i], x + 4, textY, { width: cols[i].width - 8, lineBreak: false });
-          doc.font('Helvetica');
+          doc.font('Roboto');
         } else {
           doc.fill('#333').text(values[i], x + 4, textY, { width: cols[i].width - 8, lineBreak: false });
         }
@@ -542,7 +550,7 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
       doc.rect(tableLeft, doc.y, 3, groupHeaderHeight).fill(color.text);
       doc.restore();
 
-      doc.fontSize(8).font('Helvetica-Bold').fill(color.text)
+      doc.fontSize(8).font('Roboto-Bold').fill(color.text)
         .text(`${color.label} — ${color.description} (${group.items.length})`, tableLeft + 8, doc.y + 3);
       doc.y += groupHeaderHeight + 2;
       doc.x = tableLeft;
@@ -553,7 +561,7 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
     }
 
     // Footer
-    doc.fontSize(7).font('Helvetica').fill('#999')
+    doc.fontSize(7).font('Roboto').fill('#999')
       .text(`Total: ${items.length} items`, tableLeft, doc.y + 10);
 
     doc.end();
