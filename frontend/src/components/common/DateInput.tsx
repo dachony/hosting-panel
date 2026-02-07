@@ -42,15 +42,15 @@ export default function DateInput({
       {/* Visible styled display */}
       <div
         onClick={handleClick}
-        className={`w-full px-3 py-2 border rounded-lg cursor-pointer select-none
+        className={`w-full border rounded-lg cursor-pointer select-none
           bg-white dark:bg-gray-800
           border-gray-300 dark:border-gray-600
           ${value ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}
-          ${isSmall ? 'pr-8 text-xs py-1 px-1.5' : 'pr-10 text-sm py-1.5'}`}
+          ${isSmall ? 'pr-8 text-xs py-1 px-1.5' : 'px-3 py-2 pr-10 text-sm'}`}
       >
         {formatDisplay(value) || 'dd.mm.yyyy'}
       </div>
-      {/* Hidden native date input — sr-only keeps it accessible but invisible */}
+      {/* Native date input — visually hidden but functional for picker */}
       <input
         ref={inputRef}
         type="date"
@@ -58,12 +58,13 @@ export default function DateInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
-        onClick={handleClick}
         tabIndex={-1}
-        className="absolute inset-0 w-full h-full cursor-pointer opacity-0 appearance-none [color-scheme:light] dark:[color-scheme:dark]"
+        aria-hidden="true"
+        className="sr-only"
       />
       <CalendarDays
-        className={`absolute top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none
+        onClick={handleClick}
+        className={`absolute top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer
         ${isSmall ? 'right-1.5 w-3.5 h-3.5' : 'right-3 w-5 h-5'}`}
       />
     </div>
