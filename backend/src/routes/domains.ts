@@ -12,17 +12,19 @@ const domains = new Hono();
 
 domains.use('*', authMiddleware);
 
+const DOMAIN_NAME_REGEX = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
+
 const domainSchema = z.object({
   clientId: z.number().optional().nullable(),
-  domainName: z.string().min(1),
+  domainName: z.string().min(1).regex(DOMAIN_NAME_REGEX, 'Invalid domain name format'),
   // Primary contact
   primaryContactName: z.string().optional().nullable(),
   primaryContactPhone: z.string().optional().nullable(),
-  primaryContactEmail: z.string().optional().nullable(),
+  primaryContactEmail: z.string().email().or(z.literal('')).optional().nullable(),
   // Technical contact (contactEmail1 = name, contactEmail2 = phone, contactEmail3 = email)
   contactEmail1: z.string().optional().nullable(),
   contactEmail2: z.string().optional().nullable(),
-  contactEmail3: z.string().optional().nullable(),
+  contactEmail3: z.string().email().or(z.literal('')).optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 

@@ -22,6 +22,7 @@
     "no": "Ne",
     "all": "Sve",
     "name": "Naziv",
+    "nameAndSurname": "Ime i prezime",
     "phone": "Telefon",
     "email": "Email",
     "address": "Adresa",
@@ -252,7 +253,9 @@
     "pdfUploaded": "PDF je otpremljen",
     "pdfDeleted": "PDF je obrisan",
     "errorUploadingPdf": "Greška pri otpremanju PDF-a",
-    "errorDeletingPdf": "Greška pri brisanju PDF-a"
+    "errorDeletingPdf": "Greška pri brisanju PDF-a",
+    "onlyPdfAllowed": "Dozvoljeni su samo PDF fajlovi",
+    "fileTooLarge": "Fajl je prevelik (max 10MB)"
   },
   "hosting": {
     "title": "Web Hosting",

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { Search, Loader2, Filter, ChevronLeft, ChevronRight, X, User, Globe, Clock, MapPin, Monitor } from 'lucide-react';
 
 // Default column widths
@@ -178,6 +179,7 @@ export default function AuditLogPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebouncedValue(searchTerm, 300);
   const [entityTypeFilter, setEntityTypeFilter] = useState('');
   const [actionFilter, setActionFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -232,12 +234,12 @@ export default function AuditLogPage() {
   }, []);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['audit-logs', page, searchTerm, entityTypeFilter, actionFilter],
+    queryKey: ['audit-logs', page, debouncedSearchTerm, entityTypeFilter, actionFilter],
     queryFn: () => {
       const params = new URLSearchParams();
       params.set('page', page.toString());
       params.set('limit', '50');
-      if (searchTerm) params.set('search', searchTerm);
+      if (debouncedSearchTerm) params.set('search', debouncedSearchTerm);
       if (entityTypeFilter) params.set('entityType', entityTypeFilter);
       if (actionFilter) params.set('action', actionFilter);
       return api.get<PaginatedResponse>(`/api/audit?${params.toString()}`);

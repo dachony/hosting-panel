@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { api, setOnUnauthorized } from '../api/client';
 import { User, AuthResponse } from '../types';
 
@@ -44,6 +45,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);
@@ -51,7 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Register soft redirect callback for 401 responses
   const handleUnauthorized = useCallback(() => {
     setUser(null);
-  }, []);
+    queryClient.clear();
+  }, [queryClient]);
 
   useEffect(() => {
     setOnUnauthorized(handleUnauthorized);
@@ -180,6 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    queryClient.clear();
   };
 
   // Role helpers

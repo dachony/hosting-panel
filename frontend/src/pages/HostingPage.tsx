@@ -82,13 +82,14 @@ function StatusBadge({ status, days }: { status: ExpiryStatus; days: number }) {
     label = t('common.statusExpiring');
   }
 
-  const daysStr = days > 0 ? (days > 36000 ? '∞' : `${days}d`) : null;
+  const showDays = days > 0;
+  const daysStr = showDays ? (days > 36000 ? '∞' : `${days} ${t('dashboard.daysLeft')}`) : null;
 
   return (
     <div className="flex items-center gap-1.5">
       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${config.dot}`}></div>
       <span className={`text-xs font-semibold ${config.text} whitespace-nowrap`}>
-        {label}{daysStr ? ` (${daysStr})` : ''}
+        {label}{daysStr ? ` | ${daysStr}` : ''}
       </span>
     </div>
   );
@@ -740,7 +741,7 @@ export default function HostingPage() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500">{t('common.name')} *</label>
+                <label className="text-xs text-gray-500">{t('common.nameAndSurname')} *</label>
                 <input
                   value={domainForm.primaryName}
                   onChange={(e) => setDomainForm(prev => ({ ...prev, primaryName: e.target.value }))}
@@ -790,7 +791,7 @@ export default function HostingPage() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500">{t('common.name')} *</label>
+                <label className="text-xs text-gray-500">{t('common.nameAndSurname')} *</label>
                 <input
                   value={domainForm.techName}
                   onChange={(e) => setDomainForm(prev => ({ ...prev, techName: e.target.value }))}

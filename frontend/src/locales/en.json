@@ -22,6 +22,7 @@
     "no": "No",
     "all": "All",
     "name": "Name",
+    "nameAndSurname": "Name and Surname",
     "phone": "Phone",
     "email": "Email",
     "address": "Address",
@@ -252,7 +253,9 @@
     "pdfUploaded": "PDF uploaded",
     "pdfDeleted": "PDF deleted",
     "errorUploadingPdf": "Error uploading PDF",
-    "errorDeletingPdf": "Error deleting PDF"
+    "errorDeletingPdf": "Error deleting PDF",
+    "onlyPdfAllowed": "Only PDF files are allowed",
+    "fileTooLarge": "File too large (max 10MB)"
   },
   "hosting": {
     "title": "Web Hosting",
@@ -527,8 +530,8 @@
     "errorSendingInvitation": "Error sending invitation",
     "editUser": "Edit user",
     "newUser": "New user",
-    "firstName": "First Name",
-    "lastName": "Last Name",
+    "firstName": "Name",
+    "lastName": "Surname",
     "phone": "Phone",
     "role": "Role",
     "salesRole": "Sales",
@@ -737,8 +740,8 @@
   "setup": {
     "title": "Create Administrator Account",
     "subtitle": "First-time setup - create your administrator account",
-    "firstName": "First Name",
-    "lastName": "Last Name",
+    "firstName": "Name",
+    "lastName": "Surname",
     "email": "Email",
     "phone": "Phone",
     "password": "Password",

@@ -24,25 +24,19 @@ interface ClientDetailResponse {
   hosting: HostingWithPackage[];
 }
 
-const statusColors: Record<ExpiryStatus, string> = {
-  green: 'bg-green-500',
-  yellow: 'bg-yellow-400',
-  orange: 'bg-orange-500',
-  red: 'bg-red-600',
-  forDeletion: 'bg-purple-500',
-  deleted: 'bg-gray-400',
+const statusColors: Record<ExpiryStatus, { border: string; bg: string; text: string; labelKey: string; dot: string }> = {
+  green: { border: 'border-green-500', bg: 'bg-green-500/20', text: 'text-green-600 dark:text-green-400', labelKey: 'common.statusOk', dot: 'bg-green-500' },
+  yellow: { border: 'border-yellow-500', bg: 'bg-yellow-500/20', text: 'text-yellow-600 dark:text-yellow-400', labelKey: 'common.statusWarning', dot: 'bg-yellow-500' },
+  orange: { border: 'border-orange-500', bg: 'bg-orange-500/20', text: 'text-orange-600 dark:text-orange-400', labelKey: 'common.statusCritical', dot: 'bg-orange-500' },
+  red: { border: 'border-red-500', bg: 'bg-red-500/20', text: 'text-red-600 dark:text-red-400', labelKey: 'common.statusExpired', dot: 'bg-red-500' },
+  forDeletion: { border: 'border-purple-500', bg: 'bg-purple-500/20', text: 'text-purple-600 dark:text-purple-400', labelKey: 'common.statusForDeletion', dot: 'bg-purple-500' },
+  deleted: { border: 'border-gray-500', bg: 'bg-gray-500/20', text: 'text-gray-600 dark:text-gray-400', labelKey: 'common.statusDeleted', dot: 'bg-gray-500' },
 };
 
-const statusFilters: Record<ExpiryStatus, { border: string; bg: string; text: string; labelKey: string }> = {
-  green: { border: 'border-green-500', bg: 'bg-green-500/20', text: 'text-green-600 dark:text-green-400', labelKey: 'common.statusOkShort' },
-  yellow: { border: 'border-yellow-500', bg: 'bg-yellow-500/20', text: 'text-yellow-600 dark:text-yellow-400', labelKey: 'common.statusWarning' },
-  orange: { border: 'border-orange-500', bg: 'bg-orange-500/20', text: 'text-orange-600 dark:text-orange-400', labelKey: 'common.statusCritical' },
-  red: { border: 'border-red-500', bg: 'bg-red-500/20', text: 'text-red-600 dark:text-red-400', labelKey: 'common.statusExpired' },
-  forDeletion: { border: 'border-purple-500', bg: 'bg-purple-500/20', text: 'text-purple-600 dark:text-purple-400', labelKey: 'common.statusForDeletion' },
-  deleted: { border: 'border-gray-500', bg: 'bg-gray-500/20', text: 'text-gray-600 dark:text-gray-400', labelKey: 'common.statusDeleted' },
-};
 
 const getExpiryStatus = (days: number): ExpiryStatus => {
+  if (days <= -60) return 'deleted';
+  if (days <= -30) return 'forDeletion';
   if (days <= 0) return 'red';
   if (days <= 7) return 'orange';
   if (days <= 31) return 'yellow';
@@ -513,24 +507,30 @@ export default function ClientDetailPage() {
   const { client, domains, hosting } = data;
 
   const StatusBadge = ({ status, days }: { status: ExpiryStatus; days: number }) => {
-    const textColor = status === 'red' ? 'text-red-600' : status === 'orange' ? 'text-orange-600' : status === 'yellow' ? 'text-yellow-600' : 'text-green-600';
+    const config = statusColors[status];
 
-    if (days <= 0) {
-      return (
-        <div className="flex items-center gap-2">
-          <div className={`w-3 h-3 rounded-full ${statusColors[status]}`}></div>
-          <span className={`text-sm font-bold ${textColor}`}>{t('common.expired')}</span>
-        </div>
-      );
+    let label: string;
+    if (status === 'deleted') {
+      label = t('common.statusDeleted');
+    } else if (status === 'forDeletion') {
+      label = t('common.statusForDeletion');
+    } else if (days <= 0) {
+      label = t('common.statusExpired');
+    } else if (status === 'green') {
+      label = t('common.statusOk');
+    } else {
+      label = t('common.statusExpiring');
     }
 
+    const showDays = days > 0;
+    const daysStr = showDays ? (days > 36000 ? '∞' : `${days} ${t('dashboard.daysLeft')}`) : null;
+
     return (
-      <div className="flex items-center gap-2">
-        <div className={`w-3 h-3 rounded-full ${statusColors[status]}`}></div>
-        <div className="text-center">
-          <div className={`text-xs ${textColor}`}>{t('common.daysLeft')}</div>
-          <div className={`text-lg font-bold ${textColor} leading-tight`}>{days > 36000 ? '∞' : days}</div>
-        </div>
+      <div className="flex items-center gap-1.5">
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${config.dot}`}></div>
+        <span className={`text-xs font-semibold ${config.text} whitespace-nowrap`}>
+          {label}{daysStr ? ` | ${daysStr}` : ''}
+        </span>
       </div>
     );
   };
@@ -542,7 +542,7 @@ export default function ClientDetailPage() {
     if (domainStatusFilter !== 'all') {
       const domainHosting = getHostingForDomain(domain.id);
       if (!domainHosting) return false;
-      const status = getExpiryStatus(domainHosting.daysUntilExpiry || 0);
+      const status = domainHosting.expiryStatus || getExpiryStatus(domainHosting.daysUntilExpiry || 0);
       if (status !== domainStatusFilter) return false;
     }
 
@@ -684,7 +684,7 @@ export default function ClientDetailPage() {
                 <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.primaryContact')}</span>
                 <div className="mt-1.5 grid grid-cols-3 gap-2 text-xs">
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.name')}</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.nameAndSurname')}</label>
                     {isClientLocked ? (
                       <div className="text-sm">{client.contactPerson || '-'}</div>
                     ) : (
@@ -755,7 +755,7 @@ export default function ClientDetailPage() {
                 </div>
                 <div className="mt-1.5 grid grid-cols-3 gap-2 text-xs">
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.name')}</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.nameAndSurname')}</label>
                     {isClientLocked ? (
                       <div className="text-sm">{client.techContact || client.contactPerson || '-'}</div>
                     ) : (
@@ -890,18 +890,18 @@ export default function ClientDetailPage() {
             >
               {t('common.all')}
             </button>
-            {(['green', 'yellow', 'orange', 'red'] as ExpiryStatus[]).map((status) => (
+            {(['green', 'yellow', 'orange', 'red', 'forDeletion', 'deleted'] as ExpiryStatus[]).map((status) => (
               <button
                 key={status}
                 onClick={() => setDomainStatusFilter(status)}
                 className={`px-2 py-0.5 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
                   domainStatusFilter === status
-                    ? `${statusFilters[status].bg} ${statusFilters[status].text}`
+                    ? `${statusColors[status].bg} ${statusColors[status].text}`
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${statusColors[status]}`}></span>
-                {t(statusFilters[status].labelKey)}
+                <span className={`w-2 h-2 rounded-full ${statusColors[status].dot}`}></span>
+                {t(statusColors[status].labelKey)}
               </button>
             ))}
           </div>
@@ -941,34 +941,45 @@ export default function ClientDetailPage() {
                     </div>
 
                     {/* Contacts */}
-                    <div className="min-w-0 text-xs space-y-1">
-                      <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                        <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.primaryContact')}</span>
+                    <div className="flex-1 min-w-0 text-xs space-y-0.5">
+                      <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 whitespace-nowrap overflow-hidden">
+                        <span className="text-gray-500 font-medium flex-shrink-0">{t('common.primaryContact')}</span>
                         <span className="truncate">{[domain.primaryContactName || client.contactPerson, domain.primaryContactPhone || client.phone, domain.primaryContactEmail || client.email1].filter(Boolean).join(', ') || '-'}</span>
                       </div>
-                      <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                        <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.technicalContact')}</span>
+                      <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 whitespace-nowrap overflow-hidden">
+                        <span className="text-gray-500 font-medium flex-shrink-0">{t('common.technicalContact')}</span>
                         <span className="truncate">{[domain.contactEmail1 || client.techContact || client.contactPerson, domain.contactEmail2 || client.techPhone || client.phone, domain.contactEmail3 || client.techEmail || client.email1].filter(Boolean).join(', ') || '-'}</span>
                       </div>
                     </div>
 
                     {/* Package Info */}
                     <div className="w-36 flex-shrink-0 text-xs text-left">
-                      <div className="text-gray-700 dark:text-gray-300 font-medium truncate">
-                        {domainHosting?.packageName || '—'}
-                      </div>
-                      {domainHosting && (
-                        <div className="text-gray-500 truncate">
-                          {(domainHosting as HostingWithPackage).packageMaxMailboxes || 0} {t('common.mailboxes')} · {(domainHosting as HostingWithPackage).packageStorageGb || 0} GB
+                      {domainHosting ? (
+                        <>
+                          <div className="text-gray-700 dark:text-gray-300 font-medium truncate">
+                            {domainHosting.packageName || '—'}
+                          </div>
+                          <div className="text-gray-500 truncate">
+                            {(domainHosting as HostingWithPackage).packageMaxMailboxes || 0} {t('common.mailboxes')} · {(domainHosting as HostingWithPackage).packageStorageGb || 0} GB
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0"></div>
+                          <span className="text-xs text-gray-400 font-medium">{t('common.statusNoPackage')}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Status & Buttons */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {domainHosting && (
+                    {/* Status */}
+                    <div className="w-32 flex-shrink-0">
+                      {domainHosting ? (
                         <StatusBadge status={domainHosting.expiryStatus} days={domainHosting.daysUntilExpiry || 0} />
-                      )}
+                      ) : null}
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -979,18 +990,17 @@ export default function ClientDetailPage() {
                         <Pencil className="w-3 h-3" />
                         {t('common.edit')}
                       </button>
-                      {domainHosting && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleExtend(domainHosting.id!, domain.domainName);
-                          }}
-                          className="btn btn-primary text-xs py-1 px-2 flex items-center gap-1"
-                        >
-                          <Calendar className="w-3 h-3" />
-                          {t('common.extend')}
-                        </button>
-                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (domainHosting) handleExtend(domainHosting.id!, domain.domainName);
+                        }}
+                        disabled={!domainHosting}
+                        className="btn btn-primary text-xs py-1 px-2 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Calendar className="w-3 h-3" />
+                        {t('common.extend')}
+                      </button>
                     </div>
                   </div>
 
@@ -1311,7 +1321,7 @@ export default function ClientDetailPage() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500">{t('common.name')} *</label>
+                <label className="text-xs text-gray-500">{t('common.nameAndSurname')} *</label>
                 <input
                   value={domainForm.primaryName}
                   onChange={(e) => setDomainForm({ ...domainForm, primaryName: e.target.value })}
@@ -1371,7 +1381,7 @@ export default function ClientDetailPage() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500">{t('common.name')} *</label>
+                <label className="text-xs text-gray-500">{t('common.nameAndSurname')} *</label>
                 <input
                   value={domainForm.techName}
                   onChange={(e) => setDomainForm({ ...domainForm, techName: e.target.value })}
@@ -1607,7 +1617,7 @@ export default function ClientDetailPage() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500">{t('common.name')} *</label>
+                <label className="text-xs text-gray-500">{t('common.nameAndSurname')} *</label>
                 <input
                   value={editDomainForm.primaryName}
                   onChange={(e) => setEditDomainForm({ ...editDomainForm, primaryName: e.target.value })}
@@ -1668,7 +1678,7 @@ export default function ClientDetailPage() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500">{t('common.name')} *</label>
+                <label className="text-xs text-gray-500">{t('common.nameAndSurname')} *</label>
                 <input
                   value={editDomainForm.techName}
                   onChange={(e) => setEditDomainForm({ ...editDomainForm, techName: e.target.value })}

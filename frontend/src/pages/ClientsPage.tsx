@@ -344,7 +344,7 @@ export default function ClientsPage() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500">{t('common.name') + ' *'}</label>
+                <label className="text-xs text-gray-500">{t('common.nameAndSurname') + ' *'}</label>
                 <input
                   name="contactPerson"
                   defaultValue={selectedClient?.contactPerson || ''}
@@ -391,7 +391,7 @@ export default function ClientsPage() {
             {!techSameAsPrimary && (
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-xs text-gray-500">{t('common.name') + ' *'}</label>
+                  <label className="text-xs text-gray-500">{t('common.nameAndSurname') + ' *'}</label>
                   <input
                     name="techContact"
                     defaultValue={selectedClient?.techContact || ''}

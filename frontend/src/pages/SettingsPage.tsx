@@ -4567,11 +4567,11 @@ export default function SettingsPage() {
         <form onSubmit={handleUserSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] text-gray-500 dark:text-gray-400">First Name *</label>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('settings.firstName')} *</label>
               <input name="firstName" defaultValue={selectedUser?.firstName || ''} className="input input-sm" required />
             </div>
             <div>
-              <label className="text-[11px] text-gray-500 dark:text-gray-400">Last Name *</label>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('settings.lastName')} *</label>
               <input name="lastName" defaultValue={selectedUser?.lastName || ''} className="input input-sm" required />
             </div>
           </div>

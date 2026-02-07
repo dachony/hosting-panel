@@ -45,27 +45,41 @@ function calculateExpiryDate(fromDate: string, yearsToAdd: number): string {
   return date.toISOString().split('T')[0];
 }
 
+const statusColors: Record<ExpiryStatus, { text: string; dot: string }> = {
+  green: { text: 'text-green-600 dark:text-green-400', dot: 'bg-green-500' },
+  yellow: { text: 'text-yellow-600 dark:text-yellow-400', dot: 'bg-yellow-500' },
+  orange: { text: 'text-orange-600 dark:text-orange-400', dot: 'bg-orange-500' },
+  red: { text: 'text-red-600 dark:text-red-400', dot: 'bg-red-500' },
+  forDeletion: { text: 'text-purple-600 dark:text-purple-400', dot: 'bg-purple-500' },
+  deleted: { text: 'text-gray-600 dark:text-gray-400', dot: 'bg-gray-500' },
+};
+
 function StatusBadge({ status, days }: { status: ExpiryStatus; days: number }) {
   const { t } = useTranslation();
-  const dotColor = status === 'green' ? 'bg-green-500' : status === 'yellow' ? 'bg-yellow-500' : status === 'orange' ? 'bg-orange-500' : 'bg-red-500';
-  const textColor = status === 'green' ? 'text-green-600' : status === 'yellow' ? 'text-yellow-600' : status === 'orange' ? 'text-orange-600' : 'text-red-600';
+  const config = statusColors[status];
 
-  if (days <= 0) {
-    return (
-      <div className="flex items-center gap-2">
-        <div className={`w-3 h-3 rounded-full ${dotColor}`}></div>
-        <span className={`text-sm font-bold ${textColor}`}>{t('common.expired')}</span>
-      </div>
-    );
+  let label: string;
+  if (status === 'deleted') {
+    label = t('common.statusDeleted');
+  } else if (status === 'forDeletion') {
+    label = t('common.statusForDeletion');
+  } else if (days <= 0) {
+    label = t('common.statusExpired');
+  } else if (status === 'green') {
+    label = t('common.statusOk');
+  } else {
+    label = t('common.statusExpiring');
   }
 
+  const showDays = days > 0;
+  const daysStr = showDays ? (days > 36000 ? '∞' : `${days} ${t('dashboard.daysLeft')}`) : null;
+
   return (
-    <div className="flex items-center gap-2">
-      <div className={`w-3 h-3 rounded-full ${dotColor}`}></div>
-      <div className="text-center">
-        <div className={`text-xs ${textColor}`}>{t('common.daysLeft')}</div>
-        <div className={`text-lg font-bold ${textColor} leading-tight`}>{days > 36000 ? '∞' : days}</div>
-      </div>
+    <div className="flex items-center gap-1.5">
+      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${config.dot}`}></div>
+      <span className={`text-xs font-semibold ${config.text} whitespace-nowrap`}>
+        {label}{daysStr ? ` | ${daysStr}` : ''}
+      </span>
     </div>
   );
 }
@@ -247,10 +261,21 @@ export default function DomainDetailPage() {
 
   const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      uploadPdfMutation.mutate(file);
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      toast.error(t('domains.onlyPdfAllowed'));
       e.target.value = '';
+      return;
     }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error(t('domains.fileTooLarge'));
+      e.target.value = '';
+      return;
+    }
+
+    uploadPdfMutation.mutate(file);
+    e.target.value = '';
   };
 
   const handleUnlock = () => {
@@ -546,7 +571,7 @@ export default function DomainDetailPage() {
                 </div>
                 <div className="mt-1.5 grid grid-cols-3 gap-2 text-xs">
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.name')}</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.nameAndSurname')}</label>
                     {isDomainLocked ? (
                       <div className="text-sm">{primaryName}</div>
                     ) : (
@@ -611,7 +636,7 @@ export default function DomainDetailPage() {
                 </div>
                 <div className="mt-1.5 grid grid-cols-3 gap-2 text-xs">
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.name')}</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.nameAndSurname')}</label>
                     {isDomainLocked ? (
                       <div className="text-sm">{techName}</div>
                     ) : (
