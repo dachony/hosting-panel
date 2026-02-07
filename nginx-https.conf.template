@@ -64,12 +64,15 @@ server {
         proxy_set_header Host $host;
     }
 
-    # SPA fallback
+    # SPA fallback — no cache for HTML so browser always gets latest build
     location / {
         try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
     }
 
-    # Cache static assets
+    # Cache static assets (hashed filenames from Vite)
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
