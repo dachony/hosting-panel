@@ -86,6 +86,8 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
       clientName: schema.clients.name,
       clientEmail: schema.clients.email1,
       clientTechEmail: schema.clients.techEmail,
+      clientContactName: schema.clients.contactPerson,
+      clientTechContactName: schema.clients.techContact,
       domainId: schema.domains.id,
       domainName: schema.domains.domainName,
       domainPdfFilename: schema.domains.pdfFilename,
@@ -93,12 +95,9 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
       packageDescription: schema.mailPackages.description,
       maxMailboxes: schema.mailPackages.maxMailboxes,
       storageGb: schema.mailPackages.storageGb,
-      primaryContactName: schema.domains.primaryContactName,
-      primaryContactPhone: schema.domains.primaryContactPhone,
-      primaryContactEmail: schema.domains.primaryContactEmail,
-      techContactName: schema.domains.contactEmail1,
-      techContactPhone: schema.domains.contactEmail2,
-      techContactEmail: schema.domains.contactEmail3,
+      domainContactName: schema.domains.primaryContactName,
+      domainContactPhone: schema.domains.primaryContactPhone,
+      domainContactEmail: schema.domains.primaryContactEmail,
     })
     .from(schema.mailHosting)
     .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
@@ -111,8 +110,8 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
     const recipientContext = {
       clientEmail: item.clientEmail,
       clientTechEmail: item.clientTechEmail,
-      domainPrimaryEmail: item.primaryContactEmail,
-      domainTechEmail: item.techContactEmail,
+      domainPrimaryEmail: item.domainContactEmail,
+      domainTechEmail: null as string | null,
     };
 
     let recipientEmail: string | null = null;
@@ -148,7 +147,7 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
       // Fallback to notification setting logic
       recipientEmail = setting.recipientType === 'custom'
         ? setting.customEmail
-        : (item.primaryContactEmail || item.clientEmail);
+        : (item.domainContactEmail || item.clientEmail);
     }
 
     if (!recipientEmail) continue;
@@ -172,22 +171,24 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
 
       if (template) {
         const hasPdf = !!(template.attachDomainPdf && item.domainId && item.domainPdfFilename);
+        const hasDomainPdf = !!(item.domainId && item.domainPdfFilename);
         const variables: Record<string, string> = {
           clientName: item.clientName || 'Nepoznat',
+          clientContactName: item.clientContactName || '',
+          clientTechContactName: item.clientTechContactName || '',
           domainName: item.domainName || '',
+          domainContactName: item.domainContactName || '',
+          domainContactPhone: item.domainContactPhone || '',
+          domainContactEmail: item.domainContactEmail || '',
           hostingExpiryDate: item.expiryDate,
           daysUntilExpiry: String(daysRemaining),
           packageName: item.packageName || '',
           packageDescription: item.packageDescription || '',
           maxMailboxes: String(item.maxMailboxes ?? ''),
           storageGb: String(item.storageGb ?? ''),
-          primaryContactName: item.primaryContactName || '',
-          primaryContactPhone: item.primaryContactPhone || '',
-          primaryContactEmail: item.primaryContactEmail || '',
-          techContactName: item.techContactName || '',
-          techContactPhone: item.techContactPhone || '',
-          techContactEmail: item.techContactEmail || '',
+          hostingStatus: 'Aktivan',
           attachedPdf: hasPdf ? 'Da' : 'Ne',
+          hasNoPdf: hasDomainPdf ? 'Ne' : 'Da',
         };
 
         const result = applyTemplateVariables(template.subject, template.htmlContent, variables);
@@ -692,6 +693,8 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
       clientName: schema.clients.name,
       clientEmail: schema.clients.email1,
       clientTechEmail: schema.clients.techEmail,
+      clientContactName: schema.clients.contactPerson,
+      clientTechContactName: schema.clients.techContact,
       domainId: schema.domains.id,
       domainName: schema.domains.domainName,
       domainPdfFilename: schema.domains.pdfFilename,
@@ -699,12 +702,9 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
       packageDescription: schema.mailPackages.description,
       maxMailboxes: schema.mailPackages.maxMailboxes,
       storageGb: schema.mailPackages.storageGb,
-      primaryContactName: schema.domains.primaryContactName,
-      primaryContactPhone: schema.domains.primaryContactPhone,
-      primaryContactEmail: schema.domains.primaryContactEmail,
-      techContactName: schema.domains.contactEmail1,
-      techContactPhone: schema.domains.contactEmail2,
-      techContactEmail: schema.domains.contactEmail3,
+      domainContactName: schema.domains.primaryContactName,
+      domainContactPhone: schema.domains.primaryContactPhone,
+      domainContactEmail: schema.domains.primaryContactEmail,
     })
     .from(schema.mailHosting)
     .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
@@ -722,8 +722,8 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
     const recipientContext = {
       clientEmail: item.clientEmail,
       clientTechEmail: item.clientTechEmail,
-      domainPrimaryEmail: item.primaryContactEmail,
-      domainTechEmail: item.techContactEmail,
+      domainPrimaryEmail: item.domainContactEmail,
+      domainTechEmail: null as string | null,
     };
 
     let recipientEmail: string | null = null;
@@ -745,7 +745,7 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
     } else {
       recipientEmail = setting.recipientType === 'custom'
         ? setting.customEmail
-        : (item.primaryContactEmail || item.clientEmail);
+        : (item.domainContactEmail || item.clientEmail);
     }
 
     if (!recipientEmail) continue;
@@ -755,22 +755,24 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
 
     try {
       const hasPdf = !!(template.attachDomainPdf && item.domainId && item.domainPdfFilename);
+      const hasDomainPdf = !!(item.domainId && item.domainPdfFilename);
       const variables: Record<string, string> = {
         clientName: item.clientName || 'Nepoznat',
+        clientContactName: item.clientContactName || '',
+        clientTechContactName: item.clientTechContactName || '',
         domainName: item.domainName || '',
+        domainContactName: item.domainContactName || '',
+        domainContactPhone: item.domainContactPhone || '',
+        domainContactEmail: item.domainContactEmail || '',
         hostingExpiryDate: item.expiryDate,
         daysUntilExpiry: String(daysLeft),
         packageName: item.packageName || '',
         packageDescription: item.packageDescription || '',
         maxMailboxes: String(item.maxMailboxes ?? ''),
         storageGb: String(item.storageGb ?? ''),
-        primaryContactName: item.primaryContactName || '',
-        primaryContactPhone: item.primaryContactPhone || '',
-        primaryContactEmail: item.primaryContactEmail || '',
-        techContactName: item.techContactName || '',
-        techContactPhone: item.techContactPhone || '',
-        techContactEmail: item.techContactEmail || '',
+        hostingStatus: 'Aktivan',
         attachedPdf: hasPdf ? 'Da' : 'Ne',
+        hasNoPdf: hasDomainPdf ? 'Ne' : 'Da',
       };
 
       const { subject: emailSubject, html: emailHtml } = applyTemplateVariables(template.subject, template.htmlContent, variables);

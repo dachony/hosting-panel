@@ -382,29 +382,32 @@ export default function SettingsPage() {
   const [selectedMailServerId, setSelectedMailServerId] = useState<number | null>(null);
   const [selectedMailSecurityId, setSelectedMailSecurityId] = useState<number | null>(null);
 
-  // Available variables for templates
-  const templateVariables = [
+  // Available variables for templates - organized in rows
+  const variableRow1 = [
     { key: 'clientName', label: 'Client Name', description: 'Client name' },
+    { key: 'clientContactName', label: 'Client Contact', description: 'Client primary contact person' },
+    { key: 'clientTechContactName', label: 'Client Tech Contact', description: 'Client technical contact' },
     { key: 'domainName', label: 'Domain', description: 'Domain name' },
-    { key: 'hostingExpiryDate', label: 'Hosting Expiry', description: 'Hosting package expiry date' },
-    { key: 'daysUntilExpiry', label: 'Days Left', description: 'Days until expiry' },
+    { key: 'domainContactName', label: 'Domain Contact', description: 'Domain primary contact name' },
+    { key: 'domainContactPhone', label: 'Domain Phone', description: 'Domain primary contact phone' },
+    { key: 'domainContactEmail', label: 'Domain Email', description: 'Domain primary contact email' },
+  ];
+  const variableRow2 = [
     { key: 'packageName', label: 'Package', description: 'Package name' },
-    { key: 'companyName', label: 'Company', description: 'Company name' },
-    { key: 'hostingStatus', label: 'Hosting Status', description: 'Hosting status (Enabled/Disabled)' },
-    { key: 'packageDescription', label: 'Pkg Description', description: 'Package description' },
     { key: 'maxMailboxes', label: 'Mailboxes', description: 'Number of mailboxes' },
     { key: 'storageGb', label: 'Storage GB', description: 'Storage capacity in GB' },
-    { key: 'primaryContactName', label: 'Primary Contact', description: 'Primary contact name' },
-    { key: 'primaryContactPhone', label: 'Primary Phone', description: 'Primary contact phone' },
-    { key: 'primaryContactEmail', label: 'Primary Email', description: 'Primary contact email' },
-    { key: 'techContactName', label: 'Tech Contact', description: 'Technical contact name' },
-    { key: 'techContactPhone', label: 'Tech Phone', description: 'Technical contact phone' },
-    { key: 'techContactEmail', label: 'Tech Email', description: 'Technical contact email' },
-    { key: 'attachedPdf', label: 'Has PDF', description: 'Whether PDF is attached (Da/Ne)' },
+    { key: 'packageDescription', label: 'Pkg Description', description: 'Package description' },
   ];
-
-  // Report-specific variable
-  const reportVariable = { key: 'hostingList', label: 'Hosting List', description: 'Table with hosting list by filters' };
+  const variableRow3 = [
+    { key: 'hostingExpiryDate', label: 'Hosting Expiry', description: 'Hosting package expiry date' },
+    { key: 'daysUntilExpiry', label: 'Days Left', description: 'Days until expiry' },
+    { key: 'hostingStatus', label: 'Hosting Status', description: 'Hosting status (Enabled/Disabled)' },
+  ];
+  const variableRow4 = [
+    { key: 'hasNoPdf', label: 'Has no PDF', description: 'Whether domain has no PDF uploaded (Da/Ne)' },
+    { key: 'hostingList', label: 'Hosting List', description: 'Table with hosting list by filters' },
+  ];
+  const templateVariables = [...variableRow1, ...variableRow2, ...variableRow3, ...variableRow4];
 
   // System-specific variable
   const systemVariable = { key: 'systemInfo', label: 'System Info', description: 'System information by configuration' };
@@ -860,9 +863,6 @@ export default function SettingsPage() {
 
     const htmlContent = generateHtmlFromForm();
     const allVariables = [...templateVariables];
-    if (templateForm.type === 'reports') {
-      allVariables.push(reportVariable);
-    }
     if (templateForm.type === 'system') {
       allVariables.push(systemVariable);
     }
@@ -2042,7 +2042,12 @@ export default function SettingsPage() {
   // Dummy data for template variable preview
   const dummyVariables: Record<string, string> = {
     clientName: 'Petar Petrović d.o.o.',
+    clientContactName: 'Petar Petrović',
+    clientTechContactName: 'Marko Marković',
     domainName: 'example.rs',
+    domainContactName: 'Jelena Jović',
+    domainContactPhone: '+381 11 123 4567',
+    domainContactEmail: 'jelena@example.rs',
     hostingExpiryDate: '15.03.2026',
     daysUntilExpiry: '14',
     packageName: 'Business Pro',
@@ -2051,13 +2056,8 @@ export default function SettingsPage() {
     packageDescription: 'Poslovni paket sa 10 sandučića',
     maxMailboxes: '10',
     storageGb: '25',
-    primaryContactName: 'Petar Petrović',
-    primaryContactPhone: '+381 11 123 4567',
-    primaryContactEmail: 'petar@example.rs',
-    techContactName: 'Marko Marković',
-    techContactPhone: '+381 11 987 6543',
-    techContactEmail: 'marko@example.rs',
     attachedPdf: 'Da',
+    hasNoPdf: 'Ne',
   };
 
   /** Replace {{variable}} placeholders with dummy data for live preview */
@@ -5290,14 +5290,18 @@ export default function SettingsPage() {
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Subject *</label>
-              <div className="flex gap-1">
-                {templateVariables.slice(0, 3).map((v) => (
+              <div className="flex gap-0.5">
+                {[
+                  { key: 'clientName', label: 'Client Name' },
+                  { key: 'domainName', label: 'Domain' },
+                  { key: 'hostingExpiryDate', label: 'Expiry' },
+                  { key: 'daysUntilExpiry', label: 'Days Left' },
+                ].map((v) => (
                   <button
                     key={v.key}
                     type="button"
                     onClick={() => insertVariable(v.key, 'subject')}
-                    className="px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
-                    title={v.description}
+                    className="px-1.5 py-0.5 text-[9px] bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
                   >
                     {v.label}
                   </button>
@@ -5543,41 +5547,54 @@ export default function SettingsPage() {
 
               {/* Body with variable buttons */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-[11px] text-gray-500 dark:text-gray-400">Message Body *</label>
-                  <div className="flex flex-wrap gap-1 justify-end">
-                    {templateVariables.map((v) => (
-                      <button
-                        key={v.key}
-                        type="button"
-                        onClick={() => insertVariable(v.key, 'body')}
-                        className="px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
-                        title={v.description}
-                      >
-                        + {v.label}
+                <div className="mb-1">
+                  <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">Message Body *</label>
+                  {/* Row 1: Contacts */}
+                  <div className="flex flex-wrap gap-0.5 mb-0.5">
+                    {variableRow1.map((v) => (
+                      <button key={v.key} type="button" onClick={() => insertVariable(v.key, 'body')}
+                        className="px-1.5 py-0.5 text-[9px] bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800" title={v.description}>
+                        {v.label}
                       </button>
                     ))}
-                    {templateForm.type === 'reports' && (
-                      <button
-                        type="button"
-                        onClick={() => insertVariable(reportVariable.key, 'body')}
-                        className="px-1.5 py-0.5 text-[10px] bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800"
-                        title={reportVariable.description}
-                      >
-                        + {reportVariable.label}
-                      </button>
-                    )}
-                    {templateForm.type === 'system' && (
-                      <button
-                        type="button"
-                        onClick={() => insertVariable(systemVariable.key, 'body')}
-                        className="px-1.5 py-0.5 text-[10px] bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800"
-                        title={systemVariable.description}
-                      >
-                        + {systemVariable.label}
-                      </button>
-                    )}
                   </div>
+                  {/* Row 2: Package */}
+                  <div className="flex flex-wrap gap-0.5 mb-0.5">
+                    {variableRow2.map((v) => (
+                      <button key={v.key} type="button" onClick={() => insertVariable(v.key, 'body')}
+                        className="px-1.5 py-0.5 text-[9px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 rounded hover:bg-emerald-200 dark:hover:bg-emerald-800" title={v.description}>
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Row 3: Hosting */}
+                  <div className="flex flex-wrap gap-0.5 mb-0.5">
+                    {variableRow3.map((v) => (
+                      <button key={v.key} type="button" onClick={() => insertVariable(v.key, 'body')}
+                        className="px-1.5 py-0.5 text-[9px] bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300 rounded hover:bg-amber-200 dark:hover:bg-amber-800" title={v.description}>
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Row 4: PDF + Lists (only for reports/service/sales) */}
+                  {['reports', 'service_request', 'sales_request'].includes(templateForm.type) && (
+                    <div className="flex flex-wrap gap-0.5 mb-0.5">
+                      {variableRow4.map((v) => (
+                        <button key={v.key} type="button" onClick={() => insertVariable(v.key, 'body')}
+                          className="px-1.5 py-0.5 text-[9px] bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800" title={v.description}>
+                          {v.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {templateForm.type === 'system' && (
+                    <div className="flex flex-wrap gap-0.5 mb-0.5">
+                      <button type="button" onClick={() => insertVariable(systemVariable.key, 'body')}
+                        className="px-1.5 py-0.5 text-[9px] bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800" title={systemVariable.description}>
+                        {systemVariable.label}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <textarea
                   ref={templateBodyRef}
@@ -6098,11 +6115,12 @@ Your team"
           <div className="w-[420px] shrink-0 overflow-y-auto">
             <div className="sticky top-0">
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                <div className="bg-gray-50 dark:bg-gray-900 px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                <div className="bg-gray-50 dark:bg-gray-900 px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                   <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Preview</span>
+                  <span className="text-[9px] text-gray-400">{templateWidthMap[templateForm.templateWidth]}px</span>
                 </div>
-                <div className="bg-gray-100 dark:bg-gray-950 p-4">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm">
+                <div className="bg-gray-100 dark:bg-gray-950 p-2 overflow-x-auto">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm mx-auto transition-all duration-200" style={{ width: `${Math.round(400 * templateWidthMap[templateForm.templateWidth] / 800)}px` }}>
                     {/* Header Preview */}
                     {templateForm.showHeader && (
                       <div
