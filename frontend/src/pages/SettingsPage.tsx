@@ -116,7 +116,7 @@ interface MailSettings {
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const { isAdmin, isSuperAdmin, canManageSystem, canManageContent, canEditPackages } = useAuth();
+  const { isAdmin, isSuperAdmin, canWriteData, canManageSystem, canManageContent, canEditPackages } = useAuth();
   const { isDark } = useTheme();
   const queryClient = useQueryClient();
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -2255,6 +2255,10 @@ export default function SettingsPage() {
       );
     }
     return true;
+  }).sort((a, b) => {
+    const nameA = (a.firstName || a.lastName ? `${a.firstName || ''} ${a.lastName || ''}`.trim() : a.name) || '';
+    const nameB = (b.firstName || b.lastName ? `${b.firstName || ''} ${b.lastName || ''}`.trim() : b.name) || '';
+    return nameA.localeCompare(nameB);
   });
 
   const filteredTemplates = (templatesData?.templates || []).filter((tmpl) => {
@@ -4372,98 +4376,113 @@ export default function SettingsPage() {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search..."
+                  placeholder={t('common.searchPlaceholder')}
                   className="input input-sm w-full pl-8"
                 />
               </div>
-              <button
-                onClick={() => { setSelectedUser(null); setUserModalOpen(true); }}
-                className="btn btn-primary btn-sm flex items-center"
-              >
-                <Plus className="w-3 h-3 mr-1" /> Add
-              </button>
+              {canWriteData && (
+                <button
+                  onClick={() => { setSelectedUser(null); setUserModalOpen(true); }}
+                  className="btn btn-primary btn-sm flex items-center"
+                >
+                  <Plus className="w-3 h-3 mr-1" /> {t('common.add')}
+                </button>
+              )}
             </div>
             {usersLoading ? (
               <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-primary-600" /></div>
             ) : filteredUsers.length === 0 ? (
               <div className="text-center py-6 text-sm text-gray-500">
-                {searchTerm ? 'No results' : 'No users'}
+                {searchTerm ? t('common.noResults') : t('settings.noUsers')}
               </div>
             ) : (
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredUsers.map((user) => (
-                  <div
-                    key={user.id}
-                    onClick={() => { setSelectedUser(user); setUserModalOpen(true); }}
-                    className={`flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors ${
-                      user.isActive === false ? 'opacity-50' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0 text-sm">
-                      <UserIcon className={`w-4 h-4 flex-shrink-0 ${user.isActive === false ? 'text-gray-400' : 'text-primary-600'}`} />
-                      <span className="font-medium">{user.firstName || user.lastName ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : user.name}</span>
-                      <span className="text-gray-400">|</span>
-                      <span className="text-gray-600 dark:text-gray-400">{user.email}</span>
-                      {user.phone && (
-                        <>
-                          <span className="text-gray-400">|</span>
-                          <span className="text-gray-500 dark:text-gray-500 text-xs">{user.phone}</span>
-                        </>
-                      )}
-                      <span className="text-gray-400">|</span>
-                      <span className={`px-1.5 py-0.5 text-xs rounded ${
-                        user.role === 'superadmin'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-                          : user.role === 'admin'
-                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
-                          : user.role === 'salesadmin'
-                          ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
-                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-                      }`}>
-                        {user.role === 'superadmin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : user.role === 'salesadmin' ? 'Sales Admin' : 'Sales'}
-                      </span>
-                      {user.isActive === false && (
-                        <span className="px-1.5 py-0.5 text-xs rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
-                          Inactive
-                        </span>
-                      )}
-                      {user.mustChangePassword && (
-                        <span className="px-1.5 py-0.5 text-xs rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
-                          Must change password
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {(isSuperAdmin || !['superadmin', 'admin'].includes(user.role)) && (
-                        <>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); toggleUserActiveMutation.mutate(user.id); }}
-                            disabled={toggleUserActiveMutation.isPending}
-                            className={`text-xs py-1 px-2 rounded border transition-all duration-150 ${
-                              user.isActive === false
-                                ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/50'
-                                : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-200 dark:bg-gray-500/20 dark:text-gray-300 dark:border-gray-500/50'
-                            }`}
-                          >
-                            {user.isActive === false ? 'Aktiviraj' : 'Deaktiviraj'}
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setUserModalOpen(true); }}
-                            className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
-                          >
-                            <Pencil className="w-3 h-3" />Uredi
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setDeleteUserDialogOpen(true); }}
-                            className="text-xs py-1 px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                      <th className="px-4 py-2.5">{t('settings.firstName')}</th>
+                      <th className="px-4 py-2.5">Email</th>
+                      <th className="px-4 py-2.5">{t('settings.role')}</th>
+                      <th className="px-4 py-2.5">{t('settings.status')}</th>
+                      <th className="px-4 py-2.5 text-right">{t('common.actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {filteredUsers.map((user) => (
+                      <tr
+                        key={user.id}
+                        onClick={() => { setSelectedUser(user); setUserModalOpen(true); }}
+                        className={`cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors ${
+                          user.isActive === false ? 'opacity-50' : ''
+                        }`}
+                      >
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <UserIcon className={`w-4 h-4 flex-shrink-0 ${user.isActive === false ? 'text-gray-400' : 'text-primary-600'}`} />
+                            <span className="font-medium">{user.firstName || user.lastName ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : user.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">{user.email}</td>
+                        <td className="px-4 py-2.5">
+                          <span className={`px-1.5 py-0.5 text-xs rounded ${
+                            user.role === 'superadmin'
+                              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                              : user.role === 'admin'
+                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
+                              : user.role === 'salesadmin'
+                              ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                          }`}>
+                            {user.role === 'superadmin' ? t('settings.superAdminRole') : user.role === 'admin' ? t('settings.adminRole') : user.role === 'salesadmin' ? t('settings.salesAdminRole') : t('settings.salesRole')}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-1.5">
+                            {user.isActive === false && (
+                              <span className="px-1.5 py-0.5 text-xs rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                                {t('settings.inactive')}
+                              </span>
+                            )}
+                            {user.mustChangePassword && (
+                              <span className="px-1.5 py-0.5 text-xs rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                                {t('settings.mustChangePassword')}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          {(isSuperAdmin || !['superadmin', 'admin'].includes(user.role)) && (
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); toggleUserActiveMutation.mutate(user.id); }}
+                                disabled={toggleUserActiveMutation.isPending}
+                                className={`text-xs py-1 px-2 rounded border transition-all duration-150 ${
+                                  user.isActive === false
+                                    ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/50'
+                                    : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-200 dark:bg-gray-500/20 dark:text-gray-300 dark:border-gray-500/50'
+                                }`}
+                              >
+                                {user.isActive === false ? t('settings.activate') : t('settings.deactivate')}
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setUserModalOpen(true); }}
+                                className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                              >
+                                <Pencil className="w-3 h-3" />{t('common.edit')}
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setDeleteUserDialogOpen(true); }}
+                                className="text-xs py-1 px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                              >
+                                {t('common.delete')}
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -4474,7 +4493,7 @@ export default function SettingsPage() {
       <Modal
         isOpen={userModalOpen}
         onClose={() => { setUserModalOpen(false); setSelectedUser(null); }}
-        title={selectedUser ? 'Edit user' : 'New user'}
+        title={selectedUser ? t('settings.editUser') : t('settings.newUser')}
       >
         <form onSubmit={handleUserSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -4493,18 +4512,18 @@ export default function SettingsPage() {
               <input name="email" type="email" defaultValue={selectedUser?.email} className="input input-sm" required />
             </div>
             <div>
-              <label className="text-[11px] text-gray-500 dark:text-gray-400">Phone</label>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('settings.phone')}</label>
               <input name="phone" type="tel" defaultValue={selectedUser?.phone || ''} className="input input-sm" placeholder="+381..." />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] text-gray-500 dark:text-gray-400">Role *</label>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('settings.role')} *</label>
               <select name="role" defaultValue={selectedUser?.role || 'sales'} className="input input-sm" required>
-                <option value="sales">Sales</option>
-                <option value="salesadmin">Sales Admin</option>
-                <option value="admin">Administrator</option>
-                <option value="superadmin">Super Administrator</option>
+                <option value="sales">{t('settings.salesRole')}</option>
+                <option value="salesadmin">{t('settings.salesAdminRole')}</option>
+                <option value="admin">{t('settings.adminRole')}</option>
+                <option value="superadmin">{t('settings.superAdminRole')}</option>
               </select>
             </div>
             {selectedUser ? (
@@ -4516,7 +4535,7 @@ export default function SettingsPage() {
                     defaultChecked={selectedUser?.isActive !== false}
                     className="checkbox"
                   />
-                  <span className="text-gray-700 dark:text-gray-300">Active</span>
+                  <span className="text-gray-700 dark:text-gray-300">{t('settings.active')}</span>
                 </label>
                 <button
                   type="button"
@@ -4525,7 +4544,7 @@ export default function SettingsPage() {
                   className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
                 >
                   <Send className="w-3 h-3" />
-                  {resendInviteMutation.isPending ? 'Sending...' : 'Send invitation'}
+                  {resendInviteMutation.isPending ? t('common.sending') : t('settings.sendInvitation')}
                 </button>
               </div>
             ) : (
@@ -4537,7 +4556,7 @@ export default function SettingsPage() {
                     id="sendInvite"
                     className="checkbox"
                   />
-                  <span className="text-gray-700 dark:text-gray-300">Send invitation by email</span>
+                  <span className="text-gray-700 dark:text-gray-300">{t('settings.sendInvitationByEmail')}</span>
                 </label>
               </div>
             )}
@@ -4545,37 +4564,37 @@ export default function SettingsPage() {
           {!selectedUser && (
             <div id="passwordFieldsContainer">
               <label className="text-[11px] text-gray-500 dark:text-gray-400">
-                Password <span id="passwordRequired">*</span>
+                {t('settings.password')} <span id="passwordRequired">*</span>
               </label>
               <input
                 name="password"
                 type="password"
                 className="input input-sm"
                 id="passwordField"
-                placeholder="If you send an invitation, the password will be generated automatically"
+                placeholder={t('settings.passwordAutoGenHint')}
               />
               <p className="text-[10px] text-gray-400 mt-1">
-                If you check &quot;Send invitation&quot;, a temporary password will be generated and sent to the user.
+                {t('settings.passwordInviteNote')}
               </p>
             </div>
           )}
           {selectedUser && (
             <div>
-              <label className="text-[11px] text-gray-500 dark:text-gray-400">New password</label>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('settings.newPassword')}</label>
               <input
                 name="password"
                 type="password"
                 className="input input-sm"
-                placeholder="Leave blank to keep current"
+                placeholder={t('settings.leaveBlankToKeepCurrent')}
               />
             </div>
           )}
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setUserModalOpen(false)} className="btn btn-secondary">
-              Odustani
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={saveUserMutation.isPending}>
-              {saveUserMutation.isPending ? 'Saving...' : 'Save'}
+              {saveUserMutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>
@@ -6328,8 +6347,8 @@ Your team"
         isOpen={deleteUserDialogOpen}
         onClose={() => { setDeleteUserDialogOpen(false); setSelectedUser(null); }}
         onConfirm={() => selectedUser && deleteUserMutation.mutate(selectedUser.id)}
-        title="Delete User"
-        message={`Are you sure you want to delete "${selectedUser?.name}"?`}
+        title={t('settings.deleteUserTitle')}
+        message={t('settings.deleteUserConfirm', { name: selectedUser?.firstName ? `${selectedUser.firstName} ${selectedUser.lastName || ''}`.trim() : selectedUser?.name })}
         isLoading={deleteUserMutation.isPending}
       />
 

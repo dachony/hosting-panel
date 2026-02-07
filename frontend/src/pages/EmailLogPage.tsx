@@ -207,12 +207,14 @@ export default function EmailLogPage() {
                     {expandedId === email.id && (
                       <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
                         <div className="font-medium mb-2">{t('emailLog.content')}</div>
-                        <div
-                          className="prose prose-sm dark:prose-invert max-w-none overflow-auto max-h-96 bg-white dark:bg-gray-900 p-3 rounded border border-gray-200 dark:border-gray-700"
-                          dangerouslySetInnerHTML={{
-                            __html: DOMPurify.sanitize(email.htmlContent || t('emailLog.emptyContent'))
-                          }}
-                        />
+                        <div className="overflow-auto max-h-96 rounded border border-gray-200 dark:border-gray-700">
+                          <div
+                            className="prose prose-sm max-w-none bg-white p-3 dark:filter dark:invert dark:hue-rotate-180"
+                            dangerouslySetInnerHTML={{
+                              __html: DOMPurify.sanitize(email.htmlContent || t('emailLog.emptyContent'))
+                            }}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
