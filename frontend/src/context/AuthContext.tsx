@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { api } from '../api/client';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { api, setOnUnauthorized } from '../api/client';
 import { User, AuthResponse } from '../types';
 
 export type UserRole = 'superadmin' | 'admin' | 'salesadmin' | 'sales';
@@ -47,6 +47,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);
+
+  // Register soft redirect callback for 401 responses
+  const handleUnauthorized = useCallback(() => {
+    setUser(null);
+  }, []);
+
+  useEffect(() => {
+    setOnUnauthorized(handleUnauthorized);
+    return () => setOnUnauthorized(null);
+  }, [handleUnauthorized]);
 
   useEffect(() => {
     const init = async () => {

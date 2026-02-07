@@ -1,6 +1,23 @@
 // Always use relative URLs so requests go through Vite proxy (dev) or same origin (prod)
 const API_URL = '';
 
+// Module-level callback for handling 401 responses (soft redirect)
+let onUnauthorized: (() => void) | null = null;
+
+export function setOnUnauthorized(cb: (() => void) | null) {
+  onUnauthorized = cb;
+}
+
+function handleUnauthorized() {
+  // Guard: if token already cleared, skip (prevents N calls from N parallel requests)
+  if (!localStorage.getItem('token')) return;
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  if (onUnauthorized) {
+    onUnauthorized();
+  }
+}
+
 class ApiClient {
   private getToken(): string | null {
     return localStorage.getItem('token');
@@ -27,9 +44,7 @@ class ApiClient {
     });
 
     if (response.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      handleUnauthorized();
       throw new Error('Unauthorized');
     }
 
@@ -80,6 +95,11 @@ class ApiClient {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
 
+    if (response.status === 401) {
+      handleUnauthorized();
+      throw new Error('Unauthorized');
+    }
+
     if (!response.ok) {
       throw new Error('Download failed');
     }
@@ -122,9 +142,7 @@ class ApiClient {
     });
 
     if (response.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      handleUnauthorized();
       throw new Error('Unauthorized');
     }
 

@@ -14,7 +14,11 @@ import './index.css';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: (failureCount, error) => {
+        // Never retry on 401 — user session is invalid
+        if (error instanceof Error && error.message === 'Unauthorized') return false;
+        return failureCount < 1;
+      },
       refetchOnWindowFocus: false,
     },
   },

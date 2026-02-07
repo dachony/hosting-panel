@@ -31,3 +31,7 @@ docs/
 
 # Backup files
 *.bak
+
+# SSL certificates (keep .gitkeep)
+ssl/*
+!ssl/.gitkeep
