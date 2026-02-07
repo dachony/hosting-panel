@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
 
+type FilterStatus = ExpiryStatus | 'noPackage';
 const ALL_STATUSES: ExpiryStatus[] = ['green', 'yellow', 'orange', 'red', 'forDeletion', 'deleted'];
 
 interface HostingWithDetails extends Hosting {
@@ -106,7 +107,7 @@ export default function HostingPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [domainToDelete, setDomainToDelete] = useState<{ domainId: number; domainName: string } | null>(null);
-  const [statusFilters, setStatusFilters] = useState<Set<ExpiryStatus>>(new Set());
+  const [statusFilters, setStatusFilters] = useState<Set<FilterStatus>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [addDomainModalOpen, setAddDomainModalOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<number | ''>('');
@@ -160,9 +161,10 @@ export default function HostingPage() {
 
   // Sync filters from URL - only run when URL filter param actually changes externally
   const urlFilterParam = searchParams.get('filter');
+  const allValidFilters: FilterStatus[] = [...ALL_STATUSES, 'noPackage'];
   useEffect(() => {
     if (urlFilterParam) {
-      const filters = urlFilterParam.split(',').filter(f => ALL_STATUSES.includes(f as ExpiryStatus)) as ExpiryStatus[];
+      const filters = urlFilterParam.split(',').filter(f => allValidFilters.includes(f as FilterStatus)) as FilterStatus[];
       setStatusFilters(new Set(filters));
     } else {
       setStatusFilters(new Set());
@@ -170,7 +172,7 @@ export default function HostingPage() {
   }, [urlFilterParam]);
 
   // Toggle a status filter
-  const toggleStatusFilter = (status: ExpiryStatus) => {
+  const toggleStatusFilter = (status: FilterStatus) => {
     const newSet = new Set(statusFilters);
     if (newSet.has(status)) {
       newSet.delete(status);
@@ -385,9 +387,12 @@ export default function HostingPage() {
 
     // Status filter (if any filters are selected)
     if (statusFilters.size > 0) {
-      if (isUnhosted) return false; // unhosted only visible when "All"
-      const status = getExpiryStatus(h.daysUntilExpiry!);
-      if (!statusFilters.has(status)) return false;
+      if (isUnhosted) {
+        if (!statusFilters.has('noPackage')) return false;
+      } else {
+        const status = getExpiryStatus(h.daysUntilExpiry!);
+        if (!statusFilters.has(status)) return false;
+      }
     }
 
     // Search filter
@@ -488,6 +493,18 @@ export default function HostingPage() {
                 {statusLabels[status]}
               </button>
             ))}
+            <button
+              onClick={() => toggleStatusFilter('noPackage')}
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
+                statusFilters.has('noPackage')
+                  ? 'bg-gray-500/20 text-gray-600 dark:text-gray-400 ring-2 ring-offset-1 dark:ring-offset-gray-800'
+                  : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+              style={statusFilters.has('noPackage') ? { '--tw-ring-color': '#6b7280' } as React.CSSProperties : undefined}
+            >
+              <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+              {t('common.statusNoPackage')}
+            </button>
           </div>
         </div>
 

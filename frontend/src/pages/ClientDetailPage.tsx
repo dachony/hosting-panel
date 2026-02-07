@@ -91,7 +91,7 @@ export default function ClientDetailPage() {
   const [clientForm, setClientForm] = useState<Partial<Client>>({});
   const [domainSearch, setDomainSearch] = useState('');
   const [sameAsContact, setSameAsContact] = useState(true);
-  const [domainStatusFilter, setDomainStatusFilter] = useState<ExpiryStatus | 'all'>('all');
+  const [domainStatusFilter, setDomainStatusFilter] = useState<ExpiryStatus | 'all' | 'noPackage'>('all');
   const [domainSameAsPrimary, setDomainSameAsPrimary] = useState(true);
   const [domainSameAsTech, setDomainSameAsTech] = useState(true);
   const [extendFromToday, setExtendFromToday] = useState(false);
@@ -539,7 +539,10 @@ export default function ClientDetailPage() {
 
   const filteredDomains = domains.filter((domain) => {
     // Status filter
-    if (domainStatusFilter !== 'all') {
+    if (domainStatusFilter === 'noPackage') {
+      const domainHosting = getHostingForDomain(domain.id);
+      if (domainHosting) return false;
+    } else if (domainStatusFilter !== 'all') {
       const domainHosting = getHostingForDomain(domain.id);
       if (!domainHosting) return false;
       const status = domainHosting.expiryStatus || getExpiryStatus(domainHosting.daysUntilExpiry || 0);
@@ -904,6 +907,17 @@ export default function ClientDetailPage() {
                 {t(statusColors[status].labelKey)}
               </button>
             ))}
+            <button
+              onClick={() => setDomainStatusFilter('noPackage')}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
+                domainStatusFilter === 'noPackage'
+                  ? 'bg-gray-500/20 text-gray-600 dark:text-gray-400'
+                  : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+              {t('common.statusNoPackage')}
+            </button>
           </div>
         </div>
 
