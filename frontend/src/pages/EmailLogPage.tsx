@@ -187,10 +187,10 @@ export default function EmailLogPage() {
                         {email.status === 'sent' ? t('emailLog.statusSent') : t('emailLog.statusFailed')}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                      <span>{t('emailLog.to')} {email.toEmail}</span>
-                      <span className="text-gray-400">|</span>
-                      <span>{t('emailLog.from')} {email.fromName ? `${email.fromName} <${email.fromEmail}>` : email.fromEmail}</span>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500 mt-1">
+                      <span className="truncate">{t('emailLog.to')} {email.toEmail}</span>
+                      <span className="hidden sm:inline text-gray-400">|</span>
+                      <span className="hidden sm:inline truncate">{t('emailLog.from')} {email.fromName ? `${email.fromName} <${email.fromEmail}>` : email.fromEmail}</span>
                       <span className="text-gray-400">|</span>
                       <span>{formatDate(email.createdAt)}</span>
                     </div>

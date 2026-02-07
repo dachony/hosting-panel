@@ -3460,18 +3460,15 @@ export default function SettingsPage() {
                   <div
                     key={server.id}
                     onClick={() => { setSelectedMailServer(server); setMailServerModalOpen(true); }}
-                    className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors gap-2"
                   >
-                    <div className="flex items-center gap-2 flex-1 min-w-0 text-sm">
+                    <div className="flex items-center gap-2 flex-1 min-w-0 text-sm flex-wrap">
                       <HardDrive className="w-4 h-4 text-primary-600 flex-shrink-0" />
                       <span className="font-medium">{server.name}</span>
-                      <span className="text-gray-400">|</span>
-                      <span className="text-gray-600 dark:text-gray-400">{server.hostname}</span>
+                      <span className="hidden sm:inline text-gray-400">|</span>
+                      <span className="text-gray-600 dark:text-gray-400 truncate">{server.hostname}</span>
                       {server.description && (
-                        <>
-                          <span className="text-gray-400">|</span>
-                          <span className="text-gray-500 truncate">{server.description}</span>
-                        </>
+                        <span className="hidden sm:inline text-gray-500 truncate">{server.description}</span>
                       )}
                       {server.isDefault && (
                         <span className="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
@@ -3479,7 +3476,7 @@ export default function SettingsPage() {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       {!server.isDefault && (
                         <button
                           onClick={(e) => { e.stopPropagation(); setDefaultMailServerMutation.mutate(server.id); }}
@@ -3544,18 +3541,15 @@ export default function SettingsPage() {
                   <div
                     key={service.id}
                     onClick={() => { setSelectedMailSecurity(service); setMailSecurityModalOpen(true); }}
-                    className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors gap-2"
                   >
-                    <div className="flex items-center gap-2 flex-1 min-w-0 text-sm">
+                    <div className="flex items-center gap-2 flex-1 min-w-0 text-sm flex-wrap">
                       <Shield className="w-4 h-4 text-primary-600 flex-shrink-0" />
                       <span className="font-medium">{service.name}</span>
-                      <span className="text-gray-400">|</span>
-                      <span className="text-gray-600 dark:text-gray-400">{service.hostname}</span>
+                      <span className="hidden sm:inline text-gray-400">|</span>
+                      <span className="text-gray-600 dark:text-gray-400 truncate">{service.hostname}</span>
                       {service.description && (
-                        <>
-                          <span className="text-gray-400">|</span>
-                          <span className="text-gray-500 truncate">{service.description}</span>
-                        </>
+                        <span className="hidden sm:inline text-gray-500 truncate">{service.description}</span>
                       )}
                       {service.isDefault && (
                         <span className="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
@@ -3563,7 +3557,7 @@ export default function SettingsPage() {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       {!service.isDefault && (
                         <button
                           onClick={(e) => { e.stopPropagation(); setDefaultMailSecurityMutation.mutate(service.id); }}
@@ -3753,22 +3747,25 @@ export default function SettingsPage() {
               <div
                 key={setting.id}
                 onClick={() => openNotificationModal(setting)}
-                className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors gap-2"
               >
-                <div className="flex items-center gap-2 flex-1 min-w-0 text-sm">
+                <div className="flex items-center gap-2 flex-1 min-w-0 text-sm flex-wrap">
                   <Bell className="w-4 h-4 text-primary-600 flex-shrink-0" />
                   <span className="font-medium">{setting.name || typeLabels[setting.type]}</span>
-                  <span className="text-gray-400">|</span>
-                  <span className="text-gray-500">Type:</span>
                   <span className="px-1.5 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700">
                     {typeLabels[setting.type]}
                   </span>
-                  <span className="text-gray-400">|</span>
-                  <span className="text-gray-500 truncate">
+                  {setting.enabled ? (
+                    <span className="px-1.5 py-0.5 text-xs rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 text-xs rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Inactive</span>
+                  )}
+                  <span className="hidden sm:inline text-gray-400">|</span>
+                  <span className="hidden sm:inline text-gray-500 truncate">
                     {setting.templateName || 'No template'}
                   </span>
-                  <span className="text-gray-400">|</span>
-                  <span className="text-gray-500">
+                  <span className="hidden sm:inline text-gray-400">|</span>
+                  <span className="hidden sm:inline text-gray-500">
                     {(setting.type === 'reports' || setting.type === 'system' || setting.type === 'service_request' || setting.type === 'sales_request') ? (
                       <>
                         {(() => {
@@ -3789,14 +3786,8 @@ export default function SettingsPage() {
                       <>Schedule: {setting.schedule.length > 0 ? formatSchedule(setting.schedule) : 'None'} @ {setting.runAtTime || '09:00'}</>
                     )}
                   </span>
-                  <span className="text-gray-400">|</span>
-                  {setting.enabled ? (
-                    <span className="px-1.5 py-0.5 text-xs rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
-                  ) : (
-                    <span className="px-1.5 py-0.5 text-xs rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Inactive</span>
-                  )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -3865,7 +3856,7 @@ export default function SettingsPage() {
               </button>
             </div>
             {/* Type Filters */}
-            <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+            <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 flex-wrap">
               <span className="text-xs text-gray-500 dark:text-gray-400">Filter:</span>
               <button
                 onClick={() => setTemplateTypeFilter('all')}
@@ -3903,20 +3894,17 @@ export default function SettingsPage() {
                   <div
                     key={tmpl.id}
                     onClick={() => openTemplateModal(tmpl)}
-                    className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors gap-2"
                   >
-                    <div className="flex items-center gap-2 flex-1 min-w-0 text-sm">
+                    <div className="flex items-center gap-2 flex-1 min-w-0 text-sm flex-wrap">
                       <Mail className="w-4 h-4 text-primary-600 flex-shrink-0" />
                       <span className="font-medium">{tmpl.name}</span>
-                      <span className="text-gray-400">|</span>
-                      <span className="text-gray-500">Type:</span>
                       <span className="px-1.5 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700">
                         {templateTypeLabels[tmpl.type] || tmpl.type}
                       </span>
-                      <span className="text-gray-400">|</span>
-                      <span className="text-gray-500">Subject: {humanReadableSubject(tmpl.subject)}</span>
+                      <span className="hidden sm:inline text-gray-500 truncate">Subject: {humanReadableSubject(tmpl.subject)}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -4410,9 +4398,9 @@ export default function SettingsPage() {
                   <thead>
                     <tr className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                       <th className="px-4 py-2.5">{t('settings.firstName')}</th>
-                      <th className="px-4 py-2.5">Email</th>
+                      <th className="hidden sm:table-cell px-4 py-2.5">Email</th>
                       <th className="px-4 py-2.5">{t('settings.role')}</th>
-                      <th className="px-4 py-2.5">{t('settings.status')}</th>
+                      <th className="hidden sm:table-cell px-4 py-2.5">{t('settings.status')}</th>
                       <th className="px-4 py-2.5 text-right">{t('common.actions')}</th>
                     </tr>
                   </thead>
@@ -4428,10 +4416,13 @@ export default function SettingsPage() {
                         <td className="px-4 py-2.5">
                           <div className="flex items-center gap-2">
                             <UserIcon className={`w-4 h-4 flex-shrink-0 ${user.isActive === false ? 'text-gray-400' : 'text-primary-600'}`} />
-                            <span className="font-medium">{user.firstName || user.lastName ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : user.name}</span>
+                            <div>
+                              <span className="font-medium">{user.firstName || user.lastName ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : user.name}</span>
+                              <div className="sm:hidden text-xs text-gray-500">{user.email}</div>
+                            </div>
                           </div>
                         </td>
-                        <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">{user.email}</td>
+                        <td className="hidden sm:table-cell px-4 py-2.5 text-gray-600 dark:text-gray-400">{user.email}</td>
                         <td className="px-4 py-2.5">
                           <span className={`px-1.5 py-0.5 text-xs rounded ${
                             user.role === 'superadmin'
@@ -4445,7 +4436,7 @@ export default function SettingsPage() {
                             {user.role === 'superadmin' ? t('settings.superAdminRole') : user.role === 'admin' ? t('settings.adminRole') : user.role === 'salesadmin' ? t('settings.salesAdminRole') : t('settings.salesRole')}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5">
+                        <td className="hidden sm:table-cell px-4 py-2.5">
                           <div className="flex items-center gap-1.5">
                             {user.isActive === false && (
                               <span className="px-1.5 py-0.5 text-xs rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
@@ -4465,7 +4456,7 @@ export default function SettingsPage() {
                               <button
                                 onClick={(e) => { e.stopPropagation(); toggleUserActiveMutation.mutate(user.id); }}
                                 disabled={toggleUserActiveMutation.isPending}
-                                className={`text-xs py-1 px-2 rounded border transition-all duration-150 ${
+                                className={`hidden sm:inline-block text-xs py-1 px-2 rounded border transition-all duration-150 ${
                                   user.isActive === false
                                     ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/50'
                                     : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-200 dark:bg-gray-500/20 dark:text-gray-300 dark:border-gray-500/50'
@@ -4481,7 +4472,7 @@ export default function SettingsPage() {
                               </button>
                               <button
                                 onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setDeleteUserDialogOpen(true); }}
-                                className="text-xs py-1 px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                                className="hidden sm:inline-block text-xs py-1 px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
                               >
                                 {t('common.delete')}
                               </button>

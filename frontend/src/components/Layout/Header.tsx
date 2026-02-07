@@ -6,13 +6,12 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-30 flex items-center h-12 px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 lg:hidden">
-      <button
-        onClick={onMenuClick}
-        className="p-2 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
-    </header>
+    <button
+      onClick={onMenuClick}
+      className="fixed bottom-5 right-5 z-30 lg:hidden w-12 h-12 flex items-center justify-center rounded-full bg-primary-600 text-white shadow-lg hover:bg-primary-700 active:scale-95 transition-all"
+      aria-label="Open menu"
+    >
+      <Menu className="w-5 h-5" />
+    </button>
   );
 }

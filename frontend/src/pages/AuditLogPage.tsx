@@ -346,7 +346,35 @@ export default function AuditLogPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Mobile card view */}
+            <div className="sm:hidden divide-y divide-gray-100 dark:divide-gray-800">
+              {data?.logs.map((log) => {
+                const { client, domain } = extractClientDomain(log);
+                return (
+                  <div
+                    key={log.id}
+                    onClick={() => setSelectedLog(log)}
+                    className="px-3 py-2.5 cursor-pointer hover:bg-primary-50/50 dark:hover:bg-primary-900/20 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`inline-block px-1.5 py-0.5 text-[10px] rounded font-medium ${actionColors[log.action] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
+                        {getActionLabel(log.action)}
+                      </span>
+                      <span className="text-[10px] text-gray-400">{formatDate(log.createdAt)}</span>
+                    </div>
+                    <div className="text-xs text-gray-700 dark:text-gray-300 mt-1">{generateDescription(log)}</div>
+                    <div className="flex items-center gap-2 mt-0.5 text-[10px] text-gray-500">
+                      <span>{log.userName}</span>
+                      {client && <><span className="text-gray-300">|</span><span>{client}</span></>}
+                      {domain && <><span className="text-gray-300">|</span><span className="truncate">{domain}</span></>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop table view */}
+            <div className="hidden sm:block overflow-x-auto">
               <table ref={tableRef} className="w-full text-xs" style={{ tableLayout: 'fixed' }}>
                 <thead className="bg-gray-50 dark:bg-gray-800/50">
                   <tr>
