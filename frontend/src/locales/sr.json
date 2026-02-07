@@ -837,6 +837,25 @@
     "backupFiles": "Fajlova:",
     "totalBackupSize": "Ukupna veličina:"
   },
+  "account": {
+    "title": "Nalog",
+    "profile": "Profil",
+    "firstName": "Ime",
+    "lastName": "Prezime",
+    "email": "Email",
+    "phone": "Telefon",
+    "changePassword": "Promena lozinke",
+    "currentPassword": "Trenutna lozinka",
+    "newPassword": "Nova lozinka",
+    "confirmPassword": "Potvrdi lozinku",
+    "passwordChanged": "Lozinka uspešno promenjena",
+    "passwordMismatch": "Lozinke se ne poklapaju",
+    "profileSaved": "Profil sačuvan",
+    "twoFactor": "Dvofaktorska autentifikacija",
+    "appearance": "Izgled",
+    "accentColor": "Akcentna boja",
+    "density": "Gustina"
+  },
   "appearance": {
     "title": "Izgled",
     "theme": "Tema",

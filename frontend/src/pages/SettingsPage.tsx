@@ -3,9 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { useAppearance, AccentColor } from '../context/AppearanceContext';
-import { useTheme } from '../context/ThemeContext';
-import { useZoom } from '../context/ZoomContext';
 import { NotificationSetting, User, MailServer, MailSecurity, CompanyInfo, BankAccount, EmailTemplate, Package, ReportConfig, DomainStatus, SystemConfig } from '../types';
 import Modal from '../components/common/Modal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
@@ -43,11 +40,6 @@ import {
   Play,
   ChevronDown,
   ChevronRight,
-  Palette,
-  Sun,
-  Moon,
-  Monitor,
-  Minus,
   Archive,
   Clock,
   RefreshCw,
@@ -56,7 +48,7 @@ import {
 import toast from 'react-hot-toast';
 import { createBackupZip, readBackupZip, isEncryptedBackup } from '../utils/zipCrypto';
 
-type TabType = 'system' | 'security' | 'my-account' | 'appearance' | 'owner' | 'smtp' | 'mail-servers' | 'mail-security' | 'packages' | 'notifications' | 'templates' | 'backup-restore' | 'users';
+type TabType = 'system' | 'security' | 'owner' | 'smtp' | 'mail-servers' | 'mail-security' | 'packages' | 'notifications' | 'templates' | 'backup-restore' | 'users';
 
 interface SystemSettings {
   systemName: string;
@@ -120,158 +112,12 @@ interface MailSettings {
   imapSecure: boolean;
 }
 
-const ACCENT_COLORS: { id: AccentColor; labelKey: string; swatch: string }[] = [
-  { id: 'blue', labelKey: 'appearance.blue', swatch: '#4c6288' },
-  { id: 'indigo', labelKey: 'appearance.indigo', swatch: '#585485' },
-  { id: 'violet', labelKey: 'appearance.violet', swatch: '#6a5885' },
-  { id: 'emerald', labelKey: 'appearance.emerald', swatch: '#407362' },
-  { id: 'amber', labelKey: 'appearance.amber', swatch: '#896a3a' },
-  { id: 'rose', labelKey: 'appearance.rose', swatch: '#854c57' },
-];
-
-function AppearanceTab() {
-  const { t } = useTranslation();
-  const { theme, setTheme } = useTheme();
-  const { accent, setAccent, density, setDensity } = useAppearance();
-  const { zoom, zoomIn, zoomOut, resetZoom } = useZoom();
-
-  const themeOptions = [
-    { id: 'light' as const, label: t('appearance.light'), icon: Sun },
-    { id: 'dark' as const, label: t('appearance.dark'), icon: Moon },
-    { id: 'system' as const, label: t('appearance.system'), icon: Monitor },
-  ];
-
-  return (
-    <div className="space-y-4">
-      {/* Theme */}
-      <div className="card">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
-          {t('appearance.theme')}
-        </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          {t('appearance.themeDesc')}
-        </p>
-        <div className="flex gap-2">
-          {themeOptions.map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => setTheme(opt.id)}
-              className={`btn flex items-center gap-2 ${
-                theme === opt.id
-                  ? 'btn-primary'
-                  : 'btn-secondary'
-              }`}
-            >
-              <opt.icon className="w-4 h-4" />
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Accent Color */}
-      <div className="card">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
-          {t('appearance.accentColor')}
-        </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          {t('appearance.accentDesc')}
-        </p>
-        <div className="flex flex-wrap gap-3">
-          {ACCENT_COLORS.map((color) => (
-            <button
-              key={color.id}
-              onClick={() => setAccent(color.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all ${
-                accent === color.id
-                  ? 'border-gray-900 dark:border-white shadow-md'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'
-              }`}
-            >
-              <span
-                className="w-5 h-5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: color.swatch }}
-              />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t(color.labelKey)}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Density */}
-      <div className="card">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
-          {t('appearance.density')}
-        </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          {t('appearance.densityDesc')}
-        </p>
-        <div className="flex gap-2">
-          {(['comfy', 'compact'] as const).map((d) => (
-            <button
-              key={d}
-              onClick={() => setDensity(d)}
-              className={`btn ${
-                density === d ? 'btn-primary' : 'btn-secondary'
-              }`}
-            >
-              {t(`appearance.${d}`)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Zoom */}
-      <div className="card">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
-          {t('appearance.zoom')}
-        </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          {t('appearance.zoomDesc')}
-        </p>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={zoomOut}
-            className="btn btn-secondary btn-sm"
-            disabled={zoom <= 50}
-          >
-            <Minus className="w-4 h-4" />
-          </button>
-          <button
-            onClick={resetZoom}
-            className="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[4rem] text-center hover:text-primary-600 transition-colors"
-          >
-            {zoom}%
-          </button>
-          <button
-            onClick={zoomIn}
-            className="btn btn-secondary btn-sm"
-            disabled={zoom >= 120}
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-          {zoom !== 100 && (
-            <button
-              onClick={resetZoom}
-              className="btn btn-secondary btn-sm ml-2"
-            >
-              {t('appearance.reset')}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function SettingsPage() {
   const { t } = useTranslation();
   const { isAdmin, isSalesAdmin, canManageSystem, canManageContent, canEditPackages } = useAuth();
   const queryClient = useQueryClient();
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('system');
+  const [activeTab, setActiveTab] = useState<TabType>(canManageSystem ? 'system' : canManageContent ? 'owner' : 'packages');
   const [testEmail, setTestEmail] = useState('');
 
   // System settings state
@@ -1049,22 +895,6 @@ export default function SettingsPage() {
     enabled: isAdmin,
   });
 
-  // My Account 2FA status query
-  const { data: my2FAStatus, isLoading: my2FALoading, refetch: refetchMy2FA } = useQuery({
-    queryKey: ['my-2fa-status'],
-    queryFn: () => api.get<{ enabled: boolean; method: 'email' | 'totp' | null }>('/api/security/2fa/status'),
-  });
-
-  // My Account 2FA state
-  const [setup2FAModalOpen, setSetup2FAModalOpen] = useState(false);
-  const [disable2FAModalOpen, setDisable2FAModalOpen] = useState(false);
-  const [totpSetupData, setTotpSetupData] = useState<{ secret: string; qrCode: string } | null>(null);
-  const [verificationCode, setVerificationCode] = useState('');
-  const [disablePassword, setDisablePassword] = useState('');
-  const [setup2FAMethod, setSetup2FAMethod] = useState<'email' | 'totp'>('email');
-  const [setup2FAStep, setSetup2FAStep] = useState<'choose' | 'verify'>('choose');
-  const [backupCodesToShow, setBackupCodesToShow] = useState<string[]>([]);
-
   const { isLoading: mailSettingsLoading } = useQuery({
     queryKey: ['mail-settings'],
     queryFn: async () => {
@@ -1316,79 +1146,6 @@ export default function SettingsPage() {
     },
     onError: () => toast.error(t('settings.errorUnlockingUser')),
   });
-
-  // 2FA Setup mutations
-  const setupEmail2FAMutation = useMutation({
-    mutationFn: () => api.post('/api/security/2fa/setup/email'),
-    onSuccess: () => {
-      setSetup2FAStep('verify');
-      toast.success(t('settings.verificationCodeSent'));
-    },
-    onError: () => toast.error(t('settings.failedSendVerificationCode')),
-  });
-
-  const verifyEmail2FAMutation = useMutation({
-    mutationFn: (code: string) => api.post<{ message: string; method: string }>('/api/security/2fa/verify/email', { code }),
-    onSuccess: () => {
-      refetchMy2FA();
-      setSetup2FAModalOpen(false);
-      resetSetup2FAState();
-      toast.success(t('settings.email2faEnabled'));
-    },
-    onError: () => toast.error(t('settings.invalidVerificationCode')),
-  });
-
-  const setupTOTP2FAMutation = useMutation({
-    mutationFn: () => api.post<{ secret: string; qrCode: string }>('/api/security/2fa/setup/totp'),
-    onSuccess: (data) => {
-      setTotpSetupData(data);
-      setSetup2FAStep('verify');
-    },
-    onError: () => toast.error(t('settings.failedSetupTotp')),
-  });
-
-  const verifyTOTP2FAMutation = useMutation({
-    mutationFn: (code: string) => api.post<{ message: string; method: string; backupCodes: string[] }>('/api/security/2fa/verify/totp', { code }),
-    onSuccess: (data) => {
-      refetchMy2FA();
-      if (data.backupCodes) {
-        setBackupCodesToShow(data.backupCodes);
-      } else {
-        setSetup2FAModalOpen(false);
-        resetSetup2FAState();
-      }
-      toast.success(t('settings.authenticator2faEnabled'));
-    },
-    onError: () => toast.error(t('settings.invalidVerificationCode')),
-  });
-
-  const disable2FAMutation = useMutation({
-    mutationFn: (password: string) => api.post('/api/security/2fa/disable', { password }),
-    onSuccess: () => {
-      refetchMy2FA();
-      setDisable2FAModalOpen(false);
-      setDisablePassword('');
-      toast.success(t('settings.twoFaDisabledSuccess'));
-    },
-    onError: () => toast.error(t('settings.invalidPassword')),
-  });
-
-  const regenerateBackupCodesMutation = useMutation({
-    mutationFn: () => api.post<{ backupCodes: string[] }>('/api/security/2fa/backup-codes/regenerate'),
-    onSuccess: (data) => {
-      setBackupCodesToShow(data.backupCodes);
-      toast.success(t('settings.backupCodesGenerated'));
-    },
-    onError: () => toast.error(t('settings.failedRegenerateBackupCodes')),
-  });
-
-  const resetSetup2FAState = () => {
-    setSetup2FAStep('choose');
-    setSetup2FAMethod('email');
-    setTotpSetupData(null);
-    setVerificationCode('');
-    setBackupCodesToShow([]);
-  };
 
   const saveMailSettingsMutation = useMutation({
     mutationFn: (settings: MailSettings) => api.put('/api/notifications/mail-settings', settings),
@@ -2324,10 +2081,6 @@ export default function SettingsPage() {
     ...(canManageSystem ? [{ id: 'system' as const, label: t('settings.system'), icon: Server }] : []),
     // SuperAdmin only: Security settings
     ...(canManageSystem ? [{ id: 'security' as const, label: t('settings.security'), icon: Lock }] : []),
-    // All users: My Account (2FA settings)
-    { id: 'my-account' as const, label: t('settings.account'), icon: UserIcon },
-    // All users: Appearance (theme, accent, density, zoom)
-    { id: 'appearance' as const, label: t('settings.appearance'), icon: Palette },
     // Admin+: Company info
     ...(canManageContent ? [{ id: 'owner' as const, label: t('settings.company'), icon: Building2 }] : []),
     // SuperAdmin only: Email settings (SMTP/IMAP)
@@ -3181,319 +2934,6 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
-
-      {/* My Account Tab */}
-      {activeTab === 'my-account' && (
-        <div className="space-y-4">
-          <div className="card">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-              <KeyRound className="w-4 h-4" />
-              Two-Factor Authentication
-            </h3>
-
-            {my2FALoading ? (
-              <div className="flex justify-center py-6">
-                <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100">
-                      Status: {my2FAStatus?.enabled ? (
-                        <span className="text-green-600 dark:text-green-400">Enabled</span>
-                      ) : (
-                        <span className="text-gray-500 dark:text-gray-400">Disabled</span>
-                      )}
-                    </div>
-                    {my2FAStatus?.enabled && my2FAStatus.method && (
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Method: {my2FAStatus.method === 'email' ? 'Email Code' : 'Authenticator App'}
-                      </div>
-                    )}
-                  </div>
-
-                  {my2FAStatus?.enabled ? (
-                    <div className="flex gap-2">
-                      {my2FAStatus.method === 'totp' && (
-                        <button
-                          onClick={() => regenerateBackupCodesMutation.mutate()}
-                          disabled={regenerateBackupCodesMutation.isPending}
-                          className="btn btn-secondary"
-                        >
-                          {regenerateBackupCodesMutation.isPending ? 'Generating...' : 'Regenerate Backup Codes'}
-                        </button>
-                      )}
-                      <button
-                        onClick={() => setDisable2FAModalOpen(true)}
-                        className="btn btn-danger"
-                      >
-                        Disable 2FA
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        resetSetup2FAState();
-                        setSetup2FAModalOpen(true);
-                      }}
-                      className="btn btn-primary"
-                    >
-                      Enable 2FA
-                    </button>
-                  )}
-                </div>
-
-                {!my2FAStatus?.enabled && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Two-factor authentication adds an extra layer of security to your account by requiring a verification code in addition to your password.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Backup Codes Display (after regeneration) */}
-          {backupCodesToShow.length > 0 && (
-            <div className="card">
-              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">
-                Your Backup Codes
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Save these codes in a safe place. Each code can only be used once.
-              </p>
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4">
-                <div className="grid grid-cols-2 gap-2 font-mono text-sm">
-                  {backupCodesToShow.map((code, index) => (
-                    <div key={index} className="text-center py-1 text-gray-700 dark:text-gray-300">
-                      {code}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(backupCodesToShow.join('\n'));
-                      toast.success(t('auth.backupCodesCopied'));
-                    } catch {
-                      toast.error(t('common.clipboardFailed'));
-                    }
-                  }}
-                  className="btn btn-secondary flex items-center gap-2"
-                >
-                  <Copy className="w-4 h-4" />
-                  Copy Codes
-                </button>
-                <button
-                  onClick={() => setBackupCodesToShow([])}
-                  className="btn btn-primary"
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Setup 2FA Modal */}
-      <Modal
-        isOpen={setup2FAModalOpen}
-        onClose={() => {
-          setSetup2FAModalOpen(false);
-          resetSetup2FAState();
-        }}
-        title="Enable Two-Factor Authentication"
-      >
-        {setup2FAStep === 'choose' ? (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Choose your preferred 2FA method:
-            </p>
-
-            <button
-              onClick={() => {
-                setSetup2FAMethod('email');
-                setupEmail2FAMutation.mutate();
-              }}
-              disabled={setupEmail2FAMutation.isPending}
-              className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors flex items-center gap-4 text-left"
-            >
-              <Mail className="w-8 h-8 text-primary-600" />
-              <div>
-                <div className="font-medium text-gray-900 dark:text-gray-100">Email Code</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Receive a code via email each time you log in</div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                setSetup2FAMethod('totp');
-                setupTOTP2FAMutation.mutate();
-              }}
-              disabled={setupTOTP2FAMutation.isPending}
-              className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors flex items-center gap-4 text-left"
-            >
-              <Shield className="w-8 h-8 text-primary-600" />
-              <div>
-                <div className="font-medium text-gray-900 dark:text-gray-100">Authenticator App</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Use Google Authenticator or similar app</div>
-              </div>
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {setup2FAMethod === 'totp' && totpSetupData && (
-              <>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Scan this QR code with your authenticator app:
-                </p>
-                <div className="flex justify-center">
-                  <img src={totpSetupData.qrCode} alt="QR Code" />
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                  Or enter manually: <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{totpSetupData.secret}</code>
-                </p>
-              </>
-            )}
-
-            {setup2FAMethod === 'email' && (
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Enter the verification code sent to your email:
-              </p>
-            )}
-
-            <div>
-              <label className="label">Verification Code</label>
-              <input
-                type="text"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
-                className="input text-center tracking-widest text-lg"
-                placeholder="000000"
-                maxLength={6}
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => setSetup2FAStep('choose')}
-                className="btn btn-secondary flex-1"
-              >
-                Back
-              </button>
-              <button
-                onClick={() => {
-                  if (setup2FAMethod === 'email') {
-                    verifyEmail2FAMutation.mutate(verificationCode);
-                  } else {
-                    verifyTOTP2FAMutation.mutate(verificationCode);
-                  }
-                }}
-                disabled={verifyEmail2FAMutation.isPending || verifyTOTP2FAMutation.isPending || !verificationCode}
-                className="btn btn-primary flex-1"
-              >
-                {verifyEmail2FAMutation.isPending || verifyTOTP2FAMutation.isPending ? 'Verifying...' : 'Verify & Enable'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Show backup codes after TOTP setup */}
-        {backupCodesToShow.length > 0 && setup2FAModalOpen && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Save Your Backup Codes</h4>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              These codes can be used to access your account if you lose your authenticator device.
-            </p>
-            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4">
-              <div className="grid grid-cols-2 gap-2 font-mono text-sm">
-                {backupCodesToShow.map((code, index) => (
-                  <div key={index} className="text-center py-1 text-gray-700 dark:text-gray-300">
-                    {code}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(backupCodesToShow.join('\n'));
-                    toast.success(t('auth.backupCodesCopied'));
-                  } catch {
-                    toast.error(t('common.clipboardFailed'));
-                  }
-                }}
-                className="btn btn-secondary flex-1 flex items-center justify-center gap-2"
-              >
-                <Copy className="w-4 h-4" />
-                Copy
-              </button>
-              <button
-                onClick={() => {
-                  setSetup2FAModalOpen(false);
-                  resetSetup2FAState();
-                }}
-                className="btn btn-primary flex-1"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Disable 2FA Modal */}
-      <Modal
-        isOpen={disable2FAModalOpen}
-        onClose={() => {
-          setDisable2FAModalOpen(false);
-          setDisablePassword('');
-        }}
-        title="Disable Two-Factor Authentication"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Enter your password to confirm disabling 2FA. This will make your account less secure.
-          </p>
-
-          <div>
-            <label className="label">Password</label>
-            <input
-              type="password"
-              value={disablePassword}
-              onChange={(e) => setDisablePassword(e.target.value)}
-              className="input"
-              placeholder="Enter your password"
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                setDisable2FAModalOpen(false);
-                setDisablePassword('');
-              }}
-              className="btn btn-secondary flex-1"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => disable2FAMutation.mutate(disablePassword)}
-              disabled={disable2FAMutation.isPending || !disablePassword}
-              className="btn flex-1 bg-red-600 hover:bg-red-700 text-white"
-            >
-              {disable2FAMutation.isPending ? 'Disabling...' : 'Disable 2FA'}
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Appearance Tab */}
-      {activeTab === 'appearance' && <AppearanceTab />}
 
       {/* Owner Tab */}
       {activeTab === 'owner' && (

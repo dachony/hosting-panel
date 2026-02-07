@@ -457,11 +457,39 @@ auth.get('/me', authMiddleware, async (c) => {
     name: schema.users.name,
     firstName: schema.users.firstName,
     lastName: schema.users.lastName,
+    phone: schema.users.phone,
     role: schema.users.role,
     mustChangePassword: schema.users.mustChangePassword,
   }).from(schema.users).where(eq(schema.users.id, user.id)).get();
 
   return c.json({ user: dbUser });
+});
+
+// Update own profile (firstName, lastName, phone)
+const profileSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  phone: z.string().optional().default(''),
+});
+
+auth.put('/profile', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user') as { id: number };
+    const body = await c.req.json();
+    const { firstName, lastName, phone } = profileSchema.parse(body);
+    const name = `${firstName} ${lastName}`.trim();
+
+    await db.update(schema.users)
+      .set({ firstName, lastName, name, phone, updatedAt: getCurrentTimestamp() })
+      .where(eq(schema.users.id, user.id));
+
+    return c.json({ message: 'Profile updated' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: 'Invalid input', details: error.errors }, 400);
+    }
+    throw error;
+  }
 });
 
 // Change password (required when mustChangePassword is true)

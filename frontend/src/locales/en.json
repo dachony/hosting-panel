@@ -837,6 +837,25 @@
     "backupFiles": "Files:",
     "totalBackupSize": "Total size:"
   },
+  "account": {
+    "title": "Account",
+    "profile": "Profile",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "phone": "Phone",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "passwordChanged": "Password changed successfully",
+    "passwordMismatch": "Passwords don't match",
+    "profileSaved": "Profile saved",
+    "twoFactor": "Two-Factor Authentication",
+    "appearance": "Appearance",
+    "accentColor": "Accent Color",
+    "density": "Density"
+  },
   "appearance": {
     "title": "Appearance",
     "theme": "Theme",
