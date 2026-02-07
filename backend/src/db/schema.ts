@@ -179,7 +179,6 @@ export interface SystemConfig {
     pdfSizeMb?: number;
   };
   attachFormats?: {
-    csv?: boolean;
     pdf?: boolean;
     json?: boolean;
   };

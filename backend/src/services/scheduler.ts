@@ -4,7 +4,7 @@ import { eq, and, lte, gte } from 'drizzle-orm';
 import { sendEmail, getExpiryNotificationEmail, getDailyReportEmail } from './email.js';
 import { formatDate, addDaysToDate, daysUntilExpiry } from '../utils/dates.js';
 import { generateHostingListHtml, generateReportPdf } from './reports.js';
-import { generateSystemInfoHtml, generateSystemInfoJson, generateSystemInfoCsv, generateSystemInfoPdf } from './system.js';
+import { generateSystemInfoHtml, generateSystemInfoJson, generateSystemInfoPdf } from './system.js';
 import { escapeHtml } from '../utils/validation.js';
 import fs from 'fs';
 import path from 'path';
@@ -490,12 +490,6 @@ async function sendSystemNotifications() {
           const jsonStr = await generateSystemInfoJson(sysConfig);
           attachments.push({ filename: `system-info-${dateStr}.json`, content: Buffer.from(jsonStr, 'utf-8') });
         } catch (e) { console.error('[Scheduler] Failed to generate system JSON:', e); }
-      }
-      if (sysConfig.attachFormats?.csv) {
-        try {
-          const csvStr = await generateSystemInfoCsv(sysConfig);
-          attachments.push({ filename: `system-info-${dateStr}.csv`, content: Buffer.from(csvStr, 'utf-8') });
-        } catch (e) { console.error('[Scheduler] Failed to generate system CSV:', e); }
       }
       if (sysConfig.attachFormats?.pdf) {
         try {

@@ -302,7 +302,7 @@ export default function SettingsPage() {
     },
     period: 'last7days',
     thresholds: { auditLogsCount: 10000, emailLogsCount: 5000, pdfSizeMb: 500 },
-    attachFormats: { csv: false, pdf: false, json: false },
+    attachFormats: { pdf: false, json: false },
   };
 
   const [templateForm, setTemplateForm] = useState({
@@ -5132,43 +5132,43 @@ export default function SettingsPage() {
         size="md"
       >
         <div className="space-y-4">
-          {selectedNotification?.type === 'client' ? (
-            <>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Select a domain to send a test notification, or leave empty to trigger for all matching domains.
+          {/* Domain dropdown for client/service/sales types */}
+          {(selectedNotification?.type === 'client' || selectedNotification?.type === 'service_request' || selectedNotification?.type === 'sales_request') && (
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                {selectedNotification.type === 'client'
+                  ? 'Select a domain to send a test notification, or leave empty to trigger for all matching domains.'
+                  : 'Select a domain to populate template variables (domainName, clientName, expiryDate, etc.).'
+                }
               </p>
-              <div>
-                <label className="block text-sm font-medium mb-1">Domain</label>
-                <select
-                  value={triggerDomainId || ''}
-                  onChange={(e) => setTriggerDomainId(e.target.value ? Number(e.target.value) : undefined)}
-                  className="input w-full"
-                >
-                  <option value="">-- All domains --</option>
-                  {(triggerDomainsData?.domains || []).map(d => (
-                    <option key={d.id} value={d.id}>
-                      {d.domainName}{d.clientName ? ` (${d.clientName})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Enter email address to send this notification to.
-              </p>
-              <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
-                <input
-                  type="email"
-                  value={triggerEmail}
-                  onChange={(e) => setTriggerEmail(e.target.value)}
-                  placeholder="recipient@example.com"
-                  className="input w-full"
-                />
-              </div>
-            </>
+              <label className="block text-sm font-medium mb-1">Domain</label>
+              <select
+                value={triggerDomainId || ''}
+                onChange={(e) => setTriggerDomainId(e.target.value ? Number(e.target.value) : undefined)}
+                className="input w-full"
+              >
+                <option value="">{selectedNotification.type === 'client' ? '-- All domains --' : '-- Select domain --'}</option>
+                {(triggerDomainsData?.domains || []).map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.domainName}{d.clientName ? ` (${d.clientName})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Email input for non-client types */}
+          {selectedNotification?.type !== 'client' && (
+            <div>
+              <label className="block text-sm font-medium mb-1">Email</label>
+              <input
+                type="email"
+                value={triggerEmail}
+                onChange={(e) => setTriggerEmail(e.target.value)}
+                placeholder="recipient@example.com"
+                className="input w-full"
+              />
+            </div>
           )}
 
           <div className="flex justify-end gap-2 pt-2">
@@ -5186,7 +5186,7 @@ export default function SettingsPage() {
                   if (selectedNotification.type === 'client') {
                     triggerNotificationMutation.mutate({ id: selectedNotification.id, domainId: triggerDomainId });
                   } else {
-                    triggerNotificationMutation.mutate({ id: selectedNotification.id, email: triggerEmail || undefined });
+                    triggerNotificationMutation.mutate({ id: selectedNotification.id, email: triggerEmail || undefined, domainId: triggerDomainId });
                   }
                 }
               }}
@@ -5930,7 +5930,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                 <div>
                   <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-2 block">Attach as file:</label>
                   <div className="flex gap-3">
-                    {(['csv', 'pdf', 'json'] as const).map(fmt => (
+                    {(['pdf', 'json'] as const).map(fmt => (
                       <label key={fmt} className="flex items-center gap-1.5 text-xs cursor-pointer">
                         <input
                           type="checkbox"

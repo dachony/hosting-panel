@@ -3,10 +3,10 @@ import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware, superAdminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
-import { getCurrentTimestamp } from '../utils/dates.js';
+import { getCurrentTimestamp, daysUntilExpiry } from '../utils/dates.js';
 import { sendEmail, sendTestEmail, testSmtpConnection } from '../services/email.js';
 import { generateHostingListHtml, generateReportPdf } from '../services/reports.js';
-import { generateSystemInfoHtml, generateSystemInfoJson, generateSystemInfoCsv, generateSystemInfoPdf } from '../services/system.js';
+import { generateSystemInfoHtml, generateSystemInfoJson, generateSystemInfoPdf } from '../services/system.js';
 import { triggerClientNotification } from '../services/scheduler.js';
 import type { ReportConfig, SystemConfig } from '../db/schema.js';
 import { parseId } from '../utils/validation.js';
@@ -462,6 +462,42 @@ notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
       companyLogo: companyInfo?.logo || '',
     };
 
+    // Populate domain/hosting variables if domainId provided (client/service/sales triggers)
+    const domainId = body.domainId ? parseInt(body.domainId) : undefined;
+    if (domainId && (setting.type === 'client' || setting.type === 'service_request' || setting.type === 'sales_request')) {
+      const domainData = await db.select({
+        domainName: schema.domains.domainName,
+        clientName: schema.clients.name,
+      })
+      .from(schema.domains)
+      .leftJoin(schema.clients, eq(schema.domains.clientId, schema.clients.id))
+      .where(eq(schema.domains.id, domainId))
+      .get();
+
+      if (domainData) {
+        variables.domainName = domainData.domainName;
+        variables.clientName = domainData.clientName || '';
+      }
+
+      const hostingData = await db.select({
+        expiryDate: schema.mailHosting.expiryDate,
+        packageName: schema.mailPackages.name,
+        isActive: schema.mailHosting.isActive,
+      })
+      .from(schema.mailHosting)
+      .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
+      .where(eq(schema.mailHosting.domainId, domainId))
+      .get();
+
+      if (hostingData) {
+        variables.expiryDate = hostingData.expiryDate ? new Date(hostingData.expiryDate).toLocaleDateString('sr-RS') : '';
+        variables.hostingExpiryDate = variables.expiryDate;
+        variables.daysUntilExpiry = hostingData.expiryDate ? String(daysUntilExpiry(hostingData.expiryDate)) : '';
+        variables.packageName = hostingData.packageName || '';
+        variables.hostingStatus = hostingData.isActive ? 'Enabled' : 'Disabled';
+      }
+    }
+
     // Generate content based on type
     if (setting.type === 'reports' && template.reportConfig) {
       const reportConfig = template.reportConfig as ReportConfig;
@@ -494,16 +530,12 @@ notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
       attachments.push({ filename: `hosting-report-${dateStr}.pdf`, content: pdfBuffer });
     }
 
-    // System info file attachments (CSV/PDF/JSON)
+    // System info file attachments (PDF/JSON)
     if (setting.type === 'system' && template.systemConfig) {
       const sysConfig = template.systemConfig as SystemConfig;
       if (sysConfig.attachFormats?.json) {
         const jsonStr = await generateSystemInfoJson(sysConfig);
         attachments.push({ filename: `system-info-${dateStr}.json`, content: Buffer.from(jsonStr, 'utf-8') });
-      }
-      if (sysConfig.attachFormats?.csv) {
-        const csvStr = await generateSystemInfoCsv(sysConfig);
-        attachments.push({ filename: `system-info-${dateStr}.csv`, content: Buffer.from(csvStr, 'utf-8') });
       }
       if (sysConfig.attachFormats?.pdf) {
         const pdfBuf = await generateSystemInfoPdf(sysConfig);

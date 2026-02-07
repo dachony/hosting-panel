@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { sendEmail } from '../services/email.js';
 import { generateHostingListHtml } from '../services/reports.js';
-import { generateSystemInfoHtml, generateSystemInfoJson, generateSystemInfoCsv, generateSystemInfoPdf } from '../services/system.js';
+import { generateSystemInfoHtml, generateSystemInfoJson, generateSystemInfoPdf } from '../services/system.js';
 import { parseId } from '../utils/validation.js';
 
 const templates = new Hono();
@@ -74,7 +74,6 @@ const systemConfigSchema = z.object({
     pdfSizeMb: z.number().optional(),
   }).optional(),
   attachFormats: z.object({
-    csv: z.boolean().optional(),
     pdf: z.boolean().optional(),
     json: z.boolean().optional(),
   }).optional(),
@@ -281,10 +280,6 @@ templates.post('/:id/test', adminMiddleware, async (c) => {
       if (sysConfig.attachFormats?.json) {
         const jsonStr = await generateSystemInfoJson(sysConfig);
         attachments.push({ filename: `system-info-${dateStr}.json`, content: Buffer.from(jsonStr, 'utf-8') });
-      }
-      if (sysConfig.attachFormats?.csv) {
-        const csvStr = await generateSystemInfoCsv(sysConfig);
-        attachments.push({ filename: `system-info-${dateStr}.csv`, content: Buffer.from(csvStr, 'utf-8') });
       }
       if (sysConfig.attachFormats?.pdf) {
         const pdfBuf = await generateSystemInfoPdf(sysConfig);
