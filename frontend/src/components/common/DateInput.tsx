@@ -42,7 +42,7 @@ export default function DateInput({
       {/* Visible styled display */}
       <div
         onClick={handleClick}
-        className={`input w-full cursor-pointer select-none
+        className={`w-full px-3 py-2 border rounded-lg cursor-pointer select-none
           bg-white dark:bg-gray-800
           border-gray-300 dark:border-gray-600
           ${value ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}
@@ -50,7 +50,7 @@ export default function DateInput({
       >
         {formatDisplay(value) || 'dd.mm.yyyy'}
       </div>
-      {/* Hidden native date input */}
+      {/* Hidden native date input — sr-only keeps it accessible but invisible */}
       <input
         ref={inputRef}
         type="date"
@@ -59,7 +59,8 @@ export default function DateInput({
         onChange={(e) => onChange(e.target.value)}
         required={required}
         onClick={handleClick}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        tabIndex={-1}
+        className="absolute inset-0 w-full h-full cursor-pointer opacity-0 appearance-none [color-scheme:light] dark:[color-scheme:dark]"
       />
       <CalendarDays
         className={`absolute top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none
