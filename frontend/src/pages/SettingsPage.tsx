@@ -51,6 +51,7 @@ import {
   Archive,
   Clock,
   RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createBackupZip, readBackupZip, isEncryptedBackup } from '../utils/zipCrypto';
@@ -334,7 +335,7 @@ export default function SettingsPage() {
 
   // Import/Export state
   const [exportTypes, setExportTypes] = useState<string[]>(['all']);
-  const [importType, setImportType] = useState<string>('all');
+  const [importType] = useState<string>('all');
   const [importValidation, setImportValidation] = useState<{
     valid: boolean;
     totalRows: number;
@@ -342,8 +343,6 @@ export default function SettingsPage() {
     errors: { row: number; field: string; message: string }[];
     preview: unknown[];
   } | null>(null);
-  const [importData, setImportData] = useState<string | null>(null);
-  const [importFormat, setImportFormat] = useState<'json' | 'csv'>('json');
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   // Import preview modal state
@@ -352,6 +351,9 @@ export default function SettingsPage() {
   const [importPreviewMeta, setImportPreviewMeta] = useState<{ version?: string; exportedAt?: string; fileName?: string } | null>(null);
   const [importSelections, setImportSelections] = useState<Record<string, boolean[]>>({});
   const [importExpandedSections, setImportExpandedSections] = useState<Set<string>>(new Set());
+  const [importOverwrite, setImportOverwrite] = useState(false);
+  const [restoreResultsOpen, setRestoreResultsOpen] = useState(false);
+  const [restoreResults, setRestoreResults] = useState<Record<string, { imported: number; skipped: number; overwritten: number; errors: string[] }> | null>(null);
 
   // Export preview modal state
   const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
@@ -1859,20 +1861,20 @@ export default function SettingsPage() {
       const payload = {
         version: importPreviewMeta?.version || '2.0',
         exportedAt: importPreviewMeta?.exportedAt,
+        overwrite: importOverwrite,
         data: filteredData,
       };
 
-      const result = await api.post('/api/backup/import', payload) as { results: Record<string, { imported: number; skipped: number; errors: string[] }> };
-      const totalImported = Object.values(result.results).reduce((sum, r) => sum + r.imported, 0);
-      const totalSkipped = Object.values(result.results).reduce((sum, r) => sum + r.skipped, 0);
-
-      toast.success(`Imported: ${totalImported}, Skipped: ${totalSkipped}`);
+      const result = await api.post('/api/backup/import', payload) as { results: Record<string, { imported: number; skipped: number; overwritten: number; errors: string[] }> };
       queryClient.invalidateQueries();
       setImportPreviewOpen(false);
       setImportPreviewData(null);
       setImportPreviewMeta(null);
       setImportSelections({});
       setImportExpandedSections(new Set());
+      setImportOverwrite(false);
+      setRestoreResults(result.results);
+      setRestoreResultsOpen(true);
     } catch {
       toast.error(t('settings.errorImporting'));
     }
@@ -1959,15 +1961,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDownloadTemplate = async (type: string) => {
-    try {
-      await api.download(`/api/backup/template/${type}`, `${type}-template.csv`);
-      toast.success(t('settings.templateDownloaded'));
-    } catch {
-      toast.error(t('settings.errorDownloading'));
-    }
-  };
-
   const processJsonContent = async (content: string, fileName: string, fileInput?: HTMLInputElement | null) => {
     try {
       const parsed = JSON.parse(content);
@@ -1994,8 +1987,6 @@ export default function SettingsPage() {
           data: parsed,
           format: 'json',
         });
-        setImportFormat('json');
-        setImportData(content);
         setImportValidation(response as typeof importValidation);
       }
     } catch {
@@ -2065,8 +2056,6 @@ export default function SettingsPage() {
     const content = await file.text();
 
     if (isCSV) {
-      setImportFormat('csv');
-      setImportData(content);
       try {
         const response = await api.post('/api/backup/validate', {
           type: importType,
@@ -2089,35 +2078,6 @@ export default function SettingsPage() {
     }
 
     e.target.value = '';
-  };
-
-  const handleImportConfirm = async () => {
-    if (!importData || !importValidation?.valid) return;
-
-    try {
-      let payload;
-      if (importFormat === 'csv') {
-        payload = { type: importType, data: importData, format: 'csv' };
-      } else {
-        const parsed = JSON.parse(importData);
-        if (parsed.version && parsed.data) {
-          payload = parsed;
-        } else {
-          payload = { type: importType, data: parsed, format: 'json' };
-        }
-      }
-
-      const result = await api.post('/api/backup/import', payload) as { results: Record<string, { imported: number; skipped: number; errors: string[] }> };
-      const totalImported = Object.values(result.results).reduce((sum, r) => sum + r.imported, 0);
-      const totalSkipped = Object.values(result.results).reduce((sum, r) => sum + r.skipped, 0);
-
-      toast.success(`Imported: ${totalImported}, Skipped: ${totalSkipped}`);
-      queryClient.invalidateQueries();
-      setImportData(null);
-      setImportValidation(null);
-    } catch {
-      toast.error(t('settings.errorImporting'));
-    }
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -4737,37 +4697,6 @@ export default function SettingsPage() {
               </h3>
 
               <div className="space-y-4">
-                {/* Import Type Selection */}
-                <div>
-                  <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">{t('settings.dataType')}</label>
-                  <select
-                    value={importType}
-                    onChange={(e) => { setImportType(e.target.value); setImportValidation(null); setImportData(null); }}
-                    className="input input-sm w-full"
-                  >
-                    <option value="all">{t('settings.allCompleteBackup')}</option>
-                    <option value="clients">{t('settings.clients')}</option>
-                    <option value="domains">{t('settings.domains')}</option>
-                    <option value="hosting">{t('settings.hosting')}</option>
-                    <option value="packages">{t('settings.packages')}</option>
-                  </select>
-                </div>
-
-                {/* CSV Templates */}
-                {importType !== 'all' && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
-                    <div className="text-xs text-blue-700 dark:text-blue-300 mb-2">{t('settings.csvTemplate')}</div>
-                    <button
-                      onClick={() => handleDownloadTemplate(importType)}
-                      className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                    >
-                      <Download className="w-3 h-3" />
-                      Download {importType}-template.csv
-                    </button>
-                    <p className="text-[10px] text-blue-500 mt-1">{t('settings.fillTemplateHint')}</p>
-                  </div>
-                )}
-
                 {/* File Upload */}
                 <div>
                   <button
@@ -4775,12 +4704,12 @@ export default function SettingsPage() {
                     className="btn btn-primary w-full flex items-center justify-center"
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    Select file ({importType === 'all' ? '.json, .zip' : '.csv, .json, .zip'})
+                    {t('settings.selectBackupFile')}
                   </button>
                   <input
                     ref={csvInputRef}
                     type="file"
-                    accept={importType === 'all' ? '.json,.zip' : '.csv,.json,.zip'}
+                    accept=".json,.zip"
                     onChange={handleImportFileSelect}
                     className="hidden"
                   />
@@ -4812,40 +4741,6 @@ export default function SettingsPage() {
                         Unlock
                       </button>
                     </div>
-                  </div>
-                )}
-
-                {/* Validation Results */}
-                {importValidation && (
-                  <div className={`rounded-lg p-3 ${importValidation.valid ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
-                    <div className={`text-xs font-medium mb-2 ${importValidation.valid ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
-                      {importValidation.valid ? '✓ Validation successful' : '✗ Validation errors'}
-                    </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400">
-                      Total rows: {importValidation.totalRows} | Valid: {importValidation.validRows}
-                    </div>
-
-                    {importValidation.errors.length > 0 && (
-                      <div className="mt-2 max-h-32 overflow-y-auto">
-                        {importValidation.errors.slice(0, 10).map((err, i) => (
-                          <div key={i} className="text-xs text-red-600 dark:text-red-400">
-                            Row {err.row}: {err.field && `[${err.field}]`} {err.message}
-                          </div>
-                        ))}
-                        {importValidation.errors.length > 10 && (
-                          <div className="text-xs text-red-500">...and {importValidation.errors.length - 10} more errors</div>
-                        )}
-                      </div>
-                    )}
-
-                    {importValidation.valid && (
-                      <button
-                        onClick={handleImportConfirm}
-                        className="mt-3 btn btn-primary w-full"
-                      >
-                        Confirm import
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
@@ -6867,6 +6762,17 @@ Your team"
             );
           })}
 
+          {/* Overwrite toggle */}
+          <label className="flex items-center gap-2 py-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={importOverwrite}
+              onChange={(e) => setImportOverwrite(e.target.checked)}
+              className="checkbox"
+            />
+            <span className="text-xs text-gray-700 dark:text-gray-300">{t('settings.overwriteExisting')}</span>
+          </label>
+
           {/* Footer */}
           <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
             <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -6891,6 +6797,71 @@ Your team"
             </div>
           </div>
         </div>
+      </Modal>
+
+      {/* Restore Results Modal */}
+      <Modal isOpen={restoreResultsOpen} onClose={() => setRestoreResultsOpen(false)} title={t('settings.restoreResults')} size="lg">
+        {restoreResults && (() => {
+          const totalErrors = Object.values(restoreResults).reduce((sum, r) => sum + r.errors.length, 0);
+          const hasErrors = totalErrors > 0;
+          return (
+            <div className="space-y-4">
+              <div className={`flex items-center gap-2 p-3 rounded-lg ${hasErrors ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-green-50 dark:bg-green-900/20'}`}>
+                {hasErrors
+                  ? <AlertTriangle className="w-5 h-5 text-amber-500" />
+                  : <CheckCircle className="w-5 h-5 text-green-500" />
+                }
+                <span className={`text-sm font-medium ${hasErrors ? 'text-amber-700 dark:text-amber-300' : 'text-green-700 dark:text-green-300'}`}>
+                  {hasErrors ? t('settings.restoreWithErrors') : t('settings.restoreComplete')}
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-2 px-2 font-medium text-gray-500 dark:text-gray-400">{t('settings.type')}</th>
+                      <th className="text-right py-2 px-2 font-medium text-gray-500 dark:text-gray-400">{t('common.import')}</th>
+                      <th className="text-right py-2 px-2 font-medium text-gray-500 dark:text-gray-400">{t('settings.overwritten')}</th>
+                      <th className="text-right py-2 px-2 font-medium text-gray-500 dark:text-gray-400">{t('settings.skippedItems')}</th>
+                      <th className="text-right py-2 px-2 font-medium text-gray-500 dark:text-gray-400">{t('settings.errors')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(restoreResults).map(([type, r]) => (
+                      <tr key={type} className="border-b border-gray-100 dark:border-gray-800">
+                        <td className="py-2 px-2 text-gray-700 dark:text-gray-300">{typeLabelsMap[type] || type}</td>
+                        <td className="py-2 px-2 text-right text-green-600 dark:text-green-400">{r.imported}</td>
+                        <td className="py-2 px-2 text-right text-blue-600 dark:text-blue-400">{r.overwritten}</td>
+                        <td className="py-2 px-2 text-right text-gray-500 dark:text-gray-400">{r.skipped}</td>
+                        <td className="py-2 px-2 text-right text-red-600 dark:text-red-400">{r.errors.length}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {hasErrors && (
+                <div className="max-h-40 overflow-y-auto rounded-lg bg-red-50 dark:bg-red-900/20 p-3">
+                  <div className="text-xs font-medium text-red-700 dark:text-red-300 mb-2">{t('settings.errors')}</div>
+                  {Object.entries(restoreResults).map(([type, r]) =>
+                    r.errors.map((err, i) => (
+                      <div key={`${type}-${i}`} className="text-xs text-red-600 dark:text-red-400 mb-1">
+                        <span className="font-medium">{typeLabelsMap[type] || type}:</span> {err}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end pt-2">
+                <button onClick={() => setRestoreResultsOpen(false)} className="btn btn-primary">
+                  OK
+                </button>
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
 
       {/* Export Preview Modal */}

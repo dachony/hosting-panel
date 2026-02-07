@@ -328,6 +328,7 @@ const importSchemaV2 = z.object({
   exportedAt: z.string().optional(),
   type: z.string().optional(),
   format: z.string().optional(),
+  overwrite: z.boolean().optional(),
   data: z.any(),
 });
 
@@ -336,7 +337,8 @@ backup.post('/import', async (c) => {
     const body = await c.req.json();
     const importData = importSchemaV2.parse(body);
 
-    const results: Record<string, { imported: number; skipped: number; errors: string[] }> = {};
+    const results: Record<string, { imported: number; skipped: number; overwritten: number; errors: string[] }> = {};
+    const overwrite = importData.overwrite ?? false;
 
     // Handle single type import (CSV or selected JSON)
     if (importData.type) {
@@ -364,56 +366,56 @@ backup.post('/import', async (c) => {
         items = Array.isArray(importData.data) ? importData.data : [importData.data];
       }
 
-      results[type] = await importItems(type, items);
+      results[type] = await importItems(type, items, undefined, overwrite);
     } else if (importData.data && typeof importData.data === 'object') {
       // Handle full backup import (JSON with multiple types)
       const data = importData.data as Record<string, unknown[]>;
 
       // Users first (backupCodes depend on them)
       if (data.users) {
-        results.users = await importItems('users', data.users as Record<string, unknown>[]);
+        results.users = await importItems('users', data.users as Record<string, unknown>[], undefined, overwrite);
       }
       if (data.backupCodes) {
-        results.backupCodes = await importItems('backupCodes', data.backupCodes as Record<string, unknown>[], data.users as Record<string, unknown>[] | undefined);
+        results.backupCodes = await importItems('backupCodes', data.backupCodes as Record<string, unknown>[], data.users as Record<string, unknown>[] | undefined, overwrite);
       }
       if (data.clients) {
-        results.clients = await importItems('clients', data.clients as Record<string, unknown>[]);
+        results.clients = await importItems('clients', data.clients as Record<string, unknown>[], undefined, overwrite);
       }
       if (data.domains) {
-        results.domains = await importItems('domains', data.domains as Record<string, unknown>[]);
+        results.domains = await importItems('domains', data.domains as Record<string, unknown>[], undefined, overwrite);
       }
       if (data.packages) {
-        results.packages = await importItems('packages', data.packages as Record<string, unknown>[]);
+        results.packages = await importItems('packages', data.packages as Record<string, unknown>[], undefined, overwrite);
       }
       if (data.webHosting) {
-        results.webHosting = await importItems('hosting', data.webHosting as Record<string, unknown>[]);
+        results.webHosting = await importItems('hosting', data.webHosting as Record<string, unknown>[], undefined, overwrite);
       }
       if (data.mailHosting) {
-        results.mailHosting = await importItems('mailHosting', data.mailHosting as Record<string, unknown>[]);
+        results.mailHosting = await importItems('mailHosting', data.mailHosting as Record<string, unknown>[], undefined, overwrite);
       }
       if (data.templates) {
-        results.templates = await importItems('templates', data.templates as Record<string, unknown>[]);
+        results.templates = await importItems('templates', data.templates as Record<string, unknown>[], undefined, overwrite);
       }
       if (data.notificationSettings) {
-        results.notificationSettings = await importItems('notificationSettings', data.notificationSettings as Record<string, unknown>[]);
+        results.notificationSettings = await importItems('notificationSettings', data.notificationSettings as Record<string, unknown>[], undefined, overwrite);
       }
       if (data.appSettings) {
-        results.appSettings = await importItems('appSettings', data.appSettings as Record<string, unknown>[]);
+        results.appSettings = await importItems('appSettings', data.appSettings as Record<string, unknown>[], undefined, overwrite);
       }
       if (data.mailServers) {
-        results.mailServers = await importItems('mailServers', data.mailServers as Record<string, unknown>[]);
+        results.mailServers = await importItems('mailServers', data.mailServers as Record<string, unknown>[], undefined, overwrite);
       }
       if (data.mailSecurity) {
-        results.mailSecurity = await importItems('mailSecurity', data.mailSecurity as Record<string, unknown>[]);
+        results.mailSecurity = await importItems('mailSecurity', data.mailSecurity as Record<string, unknown>[], undefined, overwrite);
       }
       if (data.companyInfo) {
-        results.companyInfo = await importItems('companyInfo', data.companyInfo as Record<string, unknown>[]);
+        results.companyInfo = await importItems('companyInfo', data.companyInfo as Record<string, unknown>[], undefined, overwrite);
       }
       if (data.bankAccounts) {
-        results.bankAccounts = await importItems('bankAccounts', data.bankAccounts as Record<string, unknown>[]);
+        results.bankAccounts = await importItems('bankAccounts', data.bankAccounts as Record<string, unknown>[], undefined, overwrite);
       }
       if (data.reportSettings) {
-        results.reportSettings = await importItems('reportSettings', data.reportSettings as Record<string, unknown>[]);
+        results.reportSettings = await importItems('reportSettings', data.reportSettings as Record<string, unknown>[], undefined, overwrite);
       }
     }
 
@@ -431,8 +433,8 @@ backup.post('/import', async (c) => {
 });
 
 // Import items based on type
-async function importItems(type: string, items: Record<string, unknown>[], extraContext?: Record<string, unknown>[]): Promise<{ imported: number; skipped: number; errors: string[] }> {
-  const result = { imported: 0, skipped: 0, errors: [] as string[] };
+async function importItems(type: string, items: Record<string, unknown>[], extraContext?: Record<string, unknown>[], overwrite: boolean = false): Promise<{ imported: number; skipped: number; overwritten: number; errors: string[] }> {
+  const result = { imported: 0, skipped: 0, overwritten: 0, errors: [] as string[] };
 
   for (const item of items) {
     try {
@@ -443,22 +445,37 @@ async function importItems(type: string, items: Record<string, unknown>[], extra
         case 'clients': {
           const validated = clientSchema.parse(data);
           const existing = await db.select().from(schema.clients).where(eq(schema.clients.name, validated.name)).get();
-          if (existing) { result.skipped++; break; }
+          if (existing) {
+            if (overwrite) {
+              await db.update(schema.clients).set(validated as typeof schema.clients.$inferInsert).where(eq(schema.clients.id, existing.id));
+              result.overwritten++;
+            } else {
+              result.skipped++;
+            }
+            break;
+          }
           await db.insert(schema.clients).values(validated as typeof schema.clients.$inferInsert);
           result.imported++;
           break;
         }
         case 'domains': {
           const validated = domainSchema.parse(data);
-          // Skip if domain already exists
-          const existingDomain = await db.select().from(schema.domains).where(eq(schema.domains.domainName, validated.domainName)).get();
-          if (existingDomain) { result.skipped++; break; }
           // Try to find client by name if clientName provided
           if (validated.clientName && !validated.clientId) {
             const client = await db.select().from(schema.clients).where(eq(schema.clients.name, validated.clientName)).get();
             if (client) {
               (validated as { clientId?: number }).clientId = client.id;
             }
+          }
+          const existingDomain = await db.select().from(schema.domains).where(eq(schema.domains.domainName, validated.domainName)).get();
+          if (existingDomain) {
+            if (overwrite) {
+              await db.update(schema.domains).set(validated as typeof schema.domains.$inferInsert).where(eq(schema.domains.id, existingDomain.id));
+              result.overwritten++;
+            } else {
+              result.skipped++;
+            }
+            break;
           }
           await db.insert(schema.domains).values(validated as typeof schema.domains.$inferInsert);
           result.imported++;
@@ -479,10 +496,17 @@ async function importItems(type: string, items: Record<string, unknown>[], extra
             const pkg = await db.select().from(schema.mailPackages).where(eq(schema.mailPackages.name, validated.packageName)).get();
             if (pkg) (validated as { packageId?: number }).packageId = pkg.id;
           }
-          // Skip if hosting for same domain already exists
           if ((validated as { domainId?: number }).domainId) {
             const existingHosting = await db.select().from(schema.webHosting).where(eq(schema.webHosting.domainId, (validated as { domainId: number }).domainId)).get();
-            if (existingHosting) { result.skipped++; break; }
+            if (existingHosting) {
+              if (overwrite) {
+                await db.update(schema.webHosting).set(validated as typeof schema.webHosting.$inferInsert).where(eq(schema.webHosting.id, existingHosting.id));
+                result.overwritten++;
+              } else {
+                result.skipped++;
+              }
+              break;
+            }
           }
           await db.insert(schema.webHosting).values(validated as typeof schema.webHosting.$inferInsert);
           result.imported++;
@@ -490,9 +514,24 @@ async function importItems(type: string, items: Record<string, unknown>[], extra
         }
         case 'packages': {
           const validated = packageSchema.parse(data);
-          // Skip if package with same name exists
           const existingPkg = await db.select().from(schema.mailPackages).where(eq(schema.mailPackages.name, validated.name)).get();
-          if (existingPkg) { result.skipped++; break; }
+          if (existingPkg) {
+            if (overwrite) {
+              const features = validated.features ? validated.features.split('|') : null;
+              await db.update(schema.mailPackages).set({
+                name: validated.name,
+                description: validated.description,
+                maxMailboxes: validated.maxMailboxes,
+                storageGb: validated.storageGb,
+                price: validated.price,
+                features,
+              }).where(eq(schema.mailPackages.id, existingPkg.id));
+              result.overwritten++;
+            } else {
+              result.skipped++;
+            }
+            break;
+          }
           const features = validated.features ? validated.features.split('|') : null;
           await db.insert(schema.mailPackages).values({
             name: validated.name,
@@ -509,7 +548,15 @@ async function importItems(type: string, items: Record<string, unknown>[], extra
           const tplName = (data as { name?: string }).name;
           if (tplName) {
             const existing = await db.select().from(schema.emailTemplates).where(eq(schema.emailTemplates.name, tplName)).get();
-            if (existing) { result.skipped++; break; }
+            if (existing) {
+              if (overwrite) {
+                await db.update(schema.emailTemplates).set(data as typeof schema.emailTemplates.$inferInsert).where(eq(schema.emailTemplates.id, existing.id));
+                result.overwritten++;
+              } else {
+                result.skipped++;
+              }
+              break;
+            }
           }
           await db.insert(schema.emailTemplates).values(data as typeof schema.emailTemplates.$inferInsert);
           result.imported++;
@@ -519,7 +566,15 @@ async function importItems(type: string, items: Record<string, unknown>[], extra
           const nsName = (data as { name?: string }).name;
           if (nsName) {
             const existing = await db.select().from(schema.notificationSettings).where(eq(schema.notificationSettings.name, nsName)).get();
-            if (existing) { result.skipped++; break; }
+            if (existing) {
+              if (overwrite) {
+                await db.update(schema.notificationSettings).set(data as typeof schema.notificationSettings.$inferInsert).where(eq(schema.notificationSettings.id, existing.id));
+                result.overwritten++;
+              } else {
+                result.skipped++;
+              }
+              break;
+            }
           }
           await db.insert(schema.notificationSettings).values(data as typeof schema.notificationSettings.$inferInsert);
           result.imported++;
@@ -530,18 +585,26 @@ async function importItems(type: string, items: Record<string, unknown>[], extra
           const existing = await db.select().from(schema.appSettings).where(eq(schema.appSettings.key, key)).get();
           if (existing) {
             await db.update(schema.appSettings).set(data as typeof schema.appSettings.$inferInsert).where(eq(schema.appSettings.key, key));
+            result.overwritten++;
           } else {
             await db.insert(schema.appSettings).values(data as typeof schema.appSettings.$inferInsert);
+            result.imported++;
           }
-          result.imported++;
           break;
         }
         case 'mailHosting': {
-          // Skip if mail hosting for same domain already exists
           const mhDomainId = (data as { domainId?: number }).domainId;
           if (mhDomainId) {
             const existing = await db.select().from(schema.mailHosting).where(eq(schema.mailHosting.domainId, mhDomainId)).get();
-            if (existing) { result.skipped++; break; }
+            if (existing) {
+              if (overwrite) {
+                await db.update(schema.mailHosting).set(data as typeof schema.mailHosting.$inferInsert).where(eq(schema.mailHosting.id, existing.id));
+                result.overwritten++;
+              } else {
+                result.skipped++;
+              }
+              break;
+            }
           }
           await db.insert(schema.mailHosting).values(data as typeof schema.mailHosting.$inferInsert);
           result.imported++;
@@ -551,7 +614,15 @@ async function importItems(type: string, items: Record<string, unknown>[], extra
           const msName = (data as { name?: string }).name;
           if (msName) {
             const existing = await db.select().from(schema.mailServers).where(eq(schema.mailServers.name, msName)).get();
-            if (existing) { result.skipped++; break; }
+            if (existing) {
+              if (overwrite) {
+                await db.update(schema.mailServers).set(data as typeof schema.mailServers.$inferInsert).where(eq(schema.mailServers.id, existing.id));
+                result.overwritten++;
+              } else {
+                result.skipped++;
+              }
+              break;
+            }
           }
           await db.insert(schema.mailServers).values(data as typeof schema.mailServers.$inferInsert);
           result.imported++;
@@ -561,7 +632,15 @@ async function importItems(type: string, items: Record<string, unknown>[], extra
           const mscName = (data as { name?: string }).name;
           if (mscName) {
             const existing = await db.select().from(schema.mailSecurity).where(eq(schema.mailSecurity.name, mscName)).get();
-            if (existing) { result.skipped++; break; }
+            if (existing) {
+              if (overwrite) {
+                await db.update(schema.mailSecurity).set(data as typeof schema.mailSecurity.$inferInsert).where(eq(schema.mailSecurity.id, existing.id));
+                result.overwritten++;
+              } else {
+                result.skipped++;
+              }
+              break;
+            }
           }
           await db.insert(schema.mailSecurity).values(data as typeof schema.mailSecurity.$inferInsert);
           result.imported++;
@@ -571,7 +650,15 @@ async function importItems(type: string, items: Record<string, unknown>[], extra
           const ciName = (data as { name?: string }).name;
           if (ciName) {
             const existing = await db.select().from(schema.companyInfo).where(eq(schema.companyInfo.name, ciName)).get();
-            if (existing) { result.skipped++; break; }
+            if (existing) {
+              if (overwrite) {
+                await db.update(schema.companyInfo).set(data as typeof schema.companyInfo.$inferInsert).where(eq(schema.companyInfo.id, existing.id));
+                result.overwritten++;
+              } else {
+                result.skipped++;
+              }
+              break;
+            }
           }
           await db.insert(schema.companyInfo).values(data as typeof schema.companyInfo.$inferInsert);
           result.imported++;
@@ -581,7 +668,15 @@ async function importItems(type: string, items: Record<string, unknown>[], extra
           const baName = (data as { bankName?: string }).bankName;
           if (baName) {
             const existing = await db.select().from(schema.bankAccounts).where(eq(schema.bankAccounts.bankName, baName)).get();
-            if (existing) { result.skipped++; break; }
+            if (existing) {
+              if (overwrite) {
+                await db.update(schema.bankAccounts).set(data as typeof schema.bankAccounts.$inferInsert).where(eq(schema.bankAccounts.id, existing.id));
+                result.overwritten++;
+              } else {
+                result.skipped++;
+              }
+              break;
+            }
           }
           await db.insert(schema.bankAccounts).values(data as typeof schema.bankAccounts.$inferInsert);
           result.imported++;
@@ -596,7 +691,18 @@ async function importItems(type: string, items: Record<string, unknown>[], extra
           const email = (data as { email?: string }).email;
           if (!email) { result.skipped++; break; }
           const existing = await db.select().from(schema.users).where(eq(schema.users.email, email)).get();
-          if (existing) { result.skipped++; break; }
+          if (existing) {
+            if (overwrite) {
+              // Do NOT overwrite password
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              const { password, ...dataWithoutPassword } = data as Record<string, unknown>;
+              await db.update(schema.users).set(dataWithoutPassword as typeof schema.users.$inferInsert).where(eq(schema.users.id, existing.id));
+              result.overwritten++;
+            } else {
+              result.skipped++;
+            }
+            break;
+          }
           await db.insert(schema.users).values(data as typeof schema.users.$inferInsert);
           result.imported++;
           break;
