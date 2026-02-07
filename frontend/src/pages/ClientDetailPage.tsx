@@ -1609,7 +1609,7 @@ export default function ClientDetailPage() {
               className="input py-1.5 text-sm"
             >
               <option value="">{t('common.selectClient')}</option>
-              {allClientsData?.clients.map((c) => (
+              {[...(allClientsData?.clients || [])].sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>

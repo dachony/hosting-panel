@@ -723,7 +723,7 @@ export default function HostingPage() {
               required
             >
               <option value="">{t('common.selectClient')}</option>
-              {clientsData?.clients.map((client) => (
+              {[...(clientsData?.clients || [])].sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
                 <option key={client.id} value={client.id}>
                   {client.name}
                 </option>

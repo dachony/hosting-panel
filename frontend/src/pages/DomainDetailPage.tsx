@@ -169,7 +169,7 @@ export default function DomainDetailPage() {
 
   const domain = domainData?.domain;
   const hosting = hostingData;
-  const clients = clientsData?.clients || [];
+  const clients = [...(clientsData?.clients || [])].sort((a, b) => a.name.localeCompare(b.name));
   const packages = packagesData?.packages || [];
 
   // Get selected client data
