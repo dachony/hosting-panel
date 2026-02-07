@@ -3,13 +3,17 @@ import { db, schema } from '../db/index.js';
 import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
+import fs from 'fs';
+import path from 'path';
+import { getCurrentTimestamp } from '../utils/dates.js';
+import { getExportData, createServerBackup, getBackupFiles, cleanupOldBackups, BACKUP_DIR } from '../services/backupService.js';
 
 const backup = new Hono();
 
 backup.use('*', authMiddleware, adminMiddleware);
 
 // Types of data that can be exported/imported
-type ExportType = 'clients' | 'domains' | 'hosting' | 'packages' | 'templates' | 'scheduler' | 'settings';
+type ExportType = 'clients' | 'domains' | 'hosting' | 'packages' | 'templates' | 'scheduler' | 'settings' | 'users';
 
 // CSV Templates for each entity type
 const csvTemplates: Record<string, { headers: string[]; example: string[] }> = {
@@ -57,65 +61,67 @@ backup.get('/export', async (c) => {
   const format = c.req.query('format') || 'json';
   const exportAll = types.includes('all' as ExportType);
 
-  const data: Record<string, unknown[]> = {};
+  let data: Record<string, unknown>;
 
-  // Export clients
-  if (exportAll || types.includes('clients')) {
-    data.clients = await db.select().from(schema.clients);
-  }
+  if (exportAll) {
+    data = await getExportData();
+  } else {
+    const partial: Record<string, unknown[]> = {};
 
-  // Export domains
-  if (exportAll || types.includes('domains')) {
-    data.domains = await db.select().from(schema.domains);
-  }
-
-  // Export hosting (web + mail)
-  if (exportAll || types.includes('hosting')) {
-    const [webHosting, mailHosting] = await Promise.all([
-      db.select().from(schema.webHosting),
-      db.select().from(schema.mailHosting),
-    ]);
-    data.webHosting = webHosting;
-    data.mailHosting = mailHosting;
-  }
-
-  // Export packages
-  if (exportAll || types.includes('packages')) {
-    const [mailPackages, mailServers, mailSecurity] = await Promise.all([
-      db.select().from(schema.mailPackages),
-      db.select().from(schema.mailServers),
-      db.select().from(schema.mailSecurity),
-    ]);
-    data.packages = mailPackages;
-    data.mailServers = mailServers;
-    data.mailSecurity = mailSecurity;
-  }
-
-  // Export templates
-  if (exportAll || types.includes('templates')) {
-    data.templates = await db.select().from(schema.emailTemplates);
-  }
-
-  // Export scheduler (notification settings)
-  if (exportAll || types.includes('scheduler')) {
-    const [notifications, reports] = await Promise.all([
-      db.select().from(schema.notificationSettings),
-      db.select().from(schema.reportSettings),
-    ]);
-    data.notificationSettings = notifications;
-    data.reportSettings = reports;
-  }
-
-  // Export settings
-  if (exportAll || types.includes('settings')) {
-    const [appSettings, companyInfo, bankAccounts] = await Promise.all([
-      db.select().from(schema.appSettings),
-      db.select().from(schema.companyInfo),
-      db.select().from(schema.bankAccounts),
-    ]);
-    data.appSettings = appSettings;
-    data.companyInfo = companyInfo;
-    data.bankAccounts = bankAccounts;
+    if (types.includes('clients')) {
+      partial.clients = await db.select().from(schema.clients);
+    }
+    if (types.includes('domains')) {
+      partial.domains = await db.select().from(schema.domains);
+    }
+    if (types.includes('hosting')) {
+      const [webHosting, mailHosting] = await Promise.all([
+        db.select().from(schema.webHosting),
+        db.select().from(schema.mailHosting),
+      ]);
+      partial.webHosting = webHosting;
+      partial.mailHosting = mailHosting;
+    }
+    if (types.includes('packages')) {
+      const [mailPackages, mailServers, mailSecurity] = await Promise.all([
+        db.select().from(schema.mailPackages),
+        db.select().from(schema.mailServers),
+        db.select().from(schema.mailSecurity),
+      ]);
+      partial.packages = mailPackages;
+      partial.mailServers = mailServers;
+      partial.mailSecurity = mailSecurity;
+    }
+    if (types.includes('templates')) {
+      partial.templates = await db.select().from(schema.emailTemplates);
+    }
+    if (types.includes('scheduler')) {
+      const [notifications, reports] = await Promise.all([
+        db.select().from(schema.notificationSettings),
+        db.select().from(schema.reportSettings),
+      ]);
+      partial.notificationSettings = notifications;
+      partial.reportSettings = reports;
+    }
+    if (types.includes('users')) {
+      const [users, backupCodes] = await Promise.all([
+        db.select().from(schema.users),
+        db.select().from(schema.backupCodes),
+      ]);
+      partial.users = users;
+      partial.backupCodes = backupCodes;
+    }
+    if (types.includes('settings')) {
+      const [appSettings, companyInfo, bankAccounts] = await Promise.all([
+        db.select().from(schema.appSettings),
+        db.select().from(schema.companyInfo),
+        db.select().from(schema.bankAccounts),
+      ]);
+      partial.appSettings = appSettings;
+      partial.companyInfo = companyInfo;
+      partial.bankAccounts = bankAccounts;
+    }
+    data = partial;
   }
 
   if (format === 'csv') {
@@ -363,6 +369,13 @@ backup.post('/import', async (c) => {
       // Handle full backup import (JSON with multiple types)
       const data = importData.data as Record<string, unknown[]>;
 
+      // Users first (backupCodes depend on them)
+      if (data.users) {
+        results.users = await importItems('users', data.users as Record<string, unknown>[]);
+      }
+      if (data.backupCodes) {
+        results.backupCodes = await importItems('backupCodes', data.backupCodes as Record<string, unknown>[], data.users as Record<string, unknown>[] | undefined);
+      }
       if (data.clients) {
         results.clients = await importItems('clients', data.clients as Record<string, unknown>[]);
       }
@@ -418,7 +431,7 @@ backup.post('/import', async (c) => {
 });
 
 // Import items based on type
-async function importItems(type: string, items: Record<string, unknown>[]): Promise<{ imported: number; skipped: number; errors: string[] }> {
+async function importItems(type: string, items: Record<string, unknown>[], extraContext?: Record<string, unknown>[]): Promise<{ imported: number; skipped: number; errors: string[] }> {
   const result = { imported: 0, skipped: 0, errors: [] as string[] };
 
   for (const item of items) {
@@ -579,6 +592,32 @@ async function importItems(type: string, items: Record<string, unknown>[]): Prom
           result.imported++;
           break;
         }
+        case 'users': {
+          const email = (data as { email?: string }).email;
+          if (!email) { result.skipped++; break; }
+          const existing = await db.select().from(schema.users).where(eq(schema.users.email, email)).get();
+          if (existing) { result.skipped++; break; }
+          await db.insert(schema.users).values(data as typeof schema.users.$inferInsert);
+          result.imported++;
+          break;
+        }
+        case 'backupCodes': {
+          // Resolve userId: find original user email from exported users, then lookup by email in DB
+          const origUserId = (item as { userId?: number }).userId;
+          if (!origUserId) { result.skipped++; break; }
+          const exportedUsers = extraContext || [];
+          const origUser = exportedUsers.find((u: Record<string, unknown>) => u.id === origUserId) as { email?: string } | undefined;
+          if (!origUser?.email) { result.skipped++; break; }
+          const dbUser = await db.select().from(schema.users).where(eq(schema.users.email, origUser.email)).get();
+          if (!dbUser) { result.skipped++; break; }
+          await db.insert(schema.backupCodes).values({
+            userId: dbUser.id,
+            code: (data as { code: string }).code,
+            usedAt: (data as { usedAt?: string | null }).usedAt || null,
+          });
+          result.imported++;
+          break;
+        }
         default:
           result.skipped++;
       }
@@ -590,5 +629,165 @@ async function importItems(type: string, items: Record<string, unknown>[]): Prom
 
   return result;
 }
+
+// ==========================================
+// Server-side Backup Management Endpoints
+// ==========================================
+
+// Backup settings schema
+const backupSettingsSchema = z.object({
+  schedule: z.object({
+    enabled: z.boolean(),
+    frequency: z.enum(['daily', 'weekly', 'monthly']),
+    time: z.string().regex(/^\d{2}:\d{2}$/),
+    dayOfWeek: z.number().min(0).max(6).optional(),
+    dayOfMonth: z.number().min(1).max(31).optional(),
+  }),
+  notifications: z.object({
+    enabled: z.boolean(),
+    email: z.string().email().or(z.literal('')),
+  }),
+  retention: z.object({
+    enabled: z.boolean(),
+    days: z.number().min(1).max(365),
+  }),
+});
+
+// Create a server-side backup
+backup.post('/create', async (c) => {
+  try {
+    const result = await createServerBackup();
+    return c.json(result);
+  } catch (error) {
+    console.error('Backup creation error:', error);
+    return c.json({ error: 'Failed to create backup' }, 500);
+  }
+});
+
+// List backup files
+backup.get('/files', async (c) => {
+  try {
+    const result = getBackupFiles();
+    return c.json(result);
+  } catch (error) {
+    console.error('Backup list error:', error);
+    return c.json({ error: 'Failed to list backups' }, 500);
+  }
+});
+
+// Get backup settings
+backup.get('/settings', async (c) => {
+  const setting = await db.select()
+    .from(schema.appSettings)
+    .where(eq(schema.appSettings.key, 'backupSchedule'))
+    .get();
+
+  const defaults = {
+    schedule: { enabled: false, frequency: 'daily' as const, time: '02:00' },
+    notifications: { enabled: false, email: '' },
+    retention: { enabled: false, days: 30 },
+  };
+
+  if (setting?.value) {
+    return c.json({ settings: { ...defaults, ...(setting.value as object) } });
+  }
+  return c.json({ settings: defaults });
+});
+
+// Save backup settings
+backup.put('/settings', async (c) => {
+  try {
+    const body = await c.req.json();
+    const data = backupSettingsSchema.parse(body);
+
+    const existing = await db.select()
+      .from(schema.appSettings)
+      .where(eq(schema.appSettings.key, 'backupSchedule'))
+      .get();
+
+    if (existing) {
+      await db.update(schema.appSettings)
+        .set({ value: data, updatedAt: getCurrentTimestamp() })
+        .where(eq(schema.appSettings.key, 'backupSchedule'));
+    } else {
+      await db.insert(schema.appSettings).values({ key: 'backupSchedule', value: data });
+    }
+
+    return c.json({ settings: data });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: 'Invalid settings', details: error.errors }, 400);
+    }
+    return c.json({ error: 'Failed to save settings' }, 500);
+  }
+});
+
+// Cleanup old backups (must be before :filename route)
+backup.delete('/files/cleanup', async (c) => {
+  try {
+    const olderThan = c.req.query('olderThan') || '30d';
+    const match = olderThan.match(/^(\d+)d$/);
+    if (!match) {
+      return c.json({ error: 'Invalid olderThan format. Use Nd (e.g., 3d, 7d, 30d)' }, 400);
+    }
+    const days = parseInt(match[1]);
+    if (days < 1) {
+      return c.json({ error: 'Days must be at least 1' }, 400);
+    }
+    const deleted = cleanupOldBackups(days);
+    return c.json({ deleted });
+  } catch (error) {
+    console.error('Backup cleanup error:', error);
+    return c.json({ error: 'Failed to cleanup backups' }, 500);
+  }
+});
+
+// Download a backup file
+backup.get('/files/:filename/download', async (c) => {
+  try {
+    const filename = c.req.param('filename');
+
+    // Path traversal protection
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return c.json({ error: 'Invalid filename' }, 400);
+    }
+
+    const filePath = path.join(BACKUP_DIR, filename);
+    if (!fs.existsSync(filePath)) {
+      return c.json({ error: 'Backup file not found' }, 404);
+    }
+
+    const fileContent = fs.readFileSync(filePath);
+    c.header('Content-Type', 'application/json');
+    c.header('Content-Disposition', `attachment; filename="${filename}"`);
+    return c.body(fileContent);
+  } catch (error) {
+    console.error('Backup download error:', error);
+    return c.json({ error: 'Failed to download backup' }, 500);
+  }
+});
+
+// Delete a single backup file
+backup.delete('/files/:filename', async (c) => {
+  try {
+    const filename = c.req.param('filename');
+
+    // Path traversal protection
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return c.json({ error: 'Invalid filename' }, 400);
+    }
+
+    const filePath = path.join(BACKUP_DIR, filename);
+    if (!fs.existsSync(filePath)) {
+      return c.json({ error: 'Backup file not found' }, 404);
+    }
+
+    fs.unlinkSync(filePath);
+    return c.json({ message: 'Backup deleted' });
+  } catch (error) {
+    console.error('Backup delete error:', error);
+    return c.json({ error: 'Failed to delete backup' }, 500);
+  }
+});
 
 export default backup;

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
-import { Loader2, Cpu, HardDrive, Database, Server, Clock, RefreshCw, Users, Globe, Mail, FileText, ScrollText, Trash2, Download } from 'lucide-react';
+import { Loader2, Cpu, HardDrive, Database, Server, Clock, RefreshCw, Users, Globe, Mail, FileText, ScrollText, Trash2, Download, Archive } from 'lucide-react';
 
 interface SystemStatus {
   cpu: {
@@ -146,6 +146,11 @@ export default function SystemStatusPage() {
   const { data: pdfStats } = useQuery({
     queryKey: ['pdf-stats'],
     queryFn: () => api.get<PdfStats>('/api/system/pdfs/stats'),
+  });
+
+  const { data: backupStats } = useQuery({
+    queryKey: ['backup-stats'],
+    queryFn: () => api.get<{ files: unknown[]; count: number; totalSize: number }>('/api/backup/files'),
   });
 
   const deleteAuditMutation = useMutation({
@@ -620,6 +625,22 @@ export default function SystemStatusPage() {
                       </button>
                     )
                   ))}
+                </div>
+              </div>
+            </div>
+          </StatCard>
+
+          {/* Backups */}
+          <StatCard title={t('systemStatus.backups')} icon={Archive}>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-gray-500">{t('systemStatus.backupFiles')}</span>
+                  <span className="ml-2 font-medium">{backupStats?.count || 0}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">{t('systemStatus.totalBackupSize')}</span>
+                  <span className="ml-2 font-medium">{formatBytes(backupStats?.totalSize || 0)}</span>
                 </div>
               </div>
             </div>

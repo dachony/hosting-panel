@@ -48,10 +48,14 @@ import {
   Moon,
   Monitor,
   Minus,
+  Archive,
+  Clock,
+  RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { createBackupZip, readBackupZip, isEncryptedBackup } from '../utils/zipCrypto';
 
-type TabType = 'system' | 'security' | 'my-account' | 'appearance' | 'owner' | 'smtp' | 'mail-servers' | 'mail-security' | 'packages' | 'notifications' | 'templates' | 'import-export' | 'users';
+type TabType = 'system' | 'security' | 'my-account' | 'appearance' | 'owner' | 'smtp' | 'mail-servers' | 'mail-security' | 'packages' | 'notifications' | 'templates' | 'backup-restore' | 'users';
 
 interface SystemSettings {
   systemName: string;
@@ -355,6 +359,22 @@ export default function SettingsPage() {
   const [exportSelections, setExportSelections] = useState<Record<string, boolean[]>>({});
   const [exportExpandedSections, setExportExpandedSections] = useState<Set<string>>(new Set());
   const [exportLoading, setExportLoading] = useState(false);
+  const [exportPassword, setExportPassword] = useState('');
+
+  // Import ZIP/encryption state
+  const [importPassword, setImportPassword] = useState('');
+  const [importNeedsPassword, setImportNeedsPassword] = useState(false);
+  const [importZipData, setImportZipData] = useState<ArrayBuffer | null>(null);
+  const [importZipFileName, setImportZipFileName] = useState('');
+
+  // Backup state
+  const [backupSettings, setBackupSettings] = useState({
+    schedule: { enabled: false, frequency: 'daily' as 'daily' | 'weekly' | 'monthly', time: '02:00', dayOfWeek: 1, dayOfMonth: 1 },
+    notifications: { enabled: false, email: '' },
+    retention: { enabled: false, days: 30 },
+  });
+  const [confirmDeleteBackup, setConfirmDeleteBackup] = useState<string | null>(null);
+  const [confirmCleanup, setConfirmCleanup] = useState<number | null>(null);
 
   // User modal state
   const [userModalOpen, setUserModalOpen] = useState(false);
@@ -1106,6 +1126,91 @@ export default function SettingsPage() {
     queryFn: () => api.get<{ packages: Package[] }>('/api/packages'),
   });
 
+  // Backup queries
+  const { data: backupFilesData, isLoading: backupFilesLoading } = useQuery({
+    queryKey: ['backup-files'],
+    queryFn: () => api.get<{ files: { filename: string; size: number; createdAt: string }[]; count: number; totalSize: number }>('/api/backup/files'),
+    enabled: activeTab === 'backup-restore',
+  });
+
+  const { data: backupSettingsData } = useQuery({
+    queryKey: ['backup-settings'],
+    queryFn: () => api.get<{ settings: typeof backupSettings }>('/api/backup/settings'),
+    enabled: activeTab === 'backup-restore',
+  });
+
+  useEffect(() => {
+    if (backupSettingsData?.settings) {
+      setBackupSettings(prev => ({
+        schedule: { ...prev.schedule, ...backupSettingsData.settings.schedule },
+        notifications: { ...prev.notifications, ...backupSettingsData.settings.notifications },
+        retention: { ...prev.retention, ...backupSettingsData.settings.retention },
+      }));
+    }
+  }, [backupSettingsData]);
+
+  // Backup mutations
+  const createBackupMutation = useMutation({
+    mutationFn: () => api.post('/api/backup/create', {}),
+    onSuccess: () => {
+      toast.success(t('settings.backupCreated'));
+      queryClient.invalidateQueries({ queryKey: ['backup-files'] });
+    },
+    onError: (error: Error) => { toast.error(error.message || t('settings.backupFailed')); },
+  });
+
+  const saveBackupSettingsMutation = useMutation({
+    mutationFn: (data: typeof backupSettings) => api.put('/api/backup/settings', data),
+    onSuccess: () => {
+      toast.success(t('settings.backupSettingsSaved'));
+      queryClient.invalidateQueries({ queryKey: ['backup-settings'] });
+    },
+    onError: (error: Error) => { toast.error(error.message || t('settings.backupSettingsError')); },
+  });
+
+  const deleteBackupMutation = useMutation({
+    mutationFn: (filename: string) => api.delete(`/api/backup/files/${encodeURIComponent(filename)}`),
+    onSuccess: () => {
+      toast.success(t('settings.backupDeleted'));
+      queryClient.invalidateQueries({ queryKey: ['backup-files'] });
+      setConfirmDeleteBackup(null);
+    },
+    onError: (error: Error) => { toast.error(error.message || t('settings.backupDeleteError')); },
+  });
+
+  const cleanupBackupsMutation = useMutation({
+    mutationFn: (days: number) => api.delete<{ deleted: number }>(`/api/backup/files/cleanup?olderThan=${days}d`),
+    onSuccess: (data) => {
+      const deleted = (data as { deleted: number })?.deleted || 0;
+      toast.success(t('settings.backupCleanedUp', { count: deleted }));
+      queryClient.invalidateQueries({ queryKey: ['backup-files'] });
+      setConfirmCleanup(null);
+    },
+    onError: (error: Error) => { toast.error(error.message || t('settings.backupCleanupError')); },
+  });
+
+  const handleDownloadBackup = async (filename: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/backup/files/${encodeURIComponent(filename)}/download`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(t('settings.errorDownloading'));
+      console.error('Download error:', error);
+    }
+  };
+
   // Mutations
   const updateNotificationMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<NotificationSetting>; closeModal?: boolean }) =>
@@ -1774,7 +1879,7 @@ export default function SettingsPage() {
   };
 
   // Handle export download with filtered items
-  const handleExportDownload = () => {
+  const handleExportDownload = async () => {
     if (!exportPreviewData) return;
 
     const filteredData: Record<string, unknown[]> = {};
@@ -1799,21 +1904,28 @@ export default function SettingsPage() {
       data: filteredData,
     };
 
-    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `hosting-dashboard-backup-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    try {
+      const jsonString = JSON.stringify(exportPayload, null, 2);
+      const zipData = await createBackupZip(jsonString, exportPassword || undefined);
+      const blob = new Blob([(zipData.buffer as ArrayBuffer).slice(zipData.byteOffset, zipData.byteOffset + zipData.byteLength)], { type: 'application/zip' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hosting-dashboard-backup-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
 
-    toast.success(t('settings.exportDownloaded'));
-    setExportPreviewOpen(false);
-    setExportPreviewData(null);
-    setExportSelections({});
-    setExportExpandedSections(new Set());
+      toast.success(t('settings.exportDownloaded'));
+      setExportPreviewOpen(false);
+      setExportPreviewData(null);
+      setExportSelections({});
+      setExportExpandedSections(new Set());
+      setExportPassword('');
+    } catch {
+      toast.error(t('settings.errorExporting'));
+    }
   };
 
   const handleExport = async (format: 'json' | 'csv' = 'json') => {
@@ -1856,59 +1968,37 @@ export default function SettingsPage() {
     }
   };
 
-  const handleImportFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const content = await file.text();
-    const isCSV = file.name.endsWith('.csv');
-
-    setImportFormat(isCSV ? 'csv' : 'json');
-    setImportData(content);
-    setImportValidation(null);
-
-    // Validate the data
+  const processJsonContent = async (content: string, fileName: string, fileInput?: HTMLInputElement | null) => {
     try {
-      if (isCSV) {
+      const parsed = JSON.parse(content);
+      if (parsed.version && parsed.data) {
+        const dataEntries: Record<string, unknown[]> = {};
+        for (const [key, value] of Object.entries(parsed.data)) {
+          if (Array.isArray(value)) {
+            dataEntries[key] = value;
+          }
+        }
+        setImportPreviewData(dataEntries);
+        setImportPreviewMeta({
+          version: parsed.version,
+          exportedAt: parsed.exportedAt,
+          fileName,
+        });
+        setImportSelections(initializeSelections(dataEntries, false));
+        setImportExpandedSections(new Set());
+        setImportPreviewOpen(true);
+        return;
+      } else if (Array.isArray(parsed)) {
         const response = await api.post('/api/backup/validate', {
           type: importType,
-          data: content,
-          format: 'csv',
+          data: parsed,
+          format: 'json',
         });
+        setImportFormat('json');
+        setImportData(content);
         setImportValidation(response as typeof importValidation);
-      } else {
-        // For JSON, check if it's a full backup or single type
-        const parsed = JSON.parse(content);
-        if (parsed.version && parsed.data) {
-          // Full backup - open preview modal instead of inline validation
-          const dataEntries: Record<string, unknown[]> = {};
-          for (const [key, value] of Object.entries(parsed.data)) {
-            if (Array.isArray(value)) {
-              dataEntries[key] = value;
-            }
-          }
-          setImportPreviewData(dataEntries);
-          setImportPreviewMeta({
-            version: parsed.version,
-            exportedAt: parsed.exportedAt,
-            fileName: file.name,
-          });
-          setImportSelections(initializeSelections(dataEntries, false));
-          setImportExpandedSections(new Set());
-          setImportPreviewOpen(true);
-          // Reset file input and return early - no inline validation
-          e.target.value = '';
-          return;
-        } else if (Array.isArray(parsed)) {
-          const response = await api.post('/api/backup/validate', {
-            type: importType,
-            data: parsed,
-            format: 'json',
-          });
-          setImportValidation(response as typeof importValidation);
-        }
       }
-    } catch (error) {
+    } catch {
       setImportValidation({
         valid: false,
         totalRows: 0,
@@ -1917,8 +2007,87 @@ export default function SettingsPage() {
         preview: [],
       });
     }
+    if (fileInput) fileInput.value = '';
+  };
 
-    // Reset file input
+  const handleImportWithPassword = async () => {
+    if (!importZipData || !importPassword) return;
+    try {
+      const jsonString = await readBackupZip(importZipData, importPassword);
+      setImportNeedsPassword(false);
+      setImportPassword('');
+      setImportZipData(null);
+      await processJsonContent(jsonString, importZipFileName);
+    } catch {
+      toast.error(t('settings.wrongPassword', 'Wrong password'));
+    }
+  };
+
+  const handleImportFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportValidation(null);
+    setImportNeedsPassword(false);
+    setImportPassword('');
+    setImportZipData(null);
+
+    const isZIP = file.name.endsWith('.zip');
+    const isCSV = file.name.endsWith('.csv');
+
+    if (isZIP) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        if (isEncryptedBackup(arrayBuffer)) {
+          setImportNeedsPassword(true);
+          setImportZipData(arrayBuffer);
+          setImportZipFileName(file.name);
+          e.target.value = '';
+          return;
+        }
+        const jsonString = await readBackupZip(arrayBuffer);
+        e.target.value = '';
+        await processJsonContent(jsonString, file.name);
+        return;
+      } catch {
+        setImportValidation({
+          valid: false,
+          totalRows: 0,
+          validRows: 0,
+          errors: [{ row: 0, field: '', message: t('settings.invalidFileFormat') }],
+          preview: [],
+        });
+        e.target.value = '';
+        return;
+      }
+    }
+
+    const content = await file.text();
+
+    if (isCSV) {
+      setImportFormat('csv');
+      setImportData(content);
+      try {
+        const response = await api.post('/api/backup/validate', {
+          type: importType,
+          data: content,
+          format: 'csv',
+        });
+        setImportValidation(response as typeof importValidation);
+      } catch {
+        setImportValidation({
+          valid: false,
+          totalRows: 0,
+          validRows: 0,
+          errors: [{ row: 0, field: '', message: t('settings.invalidFileFormat') }],
+          preview: [],
+        });
+      }
+    } else {
+      await processJsonContent(content, file.name, e.target);
+      return;
+    }
+
     e.target.value = '';
   };
 
@@ -2214,7 +2383,7 @@ export default function SettingsPage() {
     // Admin+: Templates
     ...(canManageContent ? [{ id: 'templates' as const, label: t('settings.templates'), icon: FileText }] : []),
     // Admin+: Backup
-    ...(canManageContent ? [{ id: 'import-export' as const, label: t('settings.importExport'), icon: Database }] : []),
+    ...(canManageContent ? [{ id: 'backup-restore' as const, label: t('settings.backupRestore'), icon: Database }] : []),
     // SuperAdmin only: Users
     ...(canManageSystem ? [{ id: 'users' as const, label: t('settings.users'), icon: Users }] : []),
   ];
@@ -4272,182 +4441,490 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Import/Export Tab */}
-      {activeTab === 'import-export' && (
+      {/* Backup & Restore Tab */}
+      {activeTab === 'backup-restore' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Import Section */}
-          <div className="card">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-              <Upload className="w-4 h-4 text-primary-600" />
-              Import
-            </h3>
+          {/* Left Column: Backup */}
+          <div className="space-y-4">
+            {/* Backup Now */}
+            <div className="card">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                <Archive className="w-4 h-4 text-primary-600" />
+                {t('settings.backupNow')}
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                {t('settings.allCompleteBackup')}
+              </p>
+              <button
+                onClick={() => createBackupMutation.mutate()}
+                disabled={createBackupMutation.isPending}
+                className="btn btn-primary w-full flex items-center justify-center"
+              >
+                {createBackupMutation.isPending ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t('settings.backupCreating')}</>
+                ) : (
+                  <><Download className="w-4 h-4 mr-2" />{t('settings.backupNow')}</>
+                )}
+              </button>
+            </div>
 
-            <div className="space-y-4">
-              {/* Import Type Selection */}
-              <div>
-                <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">Data type</label>
-                <select
-                  value={importType}
-                  onChange={(e) => { setImportType(e.target.value); setImportValidation(null); setImportData(null); }}
-                  className="input input-sm w-full"
+            {/* Automatic Backups */}
+            <div className="card">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-primary-600" />
+                {t('settings.automaticBackups')}
+              </h3>
+              <div className="space-y-3">
+                {/* Schedule */}
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={backupSettings.schedule.enabled}
+                    onChange={(e) => setBackupSettings(s => ({ ...s, schedule: { ...s.schedule, enabled: e.target.checked } }))}
+                    className="checkbox"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{t('common.enable')}</span>
+                </label>
+
+                {backupSettings.schedule.enabled && (
+                  <div className="space-y-2 pl-6">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">{t('settings.backupFrequency')}</label>
+                        <select
+                          value={backupSettings.schedule.frequency}
+                          onChange={(e) => setBackupSettings(s => ({ ...s, schedule: { ...s.schedule, frequency: e.target.value as 'daily' | 'weekly' | 'monthly' } }))}
+                          className="input input-sm w-full"
+                        >
+                          <option value="daily">{t('settings.daily')}</option>
+                          <option value="weekly">{t('settings.weekly')}</option>
+                          <option value="monthly">{t('settings.monthly')}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">{t('settings.backupTime')}</label>
+                        <input
+                          type="time"
+                          value={backupSettings.schedule.time}
+                          onChange={(e) => setBackupSettings(s => ({ ...s, schedule: { ...s.schedule, time: e.target.value } }))}
+                          className="input input-sm w-full"
+                        />
+                      </div>
+                    </div>
+                    {backupSettings.schedule.frequency === 'weekly' && (
+                      <div>
+                        <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">{t('settings.backupDayOfWeek')}</label>
+                        <select
+                          value={backupSettings.schedule.dayOfWeek}
+                          onChange={(e) => setBackupSettings(s => ({ ...s, schedule: { ...s.schedule, dayOfWeek: parseInt(e.target.value) } }))}
+                          className="input input-sm w-full"
+                        >
+                          {[
+                            { v: 1, l: t('settings.weekdays.mon') },
+                            { v: 2, l: t('settings.weekdays.tue') },
+                            { v: 3, l: t('settings.weekdays.wed') },
+                            { v: 4, l: t('settings.weekdays.thu') },
+                            { v: 5, l: t('settings.weekdays.fri') },
+                            { v: 6, l: t('settings.weekdays.sat') },
+                            { v: 0, l: t('settings.weekdays.sun') },
+                          ].map(d => <option key={d.v} value={d.v}>{d.l}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    {backupSettings.schedule.frequency === 'monthly' && (
+                      <div>
+                        <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">{t('settings.backupDayOfMonth')}</label>
+                        <select
+                          value={backupSettings.schedule.dayOfMonth}
+                          onChange={(e) => setBackupSettings(s => ({ ...s, schedule: { ...s.schedule, dayOfMonth: parseInt(e.target.value) } }))}
+                          className="input input-sm w-full"
+                        >
+                          {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Notifications */}
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={backupSettings.notifications.enabled}
+                      onChange={(e) => setBackupSettings(s => ({ ...s, notifications: { ...s.notifications, enabled: e.target.checked } }))}
+                      className="checkbox"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{t('settings.notifyOnBackup')}</span>
+                  </label>
+                  {backupSettings.notifications.enabled && (
+                    <div className="pl-6 mt-2">
+                      <input
+                        type="email"
+                        value={backupSettings.notifications.email}
+                        onChange={(e) => setBackupSettings(s => ({ ...s, notifications: { ...s.notifications, email: e.target.value } }))}
+                        placeholder={t('settings.notificationEmail')}
+                        className="input input-sm w-full"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Retention */}
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={backupSettings.retention.enabled}
+                      onChange={(e) => setBackupSettings(s => ({ ...s, retention: { ...s.retention, enabled: e.target.checked } }))}
+                      className="checkbox"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{t('settings.autoCleanup')}</span>
+                  </label>
+                  {backupSettings.retention.enabled && (
+                    <div className="pl-6 mt-2 flex items-center gap-2">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{t('settings.keepBackupsFor')}</span>
+                      <select
+                        value={backupSettings.retention.days}
+                        onChange={(e) => setBackupSettings(s => ({ ...s, retention: { ...s.retention, days: parseInt(e.target.value) } }))}
+                        className="input input-sm w-20"
+                      >
+                        {[7, 14, 30, 60, 90, 180, 365].map(d => (
+                          <option key={d} value={d}>{d} {t('settings.daysUnit')}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {/* Save */}
+                <button
+                  onClick={() => saveBackupSettingsMutation.mutate(backupSettings)}
+                  disabled={saveBackupSettingsMutation.isPending}
+                  className="btn btn-primary w-full flex items-center justify-center"
                 >
-                  <option value="all">Complete backup (JSON)</option>
-                  <option value="clients">Clients</option>
-                  <option value="domains">Domains</option>
-                  <option value="hosting">Hosting</option>
-                  <option value="packages">Packages</option>
-                </select>
+                  {saveBackupSettingsMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  {t('common.save')}
+                </button>
               </div>
+            </div>
 
-              {/* CSV Templates */}
-              {importType !== 'all' && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
-                  <div className="text-xs text-blue-700 dark:text-blue-300 mb-2">CSV Template</div>
-                  <button
-                    onClick={() => handleDownloadTemplate(importType)}
-                    className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                  >
-                    <Download className="w-3 h-3" />
-                    Download {importType}-template.csv
-                  </button>
-                  <p className="text-[10px] text-blue-500 mt-1">Fill the template with your data and import</p>
+            {/* Backup Files */}
+            <div className="card">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                <Database className="w-4 h-4 text-primary-600" />
+                {t('settings.backupFiles')}
+                {backupFilesData && (
+                  <span className="text-xs text-gray-400 ml-auto">
+                    {backupFilesData.count} files &middot; {backupFilesData.totalSize > 0 ? (backupFilesData.totalSize / 1024 / 1024).toFixed(1) + ' MB' : '0 B'}
+                  </span>
+                )}
+              </h3>
+
+              {backupFilesLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
+                </div>
+              ) : backupFilesData?.files.length === 0 ? (
+                <p className="text-xs text-gray-400 py-4 text-center">{t('settings.noBackups')}</p>
+              ) : (
+                <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                  {backupFilesData?.files.map((file) => (
+                    <div key={file.filename} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-xs">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-800 dark:text-gray-200 truncate" title={file.filename}>
+                          {file.filename}
+                        </div>
+                        <div className="text-gray-400">
+                          {(file.size / 1024).toFixed(1)} KB &middot; {new Date(file.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDownloadBackup(file.filename)}
+                        className="btn btn-xs btn-secondary"
+                        title={t('common.download')}
+                      >
+                        <Download className="w-3 h-3" />
+                      </button>
+                      {confirmDeleteBackup === file.filename ? (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => deleteBackupMutation.mutate(file.filename)}
+                            disabled={deleteBackupMutation.isPending}
+                            className="btn btn-xs rounded bg-red-600 text-white hover:bg-red-700"
+                          >
+                            {t('common.confirm')}
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteBackup(null)}
+                            className="btn btn-xs rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                          >
+                            {t('common.cancel')}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteBackup(file.filename)}
+                          className="btn btn-xs btn-secondary text-red-500 hover:text-red-600"
+                          title={t('common.delete')}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
 
-              {/* File Upload */}
-              <div>
-                <button
-                  onClick={() => csvInputRef.current?.click()}
-                  className="btn btn-primary w-full flex items-center justify-center"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Select file ({importType === 'all' ? '.json' : '.csv, .json'})
-                </button>
-                <input
-                  ref={csvInputRef}
-                  type="file"
-                  accept={importType === 'all' ? '.json' : '.csv,.json'}
-                  onChange={handleImportFileSelect}
-                  className="hidden"
-                />
-              </div>
-
-              {/* Validation Results */}
-              {importValidation && (
-                <div className={`rounded-lg p-3 ${importValidation.valid ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
-                  <div className={`text-xs font-medium mb-2 ${importValidation.valid ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
-                    {importValidation.valid ? '✓ Validation successful' : '✗ Validation errors'}
+              {/* Cleanup buttons */}
+              {backupFilesData && backupFilesData.count > 0 && (
+                <div className="pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                    <span className="text-[11px] font-medium text-gray-500 uppercase">{t('settings.autoCleanup')}</span>
                   </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">
-                    Total rows: {importValidation.totalRows} | Valid: {importValidation.validRows}
-                  </div>
-
-                  {importValidation.errors.length > 0 && (
-                    <div className="mt-2 max-h-32 overflow-y-auto">
-                      {importValidation.errors.slice(0, 10).map((err, i) => (
-                        <div key={i} className="text-xs text-red-600 dark:text-red-400">
-                          Row {err.row}: {err.field && `[${err.field}]`} {err.message}
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: '> 3d', days: 3 },
+                      { label: '> 7d', days: 7 },
+                      { label: '> 30d', days: 30 },
+                    ].map(({ label, days }) => (
+                      confirmCleanup === days ? (
+                        <div key={days} className="flex items-center gap-1">
+                          <button
+                            onClick={() => cleanupBackupsMutation.mutate(days)}
+                            disabled={cleanupBackupsMutation.isPending}
+                            className="btn btn-xs rounded bg-red-600 text-white hover:bg-red-700"
+                          >
+                            {t('common.confirm')}
+                          </button>
+                          <button
+                            onClick={() => setConfirmCleanup(null)}
+                            className="btn btn-xs rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                          >
+                            {t('common.cancel')}
+                          </button>
                         </div>
-                      ))}
-                      {importValidation.errors.length > 10 && (
-                        <div className="text-xs text-red-500">...and {importValidation.errors.length - 10} more errors</div>
-                      )}
-                    </div>
-                  )}
-
-                  {importValidation.valid && (
-                    <button
-                      onClick={handleImportConfirm}
-                      className="mt-3 btn btn-primary w-full"
-                    >
-                      Confirm import
-                    </button>
-                  )}
+                      ) : (
+                        <button
+                          key={days}
+                          onClick={() => setConfirmCleanup(days)}
+                          className="btn btn-xs rounded border border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                        >
+                          {label}
+                        </button>
+                      )
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Export Section */}
-          <div className="card">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-              <Download className="w-4 h-4 text-primary-600" />
-              Export
-            </h3>
+          {/* Right Column: Restore (existing import) + Export */}
+          <div className="space-y-4">
+            {/* Restore Section */}
+            <div className="card">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-primary-600" />
+                {t('settings.restore')}
+              </h3>
 
-            <div className="space-y-4">
-              {/* Export Type Selection */}
-              <div>
-                <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-2 block">What to export</label>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm">
-                    <input
-                      type="checkbox"
-                      checked={exportTypes.includes('all')}
-                      onChange={(e) => setExportTypes(e.target.checked ? ['all'] : [])}
-                      className="checkbox"
-                    />
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">All (complete backup)</span>
-                  </label>
+              <div className="space-y-4">
+                {/* Import Type Selection */}
+                <div>
+                  <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">{t('settings.dataType')}</label>
+                  <select
+                    value={importType}
+                    onChange={(e) => { setImportType(e.target.value); setImportValidation(null); setImportData(null); }}
+                    className="input input-sm w-full"
+                  >
+                    <option value="all">{t('settings.allCompleteBackup')}</option>
+                    <option value="clients">{t('settings.clients')}</option>
+                    <option value="domains">{t('settings.domains')}</option>
+                    <option value="hosting">{t('settings.hosting')}</option>
+                    <option value="packages">{t('settings.packages')}</option>
+                  </select>
+                </div>
 
-                  {!exportTypes.includes('all') && (
-                    <div className="ml-4 space-y-1.5 border-l-2 border-gray-200 dark:border-gray-700 pl-3">
-                      {[
-                        { id: 'clients', label: 'Clients' },
-                        { id: 'domains', label: 'Domains' },
-                        { id: 'hosting', label: 'Hosting' },
-                        { id: 'packages', label: 'Packages' },
-                        { id: 'templates', label: 'Email templates' },
-                        { id: 'scheduler', label: 'Scheduler' },
-                        { id: 'settings', label: 'Settings' },
-                      ].map((item) => (
-                        <label key={item.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                          <input
-                            type="checkbox"
-                            checked={exportTypes.includes(item.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setExportTypes([...exportTypes, item.id]);
-                              } else {
-                                setExportTypes(exportTypes.filter(t => t !== item.id));
-                              }
-                            }}
-                            className="checkbox"
-                          />
-                          <span className="text-gray-600 dark:text-gray-400">{item.label}</span>
-                        </label>
-                      ))}
+                {/* CSV Templates */}
+                {importType !== 'all' && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                    <div className="text-xs text-blue-700 dark:text-blue-300 mb-2">{t('settings.csvTemplate')}</div>
+                    <button
+                      onClick={() => handleDownloadTemplate(importType)}
+                      className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                    >
+                      <Download className="w-3 h-3" />
+                      Download {importType}-template.csv
+                    </button>
+                    <p className="text-[10px] text-blue-500 mt-1">{t('settings.fillTemplateHint')}</p>
+                  </div>
+                )}
+
+                {/* File Upload */}
+                <div>
+                  <button
+                    onClick={() => csvInputRef.current?.click()}
+                    className="btn btn-primary w-full flex items-center justify-center"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Select file ({importType === 'all' ? '.json, .zip' : '.csv, .json, .zip'})
+                  </button>
+                  <input
+                    ref={csvInputRef}
+                    type="file"
+                    accept={importType === 'all' ? '.json,.zip' : '.csv,.json,.zip'}
+                    onChange={handleImportFileSelect}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Encrypted ZIP password prompt */}
+                {importNeedsPassword && (
+                  <div className="rounded-lg p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Encrypted backup</span>
                     </div>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">This backup is password-protected. Enter the password to continue.</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        value={importPassword}
+                        onChange={(e) => setImportPassword(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && importPassword && handleImportWithPassword()}
+                        placeholder="Password"
+                        className="input input-sm flex-1"
+                      />
+                      <button
+                        onClick={handleImportWithPassword}
+                        disabled={!importPassword}
+                        className="btn btn-primary btn-sm"
+                      >
+                        <Lock className="w-3 h-3 mr-1" />
+                        Unlock
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Validation Results */}
+                {importValidation && (
+                  <div className={`rounded-lg p-3 ${importValidation.valid ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
+                    <div className={`text-xs font-medium mb-2 ${importValidation.valid ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+                      {importValidation.valid ? '✓ Validation successful' : '✗ Validation errors'}
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                      Total rows: {importValidation.totalRows} | Valid: {importValidation.validRows}
+                    </div>
+
+                    {importValidation.errors.length > 0 && (
+                      <div className="mt-2 max-h-32 overflow-y-auto">
+                        {importValidation.errors.slice(0, 10).map((err, i) => (
+                          <div key={i} className="text-xs text-red-600 dark:text-red-400">
+                            Row {err.row}: {err.field && `[${err.field}]`} {err.message}
+                          </div>
+                        ))}
+                        {importValidation.errors.length > 10 && (
+                          <div className="text-xs text-red-500">...and {importValidation.errors.length - 10} more errors</div>
+                        )}
+                      </div>
+                    )}
+
+                    {importValidation.valid && (
+                      <button
+                        onClick={handleImportConfirm}
+                        className="mt-3 btn btn-primary w-full"
+                      >
+                        Confirm import
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Export Section */}
+            <div className="card">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <Download className="w-4 h-4 text-primary-600" />
+                {t('settings.exportData')}
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-2 block">{t('settings.whatToExport')}</label>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm">
+                      <input
+                        type="checkbox"
+                        checked={exportTypes.includes('all')}
+                        onChange={(e) => setExportTypes(e.target.checked ? ['all'] : [])}
+                        className="checkbox"
+                      />
+                      <span className="text-gray-700 dark:text-gray-300 font-medium">{t('settings.allCompleteBackup')}</span>
+                    </label>
+
+                    {!exportTypes.includes('all') && (
+                      <div className="ml-4 space-y-1.5 border-l-2 border-gray-200 dark:border-gray-700 pl-3">
+                        {[
+                          { id: 'clients', label: t('settings.clients') },
+                          { id: 'domains', label: t('settings.domains') },
+                          { id: 'hosting', label: t('settings.hosting') },
+                          { id: 'packages', label: t('settings.packages') },
+                          { id: 'templates', label: t('settings.emailTemplates') },
+                          { id: 'scheduler', label: t('settings.scheduler') },
+                          { id: 'settings', label: t('settings.title') },
+                          { id: 'users', label: t('settings.users') },
+                        ].map((item) => (
+                          <label key={item.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                            <input
+                              type="checkbox"
+                              checked={exportTypes.includes(item.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setExportTypes([...exportTypes, item.id]);
+                                } else {
+                                  setExportTypes(exportTypes.filter(t => t !== item.id));
+                                }
+                              }}
+                              className="checkbox"
+                            />
+                            <span className="text-gray-600 dark:text-gray-400">{item.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleExport('json')}
+                    disabled={exportTypes.length === 0 || exportLoading}
+                    className="btn btn-primary flex-1 flex items-center justify-center"
+                  >
+                    {exportLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                    {exportLoading ? t('common.loading') : t('settings.exportJson')}
+                  </button>
+                  {!exportTypes.includes('all') && exportTypes.length === 1 && (
+                    <button
+                      onClick={() => handleExport('csv')}
+                      className="btn btn-secondary flex-1 flex items-center justify-center"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Export CSV
+                    </button>
                   )}
                 </div>
               </div>
-
-              {/* Export Buttons */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleExport('json')}
-                  disabled={exportTypes.length === 0 || exportLoading}
-                  className="btn btn-primary flex-1 flex items-center justify-center"
-                >
-                  {exportLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-                  {exportLoading ? 'Loading...' : 'Export JSON'}
-                </button>
-                {!exportTypes.includes('all') && exportTypes.length === 1 && (
-                  <button
-                    onClick={() => handleExport('csv')}
-                    className="btn btn-secondary flex-1 flex items-center justify-center"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Export CSV
-                  </button>
-                )}
-              </div>
-
-              {exportTypes.includes('all') && (
-                <p className="text-[10px] text-gray-400">
-                  Complete backup includes all data and can be used for restore.
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -6475,6 +6952,21 @@ Your team"
             );
           })}
 
+          {/* Password protection */}
+          <div className="flex items-center gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <Lock className="w-3.5 h-3.5 text-gray-400" />
+            <input
+              type="password"
+              value={exportPassword}
+              onChange={(e) => setExportPassword(e.target.value)}
+              placeholder="Password (optional)"
+              className="input input-sm flex-1"
+            />
+            {exportPassword && (
+              <span className="text-[10px] text-green-600 dark:text-green-400 whitespace-nowrap">AES-256</span>
+            )}
+          </div>
+
           {/* Footer */}
           <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
             <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -6482,7 +6974,7 @@ Your team"
             </span>
             <div className="flex gap-2">
               <button
-                onClick={() => setExportPreviewOpen(false)}
+                onClick={() => { setExportPreviewOpen(false); setExportPassword(''); }}
                 className="btn btn-secondary"
               >
                 Cancel
@@ -6492,6 +6984,7 @@ Your team"
                 disabled={getSelectedCount(exportSelections) === 0}
                 className="btn btn-primary"
               >
+                {exportPassword ? <Lock className="w-3 h-3 mr-1" /> : <Download className="w-3 h-3 mr-1" />}
                 Download ({getSelectedCount(exportSelections)})
               </button>
             </div>

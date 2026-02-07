@@ -199,6 +199,7 @@ const ALLOWED_SETTINGS_KEYS = new Set([
   'mail',
   'security',
   'backup',
+  'backupSchedule',
 ]);
 
 // Get single setting

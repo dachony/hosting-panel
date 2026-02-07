@@ -481,6 +481,94 @@ async function sendScheduledNotifications(type: 'service_request' | 'sales_reque
   }
 }
 
+// Run scheduled backup based on backupSchedule settings
+async function runScheduledBackup() {
+  try {
+    const setting = await db.select()
+      .from(schema.appSettings)
+      .where(eq(schema.appSettings.key, 'backupSchedule'))
+      .get();
+
+    if (!setting?.value) return;
+
+    const config = setting.value as {
+      schedule: { enabled: boolean; frequency: string; time: string; dayOfWeek?: number; dayOfMonth?: number };
+      notifications: { enabled: boolean; email: string };
+      retention: { enabled: boolean; days: number };
+      _lastRun?: string;
+    };
+
+    if (!config.schedule.enabled) return;
+
+    // Use shouldRunNow to check timing
+    const shouldRun = shouldRunNow({
+      frequency: config.schedule.frequency,
+      dayOfWeek: config.schedule.dayOfWeek ?? null,
+      dayOfMonth: config.schedule.dayOfMonth ?? null,
+      runAtTime: config.schedule.time,
+      lastSent: config._lastRun || null,
+    });
+
+    if (!shouldRun) return;
+
+    console.log('[Scheduler] Running scheduled backup...');
+
+    // Dynamic import to avoid circular dependency
+    const { createServerBackup, cleanupOldBackups } = await import('./backupService.js');
+
+    const result = await createServerBackup();
+    console.log(`[Scheduler] Backup created: ${result.filename} (${result.size} bytes)`);
+
+    // Run retention cleanup if enabled
+    if (config.retention.enabled && config.retention.days > 0) {
+      const deleted = cleanupOldBackups(config.retention.days);
+      if (deleted > 0) {
+        console.log(`[Scheduler] Cleaned up ${deleted} old backup(s)`);
+      }
+    }
+
+    // Update _lastRun
+    const updated = { ...config, _lastRun: new Date().toISOString() };
+    await db.update(schema.appSettings)
+      .set({ value: updated })
+      .where(eq(schema.appSettings.key, 'backupSchedule'));
+
+    // Send notification if enabled
+    if (config.notifications.enabled && config.notifications.email) {
+      try {
+        await sendEmail({
+          to: config.notifications.email,
+          subject: 'Backup Completed',
+          html: `<p>Automatic backup completed successfully.</p><p><strong>File:</strong> ${escapeHtml(result.filename)}<br><strong>Size:</strong> ${(result.size / 1024).toFixed(1)} KB<br><strong>Time:</strong> ${result.createdAt}</p>`,
+        });
+      } catch (emailError) {
+        console.error('[Scheduler] Failed to send backup notification:', emailError);
+      }
+    }
+  } catch (error) {
+    console.error('[Scheduler] Scheduled backup failed:', error);
+
+    // Try to send failure notification
+    try {
+      const setting = await db.select()
+        .from(schema.appSettings)
+        .where(eq(schema.appSettings.key, 'backupSchedule'))
+        .get();
+
+      const config = setting?.value as { notifications?: { enabled: boolean; email: string } } | null;
+      if (config?.notifications?.enabled && config.notifications.email) {
+        await sendEmail({
+          to: config.notifications.email,
+          subject: 'Backup Failed',
+          html: `<p>Automatic backup failed.</p><p><strong>Error:</strong> ${escapeHtml(error instanceof Error ? error.message : String(error))}</p>`,
+        });
+      }
+    } catch {
+      // Ignore notification send failure
+    }
+  }
+}
+
 export function startScheduler() {
   // Check expiring items every day at 8:00 AM
   cron.schedule('0 8 * * *', checkExpiringItems);
@@ -497,6 +585,9 @@ export function startScheduler() {
   // Check service_request/sales_request notifications every minute
   cron.schedule('* * * * *', () => sendScheduledNotifications('service_request'));
   cron.schedule('* * * * *', () => sendScheduledNotifications('sales_request'));
+
+  // Check scheduled backups every minute (shouldRunNow handles timing)
+  cron.schedule('* * * * *', runScheduledBackup);
 
   console.log('[Scheduler] Started notification scheduler');
 
