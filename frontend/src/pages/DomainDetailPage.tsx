@@ -8,6 +8,7 @@ import DateInput from '../components/common/DateInput';
 import Modal from '../components/common/Modal';
 import { ArrowLeft, Globe, Package as PackageIcon, ChevronDown, ChevronRight, Pencil, Lock, Unlock, Server, Shield, FileText, Upload, Download, Trash2, AlertTriangle, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 interface DomainWithDetails extends Domain {
   clientName?: string | null;
@@ -89,6 +90,7 @@ export default function DomainDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { canWriteData, isSales, isAdmin } = useAuth();
 
   const [isDomainExpanded, setIsDomainExpanded] = useState(true);
   const [isDomainLocked, setIsDomainLocked] = useState(true);
@@ -475,30 +477,32 @@ export default function DomainDetailPage() {
               {hosting && (
                 <StatusBadge status={getExpiryStatus(hosting.daysUntilExpiry)} days={hosting.daysUntilExpiry} />
               )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isDomainLocked) {
-                    handleUnlock();
-                    setIsDomainExpanded(true);
-                  } else {
-                    handleSave();
-                  }
-                }}
-                className="btn btn-secondary btn-sm flex items-center gap-1"
-              >
-                {isDomainLocked ? (
-                  <>
-                    <Pencil className="w-3 h-3" />
-                    {t('common.edit')}
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-3 h-3" />
-                    {t('common.save')}
-                  </>
-                )}
-              </button>
+              {canWriteData && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isDomainLocked) {
+                      handleUnlock();
+                      setIsDomainExpanded(true);
+                    } else {
+                      handleSave();
+                    }
+                  }}
+                  className="btn btn-secondary btn-sm flex items-center gap-1"
+                >
+                  {isDomainLocked ? (
+                    <>
+                      <Pencil className="w-3 h-3" />
+                      {t('common.edit')}
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3 h-3" />
+                      {t('common.save')}
+                    </>
+                  )}
+                </button>
+              )}
               {!isDomainLocked && (
                 <button
                   onClick={(e) => {
@@ -800,13 +804,15 @@ export default function DomainDetailPage() {
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          onClick={() => deletePdfMutation.mutate()}
-                          className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                          title={t('common.delete')}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {!isSales && (
+                          <button
+                            onClick={() => deletePdfMutation.mutate()}
+                            className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                            title={t('common.delete')}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </>
                     ) : (
                       <span className="text-xs text-gray-400">{t('domains.noPdf')}</span>
@@ -910,19 +916,21 @@ export default function DomainDetailPage() {
 
           {/* Buttons */}
           <div className="flex justify-between items-center pt-3 border-t dark:border-gray-700">
-            <button
-              type="button"
-              onClick={() => {
-                if (hosting?.id) {
-                  expireNowMutation.mutate(hosting.id);
-                }
-              }}
-              disabled={expireNowMutation.isPending}
-              className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
-            >
-              <AlertTriangle className="w-3 h-3" />
-              {expireNowMutation.isPending ? t('common.saving') : t('common.expireNow')}
-            </button>
+            {isAdmin ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (hosting?.id) {
+                    expireNowMutation.mutate(hosting.id);
+                  }
+                }}
+                disabled={expireNowMutation.isPending}
+                className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+              >
+                <AlertTriangle className="w-3 h-3" />
+                {expireNowMutation.isPending ? t('common.saving') : t('common.expireNow')}
+              </button>
+            ) : <div />}
             <div className="flex gap-2">
               <button
                 type="button"

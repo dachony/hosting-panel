@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db, schema } from '../db/index.js';
-import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
+import { authMiddleware, adminMiddleware, superAdminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import fs from 'fs';
@@ -217,7 +217,7 @@ const packageSchema = z.object({
 });
 
 // Validate import data
-backup.post('/validate', async (c) => {
+backup.post('/validate', superAdminMiddleware, async (c) => {
   try {
     const body = await c.req.json();
     const { type, data, format } = body;
@@ -332,7 +332,7 @@ const importSchemaV2 = z.object({
   data: z.any(),
 });
 
-backup.post('/import', async (c) => {
+backup.post('/import', superAdminMiddleware, async (c) => {
   try {
     const body = await c.req.json();
     const importData = importSchemaV2.parse(body);

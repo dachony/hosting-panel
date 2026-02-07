@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import bcrypt from 'bcryptjs';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
-import { authMiddleware, superAdminMiddleware, AppEnv } from '../middleware/auth.js';
+import { authMiddleware, adminMiddleware, superAdminMiddleware, AppEnv, type AuthUser } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { notifySuperadminPasswordChange, notifyAdminPasswordChange } from '../services/systemNotifications.js';
@@ -12,8 +12,8 @@ import { parseId } from '../utils/validation.js';
 
 const users = new Hono<AppEnv>();
 
-// Only superadmin can manage users
-users.use('*', authMiddleware, superAdminMiddleware);
+// Admin or higher can access user management
+users.use('*', authMiddleware, adminMiddleware);
 
 const roleEnum = z.enum(['superadmin', 'admin', 'salesadmin', 'sales']);
 
@@ -67,6 +67,12 @@ users.post('/', async (c) => {
   try {
     const body = await c.req.json();
     const data = createUserSchema.parse(body);
+    const currentUser = c.get('user') as AuthUser;
+
+    // Admin can only create salesadmin/sales users, not superadmin/admin
+    if (['superadmin', 'admin'].includes(data.role) && currentUser.role !== 'superadmin') {
+      return c.json({ error: 'Only Super Administrator can create admin-level users' }, 403);
+    }
 
     const existing = await db.select().from(schema.users).where(eq(schema.users.email, data.email)).get();
     if (existing) {
@@ -197,6 +203,16 @@ users.put('/:id', async (c) => {
       return c.json({ error: 'User not found' }, 404);
     }
 
+    // Admin cannot modify superadmin/admin users (only superadmin can)
+    if (['superadmin', 'admin'].includes(existing.role) && currentUser.role !== 'superadmin') {
+      return c.json({ error: 'Only Super Administrator can modify admin-level users' }, 403);
+    }
+
+    // Admin cannot promote users to superadmin/admin
+    if (data.role && ['superadmin', 'admin'].includes(data.role) && currentUser.role !== 'superadmin') {
+      return c.json({ error: 'Only Super Administrator can assign admin-level roles' }, 403);
+    }
+
     // Prevent changing own role from superadmin
     if (currentUser.id === id && data.role && data.role !== 'superadmin' && existing.role === 'superadmin') {
       return c.json({ error: 'Cannot demote yourself from Super Administrator' }, 400);
@@ -272,7 +288,7 @@ users.put('/:id', async (c) => {
 users.patch('/:id/toggle-active', async (c) => {
   const id = parseId(c.req.param('id'));
   if (id === null) return c.json({ error: 'Invalid user ID' }, 400);
-  const currentUser = c.get('user');
+  const currentUser = c.get('user') as AuthUser;
 
   if (currentUser.id === id) {
     return c.json({ error: 'Cannot toggle your own account status' }, 400);
@@ -281,6 +297,11 @@ users.patch('/:id/toggle-active', async (c) => {
   const existing = await db.select().from(schema.users).where(eq(schema.users.id, id)).get();
   if (!existing) {
     return c.json({ error: 'User not found' }, 404);
+  }
+
+  // Admin cannot toggle superadmin/admin users
+  if (['superadmin', 'admin'].includes(existing.role) && currentUser.role !== 'superadmin') {
+    return c.json({ error: 'Only Super Administrator can modify admin-level users' }, 403);
   }
 
   const [user] = await db.update(schema.users)
@@ -305,10 +326,16 @@ users.patch('/:id/toggle-active', async (c) => {
 users.post('/:id/resend-invite', async (c) => {
   const id = parseId(c.req.param('id'));
   if (id === null) return c.json({ error: 'Invalid user ID' }, 400);
+  const currentUser = c.get('user') as AuthUser;
 
   const existing = await db.select().from(schema.users).where(eq(schema.users.id, id)).get();
   if (!existing) {
     return c.json({ error: 'User not found' }, 404);
+  }
+
+  // Admin cannot resend invite for superadmin/admin users
+  if (['superadmin', 'admin'].includes(existing.role) && currentUser.role !== 'superadmin') {
+    return c.json({ error: 'Only Super Administrator can manage admin-level users' }, 403);
   }
 
   // Generate new temporary password
@@ -377,7 +404,7 @@ users.post('/:id/resend-invite', async (c) => {
 users.delete('/:id', async (c) => {
   const id = parseId(c.req.param('id'));
   if (id === null) return c.json({ error: 'Invalid user ID' }, 400);
-  const currentUser = c.get('user');
+  const currentUser = c.get('user') as AuthUser;
 
   if (currentUser.id === id) {
     return c.json({ error: 'Cannot delete yourself' }, 400);
@@ -386,6 +413,11 @@ users.delete('/:id', async (c) => {
   const existing = await db.select().from(schema.users).where(eq(schema.users.id, id)).get();
   if (!existing) {
     return c.json({ error: 'User not found' }, 404);
+  }
+
+  // Admin cannot delete superadmin/admin users
+  if (['superadmin', 'admin'].includes(existing.role) && currentUser.role !== 'superadmin') {
+    return c.json({ error: 'Only Super Administrator can delete admin-level users' }, 403);
   }
 
   await db.delete(schema.users).where(eq(schema.users.id, id));

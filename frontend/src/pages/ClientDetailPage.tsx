@@ -8,6 +8,7 @@ import Modal from '../components/common/Modal';
 import DateInput from '../components/common/DateInput';
 import { ArrowLeft, Globe, Server, Calendar, ChevronDown, ChevronRight, Lock, Unlock, Plus, Search, Pencil, Users, Shield, AlertTriangle, FileText, Upload, Download, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 interface HostingWithPackage extends Hosting {
   expiryStatus: ExpiryStatus;
@@ -84,6 +85,7 @@ export default function ClientDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { canWriteData, isSales, isAdmin } = useAuth();
 
   const [isClientLocked, setIsClientLocked] = useState(true);
   const [isClientExpanded, setIsClientExpanded] = useState(false);
@@ -609,30 +611,32 @@ export default function ClientDetailPage() {
               </span>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isClientLocked) {
-                    handleUnlock();
-                    setIsClientExpanded(true);
-                  } else {
-                    handleClientSave();
-                  }
-                }}
-                className="btn btn-secondary btn-sm flex items-center gap-1"
-              >
-                {isClientLocked ? (
-                  <>
-                    <Pencil className="w-3 h-3" />
-                    {t('common.edit')}
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-3 h-3" />
-                    {t('common.save')}
-                  </>
-                )}
-              </button>
+              {canWriteData && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isClientLocked) {
+                      handleUnlock();
+                      setIsClientExpanded(true);
+                    } else {
+                      handleClientSave();
+                    }
+                  }}
+                  className="btn btn-secondary btn-sm flex items-center gap-1"
+                >
+                  {isClientLocked ? (
+                    <>
+                      <Pencil className="w-3 h-3" />
+                      {t('common.edit')}
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3 h-3" />
+                      {t('common.save')}
+                    </>
+                  )}
+                </button>
+              )}
               {!isClientLocked && (
                 <button
                   onClick={(e) => {
@@ -861,13 +865,15 @@ export default function ClientDetailPage() {
             <Globe className="w-4 h-4 mr-2 text-primary-600" />
             <h2 className="text-base font-semibold">{t('domains.title')} ({domains.length})</h2>
           </div>
-          <button
-            onClick={() => setAddDomainModalOpen(true)}
-            className="btn btn-primary btn-sm flex items-center"
-          >
-            <Plus className="w-3 h-3 mr-1" />
-            {t('common.add')}
-          </button>
+          {canWriteData && (
+            <button
+              onClick={() => setAddDomainModalOpen(true)}
+              className="btn btn-primary btn-sm flex items-center"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              {t('common.add')}
+            </button>
+          )}
         </div>
 
         {/* Search and Filter */}
@@ -994,16 +1000,18 @@ export default function ClientDetailPage() {
 
                     {/* Buttons */}
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditDomain(domain);
-                        }}
-                        className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
-                      >
-                        <Pencil className="w-3 h-3" />
-                        {t('common.edit')}
-                      </button>
+                      {canWriteData && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditDomain(domain);
+                          }}
+                          className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          {t('common.edit')}
+                        </button>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1056,8 +1064,8 @@ export default function ClientDetailPage() {
 
                       {/* Hosting Section - Clickable */}
                       <div
-                        onClick={() => domainHosting && handleEditHosting(domainHosting)}
-                        className={`border dark:border-gray-600 rounded-lg p-3 ${domainHosting ? 'cursor-pointer hover:border-primary-400 dark:hover:border-primary-500 transition-colors' : ''}`}
+                        onClick={() => canWriteData && domainHosting && handleEditHosting(domainHosting)}
+                        className={`border dark:border-gray-600 rounded-lg p-3 ${canWriteData && domainHosting ? 'cursor-pointer hover:border-primary-400 dark:hover:border-primary-500 transition-colors' : ''}`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -1070,7 +1078,7 @@ export default function ClientDetailPage() {
                             }`}>
                               {domainHosting ? t('domains.active') : t('domains.inactive')}
                             </span>
-                            {domainHosting && (
+                            {canWriteData && domainHosting && (
                               <span className="text-xs text-gray-400">({t('domains.clickToEdit')})</span>
                             )}
                           </div>
@@ -1140,13 +1148,15 @@ export default function ClientDetailPage() {
                                 >
                                   <Download className="w-3.5 h-3.5" />
                                 </button>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); deletePdfMutation.mutate(domain.id); }}
-                                  className="p-1 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded transition-colors"
-                                  title={t('common.delete')}
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                {!isSales && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); deletePdfMutation.mutate(domain.id); }}
+                                    className="p-1 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded transition-colors"
+                                    title={t('common.delete')}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                               </>
                             ) : (
                               <span className="text-xs text-gray-400">{t('domains.noPdf')}</span>
@@ -1242,19 +1252,21 @@ export default function ClientDetailPage() {
 
           {/* Buttons */}
           <div className="flex justify-between items-center pt-3 border-t dark:border-gray-700">
-            <button
-              type="button"
-              onClick={() => {
-                if (extendItem) {
-                  expireNowMutation.mutate(extendItem.id);
-                }
-              }}
-              disabled={expireNowMutation.isPending}
-              className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
-            >
-              <AlertTriangle className="w-3 h-3" />
-              {expireNowMutation.isPending ? t('common.saving') : t('common.expireNow')}
-            </button>
+            {isAdmin ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (extendItem) {
+                    expireNowMutation.mutate(extendItem.id);
+                  }
+                }}
+                disabled={expireNowMutation.isPending}
+                className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+              >
+                <AlertTriangle className="w-3 h-3" />
+                {expireNowMutation.isPending ? t('common.saving') : t('common.expireNow')}
+              </button>
+            ) : <div />}
             <div className="flex gap-2">
               <button
                 type="button"

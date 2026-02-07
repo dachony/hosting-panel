@@ -52,7 +52,7 @@ interface SidebarProps {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const { t, i18n } = useTranslation();
-  const { user, isSalesAdmin, isAdmin, logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const { isDark, setTheme } = useTheme();
   const { zoom, zoomIn, zoomOut, resetZoom } = useZoom();
   const { accent, setAccent, density, setDensity } = useAppearance();
@@ -201,7 +201,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     { name: t('nav.dashboard'), href: '/', icon: LayoutDashboard },
     { name: t('nav.clients'), href: '/clients', icon: Users },
     { name: t('nav.domains'), href: '/domains', icon: Globe },
-    ...(isSalesAdmin ? [{ name: t('nav.settings'), href: '/settings', icon: Settings }] : []),
+    ...(isAdmin ? [{ name: t('nav.settings'), href: '/settings', icon: Settings }] : []),
     ...(isAdmin ? [
       { name: t('nav.auditLog'), href: '/audit', icon: ScrollText },
       { name: t('nav.emailLog'), href: '/emails', icon: Mail },

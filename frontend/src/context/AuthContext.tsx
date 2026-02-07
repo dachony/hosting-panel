@@ -39,6 +39,8 @@ interface AuthContextType {
   isSuperAdmin: boolean;  // Can do everything
   isAdmin: boolean;       // superadmin or admin - can manage content
   isSalesAdmin: boolean;  // superadmin, admin, or salesadmin - can view/add packages
+  canWriteData: boolean;       // superadmin, admin, or salesadmin - can create/edit data
+  isSales: boolean;            // role === 'sales' (read-only + PDF upload + extend)
   canManageSystem: boolean;    // Only superadmin
   canManageContent: boolean;   // superadmin or admin
   canEditPackages: boolean;    // superadmin or admin (not salesadmin)
@@ -200,6 +202,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isSuperAdmin = role === 'superadmin';
   const isAdmin = role === 'superadmin' || role === 'admin';
   const isSalesAdmin = role === 'superadmin' || role === 'admin' || role === 'salesadmin';
+  const canWriteData = isSalesAdmin; // superadmin || admin || salesadmin
+  const isSales = role === 'sales';
 
   return (
     <AuthContext.Provider
@@ -219,6 +223,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isSuperAdmin,
         isAdmin,
         isSalesAdmin,
+        canWriteData,
+        isSales,
         canManageSystem: isSuperAdmin,
         canManageContent: isAdmin,
         canEditPackages: isAdmin, // salesadmin can add but not edit/delete

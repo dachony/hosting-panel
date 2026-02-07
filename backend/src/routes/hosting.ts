@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db, schema } from '../db/index.js';
 import { eq, and, lte, gte, isNull } from 'drizzle-orm';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, adminMiddleware, salesAdminWriteMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp, formatDate, addDaysToDate, daysUntilExpiry } from '../utils/dates.js';
 import { parseId } from '../utils/validation.js';
@@ -201,7 +201,7 @@ hosting.get('/:id', async (c) => {
   });
 });
 
-hosting.post('/', async (c) => {
+hosting.post('/', salesAdminWriteMiddleware, async (c) => {
   try {
     const body = await c.req.json();
     const data = hostingSchema.parse(body);
@@ -224,7 +224,7 @@ hosting.post('/', async (c) => {
   }
 });
 
-hosting.put('/:id', async (c) => {
+hosting.put('/:id', salesAdminWriteMiddleware, async (c) => {
   try {
     const id = parseId(c.req.param('id'));
     if (id === null) return c.json({ error: 'Invalid hosting ID' }, 400);
@@ -258,7 +258,7 @@ hosting.put('/:id', async (c) => {
   }
 });
 
-hosting.delete('/:id', async (c) => {
+hosting.delete('/:id', adminMiddleware, async (c) => {
   const id = parseId(c.req.param('id'));
   if (id === null) return c.json({ error: 'Invalid hosting ID' }, 400);
 
@@ -272,7 +272,7 @@ hosting.delete('/:id', async (c) => {
   return c.json({ message: 'Hosting deleted' });
 });
 
-hosting.post('/:id/toggle', async (c) => {
+hosting.post('/:id/toggle', adminMiddleware, async (c) => {
   const id = parseId(c.req.param('id'));
   if (id === null) return c.json({ error: 'Invalid hosting ID' }, 400);
 
@@ -339,7 +339,7 @@ hosting.post('/:id/extend', async (c) => {
 });
 
 // Set expiry to yesterday
-hosting.post('/:id/expire-now', async (c) => {
+hosting.post('/:id/expire-now', adminMiddleware, async (c) => {
   const id = parseId(c.req.param('id'));
   if (id === null) return c.json({ error: 'Invalid hosting ID' }, 400);
 

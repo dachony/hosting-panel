@@ -17,7 +17,7 @@ export default function ClientsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const { isSuperAdmin } = useAuth();
+  const { isAdmin, canWriteData } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
@@ -169,16 +169,18 @@ export default function ClientsPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => {
-              setSelectedClient(null);
-              setModalOpen(true);
-            }}
-            className="btn btn-primary btn-sm flex items-center"
-          >
-            <Plus className="w-3 h-3 mr-1" />
-            {t('common.add')}
-          </button>
+          {canWriteData && (
+            <button
+              onClick={() => {
+                setSelectedClient(null);
+                setModalOpen(true);
+              }}
+              className="btn btn-primary btn-sm flex items-center"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              {t('common.add')}
+            </button>
+          )}
         </div>
 
         {isLoading ? (
@@ -245,7 +247,7 @@ export default function ClientsPage() {
 
                 {/* Footer */}
                 <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">
-                  {isSuperAdmin && (
+                  {isAdmin && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setClientToDelete(client); setDeleteDialogOpen(true); }}
                       className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
@@ -253,12 +255,14 @@ export default function ClientsPage() {
                       <Trash2 className="w-3 h-3" />{t('common.delete')}
                     </button>
                   )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleEdit(client); }}
-                    className="btn btn-sm flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
-                  >
-                    <Pencil className="w-3 h-3" />{t('common.edit')}
-                  </button>
+                  {canWriteData && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEdit(client); }}
+                      className="btn btn-sm flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                    >
+                      <Pencil className="w-3 h-3" />{t('common.edit')}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -294,7 +298,7 @@ export default function ClientsPage() {
 
                 {/* Action Buttons */}
                 <div className="flex gap-2 flex-shrink-0">
-                  {isSuperAdmin && (
+                  {isAdmin && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setClientToDelete(client); setDeleteDialogOpen(true); }}
                       className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
@@ -302,12 +306,14 @@ export default function ClientsPage() {
                       <Trash2 className="w-3 h-3" />{t('common.delete')}
                     </button>
                   )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleEdit(client); }}
-                    className="btn btn-sm flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
-                  >
-                    <Pencil className="w-3 h-3" />{t('common.edit')}
-                  </button>
+                  {canWriteData && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEdit(client); }}
+                      className="btn btn-sm flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                    >
+                      <Pencil className="w-3 h-3" />{t('common.edit')}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

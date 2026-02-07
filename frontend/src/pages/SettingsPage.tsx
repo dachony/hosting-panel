@@ -116,7 +116,7 @@ interface MailSettings {
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const { isAdmin, isSalesAdmin, canManageSystem, canManageContent, canEditPackages } = useAuth();
+  const { isAdmin, isSuperAdmin, canManageSystem, canManageContent, canEditPackages } = useAuth();
   const { isDark } = useTheme();
   const queryClient = useQueryClient();
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -2206,16 +2206,16 @@ export default function SettingsPage() {
     ...(canManageContent ? [{ id: 'mail-servers' as const, label: t('settings.servers'), icon: HardDrive }] : []),
     // Admin+: Mail security/filters
     ...(canManageContent ? [{ id: 'mail-security' as const, label: t('settings.mailSecurity'), icon: Shield }] : []),
-    // SalesAdmin+: Packages (salesadmin can add, admin can edit/delete)
-    ...(isSalesAdmin ? [{ id: 'packages' as const, label: t('settings.packages'), icon: PackageIcon }] : []),
+    // Admin+: Packages
+    ...(isAdmin ? [{ id: 'packages' as const, label: t('settings.packages'), icon: PackageIcon }] : []),
     // Admin+: Notifications
     ...(canManageContent ? [{ id: 'notifications' as const, label: t('settings.scheduler'), icon: Bell }] : []),
     // Admin+: Templates
     ...(canManageContent ? [{ id: 'templates' as const, label: t('settings.templates'), icon: FileText }] : []),
     // Admin+: Backup
     ...(canManageContent ? [{ id: 'backup-restore' as const, label: t('settings.backupRestore'), icon: Database }] : []),
-    // SuperAdmin only: Users
-    ...(canManageSystem ? [{ id: 'users' as const, label: t('settings.users'), icon: Users }] : []),
+    // Admin+: Users (admin can manage salesadmin/sales, superadmin can manage all)
+    ...(isAdmin ? [{ id: 'users' as const, label: t('settings.users'), icon: Users }] : []),
   ];
 
   // Filter functions
@@ -4259,8 +4259,8 @@ export default function SettingsPage() {
 
           {/* Right Column: Restore (existing import) + Export */}
           <div className="space-y-4">
-            {/* Restore Section */}
-            <div className="card">
+            {/* Restore Section - superadmin only */}
+            {canManageSystem && <div className="card">
               <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <RefreshCw className="w-4 h-4 text-primary-600" />
                 {t('settings.restore')}
@@ -4314,7 +4314,7 @@ export default function SettingsPage() {
                   </div>
                 )}
               </div>
-            </div>
+            </div>}
 
             {/* Backup Now Password Modal */}
             {backupNowModal && (
@@ -4434,29 +4434,33 @@ export default function SettingsPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleUserActiveMutation.mutate(user.id); }}
-                        disabled={toggleUserActiveMutation.isPending}
-                        className={`text-xs py-1 px-2 rounded border transition-all duration-150 ${
-                          user.isActive === false
-                            ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/50'
-                            : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-200 dark:bg-gray-500/20 dark:text-gray-300 dark:border-gray-500/50'
-                        }`}
-                      >
-                        {user.isActive === false ? 'Aktiviraj' : 'Deaktiviraj'}
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setUserModalOpen(true); }}
-                        className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
-                      >
-                        <Pencil className="w-3 h-3" />Uredi
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setDeleteUserDialogOpen(true); }}
-                        className="text-xs py-1 px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
-                      >
-                        Delete
-                      </button>
+                      {(isSuperAdmin || !['superadmin', 'admin'].includes(user.role)) && (
+                        <>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleUserActiveMutation.mutate(user.id); }}
+                            disabled={toggleUserActiveMutation.isPending}
+                            className={`text-xs py-1 px-2 rounded border transition-all duration-150 ${
+                              user.isActive === false
+                                ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/50'
+                                : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-200 dark:bg-gray-500/20 dark:text-gray-300 dark:border-gray-500/50'
+                            }`}
+                          >
+                            {user.isActive === false ? 'Aktiviraj' : 'Deaktiviraj'}
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setUserModalOpen(true); }}
+                            className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                          >
+                            <Pencil className="w-3 h-3" />Uredi
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setDeleteUserDialogOpen(true); }}
+                            className="text-xs py-1 px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -103,7 +103,7 @@ export default function HostingPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const { isSuperAdmin } = useAuth();
+  const { isAdmin, canWriteData } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [domainToDelete, setDomainToDelete] = useState<{ domainId: number; domainName: string } | null>(null);
@@ -455,13 +455,15 @@ export default function HostingPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => setAddDomainModalOpen(true)}
-            className="btn btn-primary btn-sm flex items-center"
-          >
-            <Plus className="w-3 h-3 mr-1" />
-            {t('common.add')}
-          </button>
+          {canWriteData && (
+            <button
+              onClick={() => setAddDomainModalOpen(true)}
+              className="btn btn-primary btn-sm flex items-center"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              {t('common.add')}
+            </button>
+          )}
         </div>
 
         {/* Status Filter */}
@@ -574,7 +576,7 @@ export default function HostingPage() {
                   {/* Footer */}
                   <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">
                     <div className="flex gap-2">
-                      {isSuperAdmin && (
+                      {isAdmin && (
                         <button
                           onClick={(e) => { e.stopPropagation(); setDomainToDelete({ domainId: hosting.domainId!, domainName: hosting.domainName || '' }); setDeleteDialogOpen(true); }}
                           className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
@@ -664,7 +666,7 @@ export default function HostingPage() {
 
                   {/* Buttons */}
                   <div className="flex gap-2 flex-shrink-0">
-                    {isSuperAdmin && (
+                    {isAdmin && (
                       <button
                         onClick={(e) => { e.stopPropagation(); setDomainToDelete({ domainId: hosting.domainId!, domainName: hosting.domainName || '' }); setDeleteDialogOpen(true); }}
                         className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
@@ -1012,19 +1014,21 @@ export default function HostingPage() {
 
           {/* Buttons */}
           <div className="flex justify-between items-center pt-3 border-t dark:border-gray-700">
-            <button
-              type="button"
-              onClick={() => {
-                if (extendItem) {
-                  expireNowMutation.mutate(extendItem.id);
-                }
-              }}
-              disabled={expireNowMutation.isPending}
-              className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
-            >
-              <AlertTriangle className="w-3 h-3" />
-              {expireNowMutation.isPending ? t('common.saving') : t('common.expireNow')}
-            </button>
+            {isAdmin ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (extendItem) {
+                    expireNowMutation.mutate(extendItem.id);
+                  }
+                }}
+                disabled={expireNowMutation.isPending}
+                className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+              >
+                <AlertTriangle className="w-3 h-3" />
+                {expireNowMutation.isPending ? t('common.saving') : t('common.expireNow')}
+              </button>
+            ) : <div />}
             <div className="flex gap-2">
               <button
                 type="button"

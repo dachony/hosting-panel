@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
-import { authMiddleware, superAdminMiddleware } from '../middleware/auth.js';
+import { authMiddleware, adminMiddleware, salesAdminWriteMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp, daysUntilExpiry, addDaysToDate, formatDate } from '../utils/dates.js';
 import { audit } from '../services/audit.js';
@@ -113,7 +113,7 @@ clients.get('/:id', async (c) => {
   });
 });
 
-clients.post('/', async (c) => {
+clients.post('/', salesAdminWriteMiddleware, async (c) => {
   try {
     const body = await c.req.json();
     const data = clientSchema.parse(body);
@@ -131,7 +131,7 @@ clients.post('/', async (c) => {
   }
 });
 
-clients.put('/:id', async (c) => {
+clients.put('/:id', salesAdminWriteMiddleware, async (c) => {
   try {
     const id = parseId(c.req.param('id'));
     if (id === null) return c.json({ error: 'Invalid client ID' }, 400);
@@ -159,7 +159,7 @@ clients.put('/:id', async (c) => {
   }
 });
 
-clients.delete('/:id', superAdminMiddleware, async (c) => {
+clients.delete('/:id', adminMiddleware, async (c) => {
   const id = parseId(c.req.param('id'));
   if (id === null) return c.json({ error: 'Invalid client ID' }, 400);
 

@@ -77,6 +77,11 @@ export function canEditPackages(role: UserRole): boolean {
   return role === 'superadmin' || role === 'admin';
 }
 
+export function canWriteData(role: UserRole): boolean {
+  // superadmin, admin, or salesadmin can create/edit data
+  return role === 'superadmin' || role === 'admin' || role === 'salesadmin';
+}
+
 export function canManageClients(role: UserRole): boolean {
   // All roles can manage clients
   return true;
@@ -141,6 +146,17 @@ export async function salesAdminMiddleware(c: Context, next: Next) {
 
   if (!user || !isSalesAdmin(user.role)) {
     return c.json({ error: 'Sales Admin access required' }, 403);
+  }
+
+  await next();
+}
+
+// Sales Admin Write - blocks sales role from writing (salesadmin and above can write)
+export async function salesAdminWriteMiddleware(c: Context, next: Next) {
+  const user = c.get('user') as AuthUser;
+
+  if (!user || !canWriteData(user.role)) {
+    return c.json({ error: 'You do not have permission to perform this action' }, 403);
   }
 
   await next();

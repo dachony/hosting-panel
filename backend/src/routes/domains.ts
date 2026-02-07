@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
-import { authMiddleware, superAdminMiddleware } from '../middleware/auth.js';
+import { authMiddleware, adminMiddleware, salesAdminWriteMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { parseId } from '../utils/validation.js';
@@ -85,7 +85,7 @@ domains.get('/:id', async (c) => {
   return c.json({ domain });
 });
 
-domains.post('/', async (c) => {
+domains.post('/', salesAdminWriteMiddleware, async (c) => {
   try {
     const body = await c.req.json();
     const data = domainSchema.parse(body);
@@ -106,7 +106,7 @@ domains.post('/', async (c) => {
   }
 });
 
-domains.put('/:id', async (c) => {
+domains.put('/:id', salesAdminWriteMiddleware, async (c) => {
   try {
     const id = parseId(c.req.param('id'));
     if (id === null) return c.json({ error: 'Invalid domain ID' }, 400);
@@ -246,7 +246,7 @@ domains.get('/:id/pdf', async (c) => {
 });
 
 // Delete PDF for a domain
-domains.delete('/:id/pdf', async (c) => {
+domains.delete('/:id/pdf', salesAdminWriteMiddleware, async (c) => {
   const id = parseId(c.req.param('id'));
   if (id === null) return c.json({ error: 'Invalid domain ID' }, 400);
 
@@ -264,7 +264,7 @@ domains.delete('/:id/pdf', async (c) => {
   return c.json({ message: 'PDF deleted' });
 });
 
-domains.post('/:id/toggle', async (c) => {
+domains.post('/:id/toggle', salesAdminWriteMiddleware, async (c) => {
   const id = parseId(c.req.param('id'));
   if (id === null) return c.json({ error: 'Invalid domain ID' }, 400);
 
@@ -284,7 +284,7 @@ domains.post('/:id/toggle', async (c) => {
   return c.json({ domain: updated });
 });
 
-domains.delete('/:id', superAdminMiddleware, async (c) => {
+domains.delete('/:id', adminMiddleware, async (c) => {
   const id = parseId(c.req.param('id'));
   if (id === null) return c.json({ error: 'Invalid domain ID' }, 400);
 
