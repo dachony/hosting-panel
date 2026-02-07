@@ -108,7 +108,7 @@ export default function HostingPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [domainToDelete, setDomainToDelete] = useState<{ domainId: number; domainName: string } | null>(null);
   const [statusFilters, setStatusFilters] = useState<Set<FilterStatus>>(new Set());
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>(window.innerWidth < 768 ? 'cards' : 'list');
   const [addDomainModalOpen, setAddDomainModalOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<number | ''>('');
   const [sameAsPrimary, setSameAsPrimary] = useState(true);
@@ -415,9 +415,9 @@ export default function HostingPage() {
 
       {/* Domains List */}
       <div className="card card-flush overflow-hidden">
-        <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-xs">
+        <div className="flex flex-wrap gap-2 justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="relative flex-1 max-w-xs min-w-[120px]">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input
                 type="text"
@@ -618,7 +618,7 @@ export default function HostingPage() {
                   className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors"
                 >
                   {/* Domain & Company */}
-                  <div className="w-48 flex-shrink-0">
+                  <div className="w-36 sm:w-48 flex-shrink-0">
                     <div className="flex items-center gap-2">
                       <Globe className="w-4 h-4 text-primary-600 flex-shrink-0" />
                       <span className="font-medium text-sm truncate">{hosting.domainName || '-'}</span>
@@ -629,7 +629,7 @@ export default function HostingPage() {
                   </div>
 
                   {/* Contacts */}
-                  <div className="min-w-0 flex-1 text-xs space-y-0.5 overflow-hidden">
+                  <div className="min-w-0 flex-1 text-xs space-y-0.5 overflow-hidden hidden sm:block">
                     <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 whitespace-nowrap overflow-hidden">
                       <span className="text-gray-500 font-medium flex-shrink-0">{t('common.primaryContact')}</span>
                       <span className="truncate">{[hosting.domainPrimaryName || hosting.clientContactPerson, hosting.domainPrimaryPhone || hosting.clientPhone, hosting.domainPrimaryEmail || hosting.clientEmail].filter(Boolean).join(', ') || '-'}</span>
@@ -641,7 +641,7 @@ export default function HostingPage() {
                   </div>
 
                   {/* Package */}
-                  <div className="w-36 flex-shrink-0 text-xs text-left">
+                  <div className="w-28 sm:w-36 flex-shrink-0 text-xs text-left">
                     <div className="text-gray-700 dark:text-gray-300 font-medium truncate">
                       {hosting.packageName || '—'}
                     </div>
@@ -653,7 +653,7 @@ export default function HostingPage() {
                   </div>
 
                   {/* Status */}
-                  <div className="w-32 flex-shrink-0">
+                  <div className="w-24 sm:w-32 flex-shrink-0">
                     {isUnhosted ? (
                       <div className="flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-full flex-shrink-0 bg-gray-400"></div>
@@ -665,7 +665,7 @@ export default function HostingPage() {
                   </div>
 
                   {/* Buttons */}
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                     {isAdmin && (
                       <button
                         onClick={(e) => { e.stopPropagation(); setDomainToDelete({ domainId: hosting.domainId!, domainName: hosting.domainName || '' }); setDeleteDialogOpen(true); }}
@@ -678,21 +678,21 @@ export default function HostingPage() {
                       onClick={(e) => { e.stopPropagation(); navigate(`/domains/${hosting.domainId}`); }}
                       className="btn btn-sm flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                     >
-                      <Pencil className="w-3 h-3" />{t('common.edit')}
+                      <Pencil className="w-3 h-3" /><span className="hidden sm:inline">{t('common.edit')}</span>
                     </button>
                     {!isUnhosted && hosting.id ? (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleExtend(hosting.id!, hosting.domainName || ''); }}
                         className="btn btn-primary btn-sm flex items-center gap-1"
                       >
-                        <Calendar className="w-3 h-3" />{t('common.extend')}
+                        <Calendar className="w-3 h-3" /><span className="hidden sm:inline">{t('common.extend')}</span>
                       </button>
                     ) : (
                       <button
                         disabled
                         className="btn btn-primary btn-sm flex items-center gap-1 opacity-40 cursor-not-allowed"
                       >
-                        <Calendar className="w-3 h-3" />{t('common.extend')}
+                        <Calendar className="w-3 h-3" /><span className="hidden sm:inline">{t('common.extend')}</span>
                       </button>
                     )}
                   </div>
@@ -758,7 +758,7 @@ export default function HostingPage() {
                 <span className="text-gray-500">{t('common.sameAsCompanyPrimary')}</span>
               </label>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs text-gray-500">{t('common.nameAndSurname')} *</label>
                 <input
@@ -808,7 +808,7 @@ export default function HostingPage() {
                 <span className="text-gray-500">{t('common.sameAsCompanyTechnical')}</span>
               </label>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs text-gray-500">{t('common.nameAndSurname')} *</label>
                 <input

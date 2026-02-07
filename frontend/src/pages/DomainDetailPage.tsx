@@ -464,12 +464,12 @@ export default function DomainDetailPage() {
               )}
               <Globe className="w-3.5 h-3.5 text-primary-600 flex-shrink-0" />
               <span className="font-medium text-sm flex-shrink-0">{domain.domainName}</span>
-              <span className="text-gray-400 mx-1 flex-shrink-0">|</span>
-              <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+              <span className="text-gray-400 mx-1 flex-shrink-0 hidden sm:inline">|</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400 truncate hidden sm:inline">
                 <span className="text-gray-500 font-medium">{t('common.primary')}</span> {primaryName}, {primaryPhone}, {primaryEmail}
               </span>
-              <span className="text-gray-400 mx-1 flex-shrink-0">|</span>
-              <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+              <span className="text-gray-400 mx-1 flex-shrink-0 hidden sm:inline">|</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400 truncate hidden sm:inline">
                 <span className="text-gray-500 font-medium">{t('common.technical')}</span> {techName}, {techPhone}, {techEmail}
               </span>
             </div>
@@ -522,7 +522,7 @@ export default function DomainDetailPage() {
           {isDomainExpanded && (
             <div className="border-t dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800/50 space-y-3">
               {/* Domain Name & Client */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
                   <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('domains.domainName')}</span>
                   {isDomainLocked ? (
@@ -573,7 +573,7 @@ export default function DomainDetailPage() {
                     </label>
                   )}
                 </div>
-                <div className="mt-1.5 grid grid-cols-3 gap-2 text-xs">
+                <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <div>
                     <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.nameAndSurname')}</label>
                     {isDomainLocked ? (
@@ -638,7 +638,7 @@ export default function DomainDetailPage() {
                     </label>
                   )}
                 </div>
-                <div className="mt-1.5 grid grid-cols-3 gap-2 text-xs">
+                <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <div>
                     <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.nameAndSurname')}</label>
                     {isDomainLocked ? (

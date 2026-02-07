@@ -248,7 +248,7 @@ export default function SystemStatusPage() {
                 </div>
                 <ProgressBar value={data.cpu.usage} />
               </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-gray-500">{t('systemStatus.cores')}</span>
                   <span className="ml-2 font-medium">{data.cpu.cores}</span>
@@ -274,7 +274,7 @@ export default function SystemStatusPage() {
                 </div>
                 <ProgressBar value={data.memory.usagePercent} />
               </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-gray-500">{t('systemStatus.total')}</span>
                   <span className="ml-2 font-medium">{formatBytes(data.memory.total)}</span>
@@ -301,7 +301,7 @@ export default function SystemStatusPage() {
                 </div>
                 <ProgressBar value={data.disk.usagePercent} />
               </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-gray-500">{t('systemStatus.total')}</span>
                   <span className="ml-2 font-medium">{formatBytes(data.disk.total)}</span>
@@ -325,7 +325,7 @@ export default function SystemStatusPage() {
                 <span className="text-gray-500">{t('systemStatus.size')}</span>
                 <span className="ml-2 font-medium">{formatBytes(data.database.size)}</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div className="flex items-center gap-1">
                   <Users className="w-3.5 h-3.5 text-gray-400" />
                   <span className="text-gray-500">{t('systemStatus.clients')}</span>
@@ -395,7 +395,7 @@ export default function SystemStatusPage() {
           {/* Audit Logs */}
           <StatCard title={t('systemStatus.auditLogs')} icon={ScrollText}>
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-gray-500">{t('systemStatus.total')}</span>
                   <span className="ml-2 font-medium">{auditStats?.total || data.database.auditLogs}</span>
@@ -501,7 +501,7 @@ export default function SystemStatusPage() {
           {/* Email Logs */}
           <StatCard title={t('systemStatus.emailLogs')} icon={Mail}>
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-gray-500">{t('systemStatus.total')}</span>
                   <span className="ml-2 font-medium">{emailStats?.total || 0}</span>
@@ -568,7 +568,7 @@ export default function SystemStatusPage() {
           {/* PDF Documents */}
           <StatCard title={t('systemStatus.pdfDocuments')} icon={FileText}>
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-gray-500">{t('systemStatus.total')}</span>
                   <span className="ml-2 font-medium">{pdfStats?.fileCount || 0}</span>
@@ -633,7 +633,7 @@ export default function SystemStatusPage() {
           {/* Backups */}
           <StatCard title={t('systemStatus.backups')} icon={Archive}>
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-gray-500">{t('systemStatus.backupFiles')}</span>
                   <span className="ml-2 font-medium">{backupStats?.count || 0}</span>

@@ -7,8 +7,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const FONT_REGULAR = path.join(__dirname, '..', '..', 'src', 'fonts', 'Roboto-Regular.ttf');
-const FONT_BOLD = path.join(__dirname, '..', '..', 'src', 'fonts', 'Roboto-Bold.ttf');
+const FONT_REGULAR = path.join(__dirname, '..', '..', 'src', 'fonts', 'OpenSans-Regular.ttf');
+const FONT_BOLD = path.join(__dirname, '..', '..', 'src', 'fonts', 'OpenSans-Bold.ttf');
 
 export interface DashboardStats {
   totalClients: number;
@@ -434,17 +434,17 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
-    doc.registerFont('Roboto', FONT_REGULAR);
-    doc.registerFont('Roboto-Bold', FONT_BOLD);
     const chunks: Buffer[] = [];
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
     // Title with system name
-    doc.fontSize(11).font('Roboto-Bold').fill('#666').text(systemName, { align: 'center' });
-    doc.fontSize(16).font('Roboto-Bold').fill('#111').text('Hosting Report', { align: 'center' });
-    doc.fontSize(9).font('Roboto').fill('#666').text(`Generated: ${now}`, { align: 'center' });
+        doc.registerFont('OpenSans', FONT_REGULAR);
+    doc.registerFont('OpenSans-Bold', FONT_BOLD);
+    doc.fontSize(11).font('OpenSans-Bold').fill('#666').text(systemName, { align: 'center' });
+    doc.fontSize(16).font('OpenSans-Bold').fill('#111').text('Hosting Report', { align: 'center' });
+    doc.fontSize(9).font('OpenSans').fill('#666').text(`Generated: ${now}`, { align: 'center' });
     doc.moveDown(1);
 
     if (items.length === 0) {
@@ -477,7 +477,7 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
 
     const drawTableHeader = () => {
       let x = tableLeft;
-      doc.fontSize(headerFontSize).font('Roboto-Bold');
+      doc.fontSize(headerFontSize).font('OpenSans-Bold');
       doc.rect(x, doc.y, tableWidth, headerHeight).fill('#e5e7eb');
       const headerY = doc.y + 5;
       for (const col of cols) {
@@ -516,7 +516,7 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
         formatDisplayDate(item.expiryDate),
       ];
 
-      doc.fontSize(fontSize).font('Roboto-Bold');
+      doc.fontSize(fontSize).font('OpenSans-Bold');
       for (let i = 0; i < cols.length; i++) {
         // Days column (index 2) in status color
         if (i === 2) {
@@ -554,7 +554,7 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
       doc.rect(tableLeft, doc.y, 3, groupHeaderHeight).fill(color.text);
       doc.restore();
 
-      doc.fontSize(8).font('Roboto-Bold').fill(color.text)
+      doc.fontSize(8).font('OpenSans-Bold').fill(color.text)
         .text(`${color.label} — ${color.description} (${group.items.length})`, tableLeft + 8, doc.y + 3);
       doc.y += groupHeaderHeight + 2;
       doc.x = tableLeft;
@@ -565,7 +565,7 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
     }
 
     // Footer
-    doc.fontSize(7).font('Roboto').fill('#999')
+    doc.fontSize(7).font('OpenSans').fill('#999')
       .text(`Total: ${items.length} items`, tableLeft, doc.y + 10);
 
     doc.end();

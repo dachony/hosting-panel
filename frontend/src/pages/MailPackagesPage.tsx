@@ -230,7 +230,7 @@ export default function PackagesPage() {
             <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('mailPackages.description')}</label>
             <input name="description" defaultValue={selectedPackage?.description || ''} className="input input-sm" placeholder={t('mailPackages.optional')} />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('mailPackages.maxMailboxes')} *</label>
               <input name="maxMailboxes" type="number" min="1" defaultValue={selectedPackage?.maxMailboxes || 5} className="input input-sm" required />
@@ -244,7 +244,7 @@ export default function PackagesPage() {
               <input name="price" type="number" min="0" step="0.01" defaultValue={selectedPackage?.price || 0} className="input input-sm" required />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.mailServer')}</label>
               <select

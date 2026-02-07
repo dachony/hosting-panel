@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { sendEmail, sendTestEmail, testSmtpConnection } from '../services/email.js';
 import { generateHostingListHtml, generateReportPdf } from '../services/reports.js';
-import { generateSystemInfoHtml } from '../services/system.js';
+import { generateSystemInfoHtml, generateSystemInfoJson, generateSystemInfoCsv, generateSystemInfoPdf } from '../services/system.js';
 import { triggerClientNotification } from '../services/scheduler.js';
 import type { ReportConfig, SystemConfig } from '../db/schema.js';
 import { parseId } from '../utils/validation.js';
@@ -483,16 +483,35 @@ notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
       subject = subject.replace(regex, value);
     }
 
-    // Generate PDF attachment for reports if sendAsPdf is enabled
-    let attachments: Array<{ filename: string; content: Buffer }> | undefined;
+    // Generate attachments
+    const attachments: Array<{ filename: string; content: Buffer }> = [];
+    const dateStr = new Date().toISOString().split('T')[0];
+
+    // Report PDF attachment
     if (setting.type === 'reports' && template.sendAsPdf && template.reportConfig) {
       const reportConfig = template.reportConfig as ReportConfig;
       const pdfBuffer = await generateReportPdf(reportConfig);
-      const dateStr = new Date().toISOString().split('T')[0];
-      attachments = [{ filename: `hosting-report-${dateStr}.pdf`, content: pdfBuffer }];
+      attachments.push({ filename: `hosting-report-${dateStr}.pdf`, content: pdfBuffer });
     }
 
-    await sendEmail({ to: recipient, subject, html, attachments });
+    // System info file attachments (CSV/PDF/JSON)
+    if (setting.type === 'system' && template.systemConfig) {
+      const sysConfig = template.systemConfig as SystemConfig;
+      if (sysConfig.attachFormats?.json) {
+        const jsonStr = await generateSystemInfoJson(sysConfig);
+        attachments.push({ filename: `system-info-${dateStr}.json`, content: Buffer.from(jsonStr, 'utf-8') });
+      }
+      if (sysConfig.attachFormats?.csv) {
+        const csvStr = await generateSystemInfoCsv(sysConfig);
+        attachments.push({ filename: `system-info-${dateStr}.csv`, content: Buffer.from(csvStr, 'utf-8') });
+      }
+      if (sysConfig.attachFormats?.pdf) {
+        const pdfBuf = await generateSystemInfoPdf(sysConfig);
+        attachments.push({ filename: `system-info-${dateStr}.pdf`, content: pdfBuf });
+      }
+    }
+
+    await sendEmail({ to: recipient, subject, html, attachments: attachments.length > 0 ? attachments : undefined });
 
     // Update lastSent
     await db.update(schema.notificationSettings)

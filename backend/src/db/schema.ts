@@ -178,6 +178,11 @@ export interface SystemConfig {
     emailLogsCount?: number;
     pdfSizeMb?: number;
   };
+  attachFormats?: {
+    csv?: boolean;
+    pdf?: boolean;
+    json?: boolean;
+  };
 }
 
 export const emailTemplates = sqliteTable('email_templates', {

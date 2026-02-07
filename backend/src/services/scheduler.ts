@@ -4,7 +4,7 @@ import { eq, and, lte, gte } from 'drizzle-orm';
 import { sendEmail, getExpiryNotificationEmail, getDailyReportEmail } from './email.js';
 import { formatDate, addDaysToDate, daysUntilExpiry } from '../utils/dates.js';
 import { generateHostingListHtml, generateReportPdf } from './reports.js';
-import { generateSystemInfoHtml } from './system.js';
+import { generateSystemInfoHtml, generateSystemInfoJson, generateSystemInfoCsv, generateSystemInfoPdf } from './system.js';
 import { escapeHtml } from '../utils/validation.js';
 import fs from 'fs';
 import path from 'path';
@@ -480,13 +480,39 @@ async function sendSystemNotifications() {
     // Replace variables in template
     const { subject, html } = applyTemplateVariables(template.subject, template.htmlContent, variables);
 
+    // Generate file attachments based on systemConfig.attachFormats
+    const attachments: Array<{ filename: string; content: Buffer }> = [];
+    if (template.systemConfig) {
+      const sysConfig = template.systemConfig as SystemConfig;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      if (sysConfig.attachFormats?.json) {
+        try {
+          const jsonStr = await generateSystemInfoJson(sysConfig);
+          attachments.push({ filename: `system-info-${dateStr}.json`, content: Buffer.from(jsonStr, 'utf-8') });
+        } catch (e) { console.error('[Scheduler] Failed to generate system JSON:', e); }
+      }
+      if (sysConfig.attachFormats?.csv) {
+        try {
+          const csvStr = await generateSystemInfoCsv(sysConfig);
+          attachments.push({ filename: `system-info-${dateStr}.csv`, content: Buffer.from(csvStr, 'utf-8') });
+        } catch (e) { console.error('[Scheduler] Failed to generate system CSV:', e); }
+      }
+      if (sysConfig.attachFormats?.pdf) {
+        try {
+          const pdfBuf = await generateSystemInfoPdf(sysConfig);
+          attachments.push({ filename: `system-info-${dateStr}.pdf`, content: pdfBuf });
+        } catch (e) { console.error('[Scheduler] Failed to generate system PDF:', e); }
+      }
+    }
+
     try {
       await sendEmail({
         to: recipient,
         subject,
         html,
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
-      console.log(`[Scheduler] Sent system notification "${setting.name}" to ${recipient}`);
+      console.log(`[Scheduler] Sent system notification "${setting.name}" to ${recipient}${attachments.length ? ` with ${attachments.length} attachment(s)` : ''}`);
 
       // Update lastSent
       await db.update(schema.notificationSettings)

@@ -302,6 +302,7 @@ export default function SettingsPage() {
     },
     period: 'last7days',
     thresholds: { auditLogsCount: 10000, emailLogsCount: 5000, pdfSizeMb: 500 },
+    attachFormats: { csv: false, pdf: false, json: false },
   };
 
   const [templateForm, setTemplateForm] = useState({
@@ -327,6 +328,7 @@ export default function SettingsPage() {
     footerImage: '' as string,
     footerBgColor: '#1e40af',
     footerBgTransparent: false,
+    footerUseHeaderColor: false,
     reportConfig: defaultReportConfig,
     systemConfig: defaultSystemConfig,
     attachDomainPdf: false,
@@ -496,9 +498,11 @@ export default function SettingsPage() {
     // Build footer HTML
     let footerHtml = '';
     if (templateForm.showFooter) {
-      const footerBgStyle = templateForm.footerBgTransparent ? 'transparent' : templateForm.footerBgColor;
+      const effectiveFooterBg = templateForm.footerUseHeaderColor
+        ? (templateForm.headerBgTransparent ? 'transparent' : templateForm.headerBgColor)
+        : (templateForm.footerBgTransparent ? 'transparent' : templateForm.footerBgColor);
       footerHtml = `
-  <div data-section="footer" style="background-color: ${footerBgStyle}; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
+  <div data-section="footer"${templateForm.footerUseHeaderColor ? ' data-use-header-color="true"' : ''} style="background-color: ${effectiveFooterBg}; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
     ${templateForm.footerImage ? `<img src="${templateForm.footerImage}" alt="Footer" data-size="${templateForm.footerImageSize}" style="max-width: 100%; max-height: ${fiSize}px;" />` : ''}
   </div>`;
     }
@@ -572,12 +576,14 @@ export default function SettingsPage() {
     let footerImage = '';
     let footerBgColor = '#1e40af';
     let footerBgTransparent = false;
+    let footerUseHeaderColor = false;
 
     const footerDiv = tempDiv.querySelector('div[data-section="footer"]');
     if (footerDiv) {
       showFooter = true;
+      footerUseHeaderColor = footerDiv.getAttribute('data-use-header-color') === 'true';
       const bgMatch = footerDiv.getAttribute('style')?.match(/background-color:\s*([^;]+)/);
-      if (bgMatch) {
+      if (bgMatch && !footerUseHeaderColor) {
         const bgValue = bgMatch[1].trim();
         if (bgValue === 'transparent') {
           footerBgTransparent = true;
@@ -685,7 +691,7 @@ export default function SettingsPage() {
       title, body, signature,
       showHeader, headerLogo, headerImage, headerBgColor, headerBgTransparent, headerLogoPosition, useCompanyLogo,
       showSignature, signatureLogo, signatureImage, useCompanyLogoInSignature,
-      showFooter, footerImage, footerBgColor, footerBgTransparent,
+      showFooter, footerImage, footerBgColor, footerBgTransparent, footerUseHeaderColor,
       headerLogoSize, headerImageSize, signatureLogoSize, footerImageSize,
       templateWidth,
     };
@@ -718,12 +724,14 @@ export default function SettingsPage() {
         footerImage: parsed.footerImage || '',
         footerBgColor: parsed.footerBgColor || '#1e40af',
         footerBgTransparent: parsed.footerBgTransparent || false,
+        footerUseHeaderColor: parsed.footerUseHeaderColor || false,
         reportConfig: template.reportConfig || defaultReportConfig,
         systemConfig: template.systemConfig
           ? {
               sections: { ...defaultSystemConfig.sections, ...template.systemConfig.sections },
               period: template.systemConfig.period || defaultSystemConfig.period,
               thresholds: { ...defaultSystemConfig.thresholds, ...template.systemConfig.thresholds },
+              attachFormats: { ...defaultSystemConfig.attachFormats, ...template.systemConfig.attachFormats },
             }
           : defaultSystemConfig,
         attachDomainPdf: template.attachDomainPdf || false,
@@ -762,6 +770,7 @@ export default function SettingsPage() {
         footerImage: '',
         footerBgColor: '#1e40af',
         footerBgTransparent: false,
+        footerUseHeaderColor: false,
         reportConfig: defaultReportConfig,
         systemConfig: defaultSystemConfig,
         attachDomainPdf: false,
@@ -2313,8 +2322,8 @@ export default function SettingsPage() {
       </h1>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="-mb-px flex flex-wrap gap-1">
+      <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+        <nav className="-mb-px flex sm:flex-wrap gap-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -2416,7 +2425,7 @@ export default function SettingsPage() {
                       {/* Security Events */}
                       <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
                         <div className="text-xs font-medium text-red-700 dark:text-red-300 mb-2">🔒 Security Events</div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <label className="flex items-center text-xs cursor-pointer">
                             <input
                               type="checkbox"
@@ -2485,7 +2494,7 @@ export default function SettingsPage() {
                       {/* System Events */}
                       <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
                         <div className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">💻 System Events</div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <label className="flex items-center text-xs cursor-pointer">
                             <input
                               type="checkbox"
@@ -3149,7 +3158,7 @@ export default function SettingsPage() {
                       {/* Row 4: Primary Contact */}
                       <div className="col-span-6 flex items-center gap-3">
                         <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20 flex-shrink-0">Primary</span>
-                        <div className="flex-1 grid grid-cols-3 gap-3">
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <input value={companyInfo.contactName || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, contactName: e.target.value })} className="input input-sm" placeholder="Name" />
                           <input value={companyInfo.contactPhone || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, contactPhone: e.target.value })} className="input input-sm" placeholder="Phone" />
                           <input type="email" value={companyInfo.contactEmail || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, contactEmail: e.target.value })} className="input input-sm" placeholder="Email" />
@@ -3159,7 +3168,7 @@ export default function SettingsPage() {
                       {/* Row 5: Technical Contact */}
                       <div className="col-span-6 flex items-center gap-3">
                         <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20 flex-shrink-0">Technical</span>
-                        <div className="flex-1 grid grid-cols-3 gap-3">
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <input value={companyInfo.techContactName || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, techContactName: e.target.value })} className="input input-sm" placeholder="Name" />
                           <input value={companyInfo.techContactPhone || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, techContactPhone: e.target.value })} className="input input-sm" placeholder="Phone" />
                           <input type="email" value={companyInfo.techContactEmail || ''} onChange={(e) => setCompanyInfo({ ...companyInfo, techContactEmail: e.target.value })} className="input input-sm" placeholder="Email" />
@@ -4004,7 +4013,7 @@ export default function SettingsPage() {
 
                 {backupSettings.schedule.enabled && (
                   <div className="space-y-2 pl-6">
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <div>
                         <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">{t('settings.backupFrequency')}</label>
                         <select
@@ -4496,7 +4505,7 @@ export default function SettingsPage() {
         title={selectedUser ? t('settings.editUser') : t('settings.newUser')}
       >
         <form onSubmit={handleUserSubmit} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('settings.firstName')} *</label>
               <input name="firstName" defaultValue={selectedUser?.firstName || ''} className="input input-sm" required />
@@ -4506,7 +4515,7 @@ export default function SettingsPage() {
               <input name="lastName" defaultValue={selectedUser?.lastName || ''} className="input input-sm" required />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Email *</label>
               <input name="email" type="email" defaultValue={selectedUser?.email} className="input input-sm" required />
@@ -4516,7 +4525,7 @@ export default function SettingsPage() {
               <input name="phone" type="tel" defaultValue={selectedUser?.phone || ''} className="input input-sm" placeholder="+381..." />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('settings.role')} *</label>
               <select name="role" defaultValue={selectedUser?.role || 'sales'} className="input input-sm" required>
@@ -4607,7 +4616,7 @@ export default function SettingsPage() {
         title={selectedMailServer ? 'Edit Mail Server' : 'Add Mail Server'}
       >
         <form onSubmit={handleMailServerSubmit} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Name *</label>
               <input name="name" defaultValue={selectedMailServer?.name} className="input input-sm" required placeholder="e.g. Mail Server 1" />
@@ -4643,7 +4652,7 @@ export default function SettingsPage() {
         title={selectedMailSecurity ? 'Edit Mail Security' : 'Add Mail Security'}
       >
         <form onSubmit={handleMailSecuritySubmit} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Name *</label>
               <input name="name" defaultValue={selectedMailSecurity?.name} className="input input-sm" required placeholder="e.g. SpamExperts" />
@@ -4679,7 +4688,7 @@ export default function SettingsPage() {
         title={selectedBankAccount ? 'Edit Bank Account' : 'Add Bank Account'}
       >
         <form onSubmit={handleBankAccountSubmit} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Bank Name *</label>
               <input name="bankName" defaultValue={selectedBankAccount?.bankName} className="input input-sm" required placeholder="e.g. Banca Intesa" />
@@ -4689,7 +4698,7 @@ export default function SettingsPage() {
               <input name="accountNumber" defaultValue={selectedBankAccount?.accountNumber} className="input input-sm" required placeholder="160-0000000000000-00" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">SWIFT</label>
               <input name="swift" defaultValue={selectedBankAccount?.swift || ''} className="input input-sm" placeholder="DBDBRSBG" />
@@ -4723,7 +4732,7 @@ export default function SettingsPage() {
       >
         <div className="space-y-4">
           {/* Name and Type */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400 uppercase">Name *</label>
               <input
@@ -4994,6 +5003,19 @@ export default function SettingsPage() {
           <div className="border-t pt-4 dark:border-gray-700">
             <label className="text-[11px] text-gray-500 dark:text-gray-400 uppercase">Recipients</label>
             <div className="mt-2 space-y-3">
+              {(notificationForm.type === 'system' || notificationForm.type === 'reports') ? (
+                <div>
+                  <label className="text-[11px] text-gray-500 dark:text-gray-400">Email Address</label>
+                  <input
+                    type="email"
+                    value={notificationForm.customEmail}
+                    onChange={(e) => setNotificationForm({ ...notificationForm, customEmail: e.target.value, recipientType: 'custom' })}
+                    className="input input-sm"
+                    placeholder="email@example.com"
+                  />
+                </div>
+              ) : (
+              <>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -5039,6 +5061,8 @@ export default function SettingsPage() {
                 />
                 <span className="text-sm">Also send to Technical Contact (from domain)</span>
               </label>
+              </>
+              )}
             </div>
           </div>
 
@@ -5195,7 +5219,7 @@ export default function SettingsPage() {
         <form onSubmit={handleVisualTemplateSubmit} className="flex gap-6" style={{ height: '80vh' }}>
           <div className="flex-1 min-w-0 overflow-y-auto space-y-4 pr-2">
           {/* Basic Info */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Name *</label>
               <input
@@ -5437,7 +5461,7 @@ export default function SettingsPage() {
 
             {templateForm.showHeader && (
               <div className="p-3 space-y-3">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* Logo */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
@@ -5691,7 +5715,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                 {/* Status Filters */}
                 <div>
                   <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-2 block">Include Statuses:</label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {([
                       { status: 'green' as DomainStatus, label: 'Green (>31 days)', color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
                       { status: 'yellow' as DomainStatus, label: 'Yellow (8-31 days)', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' },
@@ -5725,7 +5749,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                 </div>
 
                 {/* Sorting */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">Sort by:</label>
                     <select
@@ -5794,7 +5818,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                 {/* Section Toggles */}
                 <div>
                   <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-2 block">Include Sections:</label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {([
                       { key: 'blockedIps' as const, label: '🛡️ Blocked IPs', color: 'bg-red-50 dark:bg-red-900/30' },
                       { key: 'lockedUsers' as const, label: '🔒 Locked Users', color: 'bg-amber-50 dark:bg-amber-900/30' },
@@ -5831,7 +5855,7 @@ Za sva pitanja stojimo Vam na raspolaganju."
                 {(templateForm.systemConfig.sections.auditLogs || templateForm.systemConfig.sections.emailLogs || templateForm.systemConfig.sections.pdfDocuments) && (
                   <div>
                     <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-2 block">Alert Thresholds:</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       {templateForm.systemConfig.sections.auditLogs && (
                         <div>
                           <label className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5 block">Audit Logs limit</label>
@@ -5911,6 +5935,31 @@ Za sva pitanja stojimo Vam na raspolaganju."
                   </select>
                 </div>
 
+                {/* Attach Formats */}
+                <div>
+                  <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-2 block">Attach as file:</label>
+                  <div className="flex gap-3">
+                    {(['csv', 'pdf', 'json'] as const).map(fmt => (
+                      <label key={fmt} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={templateForm.systemConfig.attachFormats?.[fmt] || false}
+                          onChange={(e) => setTemplateForm(prev => ({
+                            ...prev,
+                            systemConfig: {
+                              ...prev.systemConfig,
+                              attachFormats: { ...prev.systemConfig.attachFormats, [fmt]: e.target.checked }
+                            }
+                          }))}
+                          className="checkbox"
+                        />
+                        {fmt.toUpperCase()}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">Files are generated on send and not stored.</p>
+                </div>
+
                 <p className="text-[10px] text-gray-400">
                   Tip: Add {'{{systemInfo}}'} to Message Body to include system information.
                 </p>
@@ -5948,7 +5997,7 @@ Your team"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Signature Logo */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
@@ -6082,7 +6131,7 @@ Your team"
 
             {templateForm.showFooter && (
               <div className="p-3 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Footer Image */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
@@ -6130,6 +6179,16 @@ Your team"
                   {/* Footer Background Color */}
                   <div>
                     <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">Background Color</label>
+                    <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 cursor-pointer mb-2">
+                      <input
+                        type="checkbox"
+                        checked={templateForm.footerUseHeaderColor}
+                        onChange={(e) => setTemplateForm(prev => ({ ...prev, footerUseHeaderColor: e.target.checked }))}
+                        className="checkbox"
+                      />
+                      Same as header
+                    </label>
+                    {!templateForm.footerUseHeaderColor && (
                     <ColorPicker
                       value={templateForm.footerBgTransparent ? 'rgba(0,0,0,0)' : templateForm.footerBgColor}
                       onChange={(color) => {
@@ -6141,6 +6200,7 @@ Your team"
                       }}
                       showOpacity={true}
                     />
+                    )}
                   </div>
                 </div>
               </div>
@@ -6239,7 +6299,9 @@ Your team"
                     {templateForm.showFooter && (
                       <div
                         className="p-4 text-center"
-                        style={{ backgroundColor: templateForm.footerBgTransparent ? 'transparent' : templateForm.footerBgColor }}
+                        style={{ backgroundColor: templateForm.footerUseHeaderColor
+                          ? (templateForm.headerBgTransparent ? 'transparent' : templateForm.headerBgColor)
+                          : (templateForm.footerBgTransparent ? 'transparent' : templateForm.footerBgColor) }}
                       >
                         {templateForm.footerImage ? (
                           <img src={templateForm.footerImage} alt="Footer" style={{ maxHeight: `${imageSizeMap.footerImage[templateForm.footerImageSize]}px` }} className="max-w-full object-contain mx-auto" />
@@ -6417,7 +6479,7 @@ Your team"
             <label className="text-[11px] text-gray-500 dark:text-gray-400">Description</label>
             <input name="description" defaultValue={selectedPackage?.description || ''} className="input input-sm" placeholder="Optional" />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Max Mailboxes *</label>
               <input name="maxMailboxes" type="number" min="1" defaultValue={selectedPackage?.maxMailboxes || 5} className="input input-sm" required />
@@ -6431,7 +6493,7 @@ Your team"
               <input name="price" type="number" min="0" step="0.01" defaultValue={selectedPackage?.price || 0} className="input input-sm" required />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Mail Server</label>
               <select

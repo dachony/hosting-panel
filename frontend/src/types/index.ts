@@ -44,6 +44,11 @@ export interface SystemConfig {
     emailLogsCount?: number;
     pdfSizeMb?: number;
   };
+  attachFormats?: {
+    csv?: boolean;
+    pdf?: boolean;
+    json?: boolean;
+  };
 }
 
 export interface Client {

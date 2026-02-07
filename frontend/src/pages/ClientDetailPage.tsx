@@ -601,12 +601,12 @@ export default function ClientDetailPage() {
               )}
               <Users className="w-3.5 h-3.5 text-primary-600 flex-shrink-0" />
               <span className="font-medium text-sm flex-shrink-0">{client.name}</span>
-              <span className="text-gray-400 mx-1 flex-shrink-0">|</span>
-              <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+              <span className="text-gray-400 mx-1 flex-shrink-0 hidden sm:inline">|</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400 truncate hidden sm:inline">
                 <span className="text-gray-500 font-medium">{t('common.primaryContact')}</span> {[client.contactPerson, client.phone, client.email1].filter(Boolean).join(', ') || '-'}
               </span>
-              <span className="text-gray-400 mx-1 flex-shrink-0">|</span>
-              <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+              <span className="text-gray-400 mx-1 flex-shrink-0 hidden sm:inline">|</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400 truncate hidden sm:inline">
                 <span className="text-gray-500 font-medium">{t('common.technicalContact')}</span> {[client.techContact || client.contactPerson, client.techPhone || client.phone, client.techEmail || client.email1].filter(Boolean).join(', ') || '-'}
               </span>
             </div>
@@ -656,7 +656,7 @@ export default function ClientDetailPage() {
           {isClientExpanded && (
             <div className="border-t dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800/50 space-y-3">
               {/* Client Name & Business Info */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
                   <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.name')}</span>
                   {isClientLocked ? (
@@ -689,7 +689,7 @@ export default function ClientDetailPage() {
               {/* Primary Contact */}
               <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
                 <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.primaryContact')}</span>
-                <div className="mt-1.5 grid grid-cols-3 gap-2 text-xs">
+                <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <div>
                     <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.nameAndSurname')}</label>
                     {isClientLocked ? (
@@ -760,7 +760,7 @@ export default function ClientDetailPage() {
                     </label>
                   )}
                 </div>
-                <div className="mt-1.5 grid grid-cols-3 gap-2 text-xs">
+                <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <div>
                     <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('common.nameAndSurname')}</label>
                     {isClientLocked ? (
@@ -809,7 +809,7 @@ export default function ClientDetailPage() {
               {/* PIB/MIB */}
               <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border dark:border-gray-700">
                 <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase">{t('common.businessInfo')}</span>
-                <div className="mt-1.5 grid grid-cols-2 gap-2 text-xs">
+                <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   <div>
                     <label className="text-[11px] text-gray-500 dark:text-gray-400">PIB</label>
                     {isClientLocked ? (
@@ -948,7 +948,7 @@ export default function ClientDetailPage() {
                     className="flex items-center gap-4 p-4 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors"
                   >
                     {/* Expand Icon + Domain Name */}
-                    <div className="w-44 flex-shrink-0">
+                    <div className="w-36 sm:w-44 flex-shrink-0">
                       <div className="flex items-center gap-2">
                         {isExpanded ? (
                           <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -961,7 +961,7 @@ export default function ClientDetailPage() {
                     </div>
 
                     {/* Contacts */}
-                    <div className="flex-1 min-w-0 text-xs space-y-0.5">
+                    <div className="flex-1 min-w-0 text-xs space-y-0.5 hidden sm:block">
                       <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 whitespace-nowrap overflow-hidden">
                         <span className="text-gray-500 font-medium flex-shrink-0">{t('common.primaryContact')}</span>
                         <span className="truncate">{[domain.primaryContactName || client.contactPerson, domain.primaryContactPhone || client.phone, domain.primaryContactEmail || client.email1].filter(Boolean).join(', ') || '-'}</span>
@@ -973,7 +973,7 @@ export default function ClientDetailPage() {
                     </div>
 
                     {/* Package Info */}
-                    <div className="w-36 flex-shrink-0 text-xs text-left">
+                    <div className="w-28 sm:w-36 flex-shrink-0 text-xs text-left hidden sm:block">
                       {domainHosting ? (
                         <>
                           <div className="text-gray-700 dark:text-gray-300 font-medium truncate">
@@ -992,14 +992,14 @@ export default function ClientDetailPage() {
                     </div>
 
                     {/* Status */}
-                    <div className="w-32 flex-shrink-0">
+                    <div className="w-24 sm:w-32 flex-shrink-0">
                       {domainHosting ? (
                         <StatusBadge status={domainHosting.expiryStatus} days={domainHosting.daysUntilExpiry || 0} />
                       ) : null}
                     </div>
 
                     {/* Buttons */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                       {canWriteData && (
                         <button
                           onClick={(e) => {
@@ -1009,7 +1009,7 @@ export default function ClientDetailPage() {
                           className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
                         >
                           <Pencil className="w-3 h-3" />
-                          {t('common.edit')}
+                          <span className="hidden sm:inline">{t('common.edit')}</span>
                         </button>
                       )}
                       <button
@@ -1021,7 +1021,7 @@ export default function ClientDetailPage() {
                         className="btn btn-primary text-xs py-1 px-2 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <Calendar className="w-3 h-3" />
-                        {t('common.extend')}
+                        <span className="hidden sm:inline">{t('common.extend')}</span>
                       </button>
                     </div>
                   </div>
@@ -1345,7 +1345,7 @@ export default function ClientDetailPage() {
                 <span className="text-gray-500">{t('common.sameAsCompanyPrimary')}</span>
               </label>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs text-gray-500">{t('common.nameAndSurname')} *</label>
                 <input
@@ -1405,7 +1405,7 @@ export default function ClientDetailPage() {
                 <span className="text-gray-500">{t('common.sameAsCompanyTechnical')}</span>
               </label>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs text-gray-500">{t('common.nameAndSurname')} *</label>
                 <input
@@ -1490,7 +1490,7 @@ export default function ClientDetailPage() {
           {/* Dates & Extend */}
           {domainForm.packageId && (
             <div className="pt-3 border-t dark:border-gray-700">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div />
                 <div className="bg-primary-50 dark:bg-gray-700/50 rounded-lg p-3 -m-1">
                   <span className="text-xs font-medium text-primary-700 dark:text-primary-300 uppercase">{t('common.expiry')} *</span>
@@ -1641,7 +1641,7 @@ export default function ClientDetailPage() {
                 <span className="text-gray-500">{t('common.sameAsCompanyPrimary')}</span>
               </label>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs text-gray-500">{t('common.nameAndSurname')} *</label>
                 <input
@@ -1702,7 +1702,7 @@ export default function ClientDetailPage() {
                 <span className="text-gray-500">{t('common.sameAsCompanyTechnical')}</span>
               </label>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs text-gray-500">{t('common.nameAndSurname')} *</label>
                 <input
@@ -1788,7 +1788,7 @@ export default function ClientDetailPage() {
 
           {/* Dates & Extend */}
           <div className="pt-3 border-t dark:border-gray-700">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Left: Start Date and Expiry Date (read-only) */}
               <div className="space-y-3">
                 <div>
@@ -1927,7 +1927,7 @@ export default function ClientDetailPage() {
         size="lg"
       >
         <form onSubmit={handleEditHostingSubmit} className="space-y-3">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-gray-500">{t('common.package')} *</label>
               <select
@@ -1960,7 +1960,7 @@ export default function ClientDetailPage() {
 
           {/* Dates & Extend */}
           <div className="pt-3 border-t dark:border-gray-700">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Left: Added and Expiry Date (read-only) */}
               <div className="space-y-3">
                 <div>

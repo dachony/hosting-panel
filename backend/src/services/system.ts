@@ -2,6 +2,13 @@ import { db, schema, SystemConfig } from '../db/index.js';
 import { eq, and, gte, desc, count, isNotNull } from 'drizzle-orm';
 import { statSync, readdirSync, existsSync } from 'fs';
 import { join } from 'path';
+import PDFDocument from 'pdfkit';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const FONT_REGULAR = path.join(__dirname, '..', '..', 'src', 'fonts', 'OpenSans-Regular.ttf');
+const FONT_BOLD = path.join(__dirname, '..', '..', 'src', 'fonts', 'OpenSans-Bold.ttf');
 
 // Get date filter based on period
 function getDateFilter(period: SystemConfig['period']): string | null {
@@ -499,4 +506,301 @@ export async function generateSystemInfoHtml(config: SystemConfig): Promise<stri
   }
 
   return sections.join('');
+}
+
+// Collect structured system data for JSON/CSV/PDF export
+export async function collectSystemData(config: SystemConfig) {
+  const data: Record<string, any> = {};
+  const periodLabels: Record<SystemConfig['period'], string> = {
+    today: 'Today',
+    last7days: 'Last 7 days',
+    last30days: 'Last 30 days',
+    all: 'All time',
+  };
+  data.period = periodLabels[config.period];
+  data.generatedAt = new Date().toISOString();
+
+  if (config.sections.blockedIps) {
+    data.blockedIps = await getBlockedIps(config.period);
+  }
+  if (config.sections.lockedUsers) {
+    data.lockedUsers = await getLockedUsers();
+  }
+  if (config.sections.failedLogins) {
+    const logins = await getFailedLogins(config.period);
+    const byIp = new Map<string, { count: number; lastAttempt: string; emails: string[] }>();
+    for (const login of logins) {
+      const existing = byIp.get(login.ipAddress) || { count: 0, lastAttempt: login.createdAt, emails: [] };
+      existing.count++;
+      if (login.email && !existing.emails.includes(login.email)) existing.emails.push(login.email);
+      if (login.createdAt > existing.lastAttempt) existing.lastAttempt = login.createdAt;
+      byIp.set(login.ipAddress, existing);
+    }
+    data.failedLogins = { total: logins.length, byIp: Array.from(byIp.entries()).map(([ip, d]) => ({ ip, ...d })) };
+  }
+  if (config.sections.passwordChanges) {
+    data.passwordChanges = await getPasswordChanges(config.period);
+  }
+  if (config.sections.resourceUsage) {
+    data.resourceUsage = getResourceUsage();
+  }
+  if (config.sections.databaseSize) {
+    const dbSize = getDatabaseSize();
+    const [clientsCount, domainsCount, webHostingCount, mailHostingCount, auditLogsCount] = await Promise.all([
+      db.select({ count: count() }).from(schema.clients),
+      db.select({ count: count() }).from(schema.domains),
+      db.select({ count: count() }).from(schema.webHosting),
+      db.select({ count: count() }).from(schema.mailHosting),
+      db.select({ count: count() }).from(schema.auditLogs),
+    ]);
+    data.database = {
+      sizeBytes: dbSize, size: formatBytes(dbSize),
+      clients: clientsCount[0].count, domains: domainsCount[0].count,
+      webHosting: webHostingCount[0].count, mailHosting: mailHostingCount[0].count,
+      auditLogs: auditLogsCount[0].count,
+    };
+  }
+  if (config.sections.auditLogs) {
+    const result = await db.select({ count: count() }).from(schema.auditLogs);
+    data.auditLogs = { total: result[0].count, threshold: config.thresholds?.auditLogsCount };
+  }
+  if (config.sections.emailLogs) {
+    const result = await db.select({ count: count() }).from(schema.emailLogs);
+    data.emailLogs = { total: result[0].count, threshold: config.thresholds?.emailLogsCount };
+  }
+  if (config.sections.pdfDocuments) {
+    const pdfDir = '/app/data/pdfs';
+    let fileCount = 0, totalSize = 0;
+    if (existsSync(pdfDir)) {
+      try {
+        for (const file of readdirSync(pdfDir)) {
+          try { const s = statSync(join(pdfDir, file)); if (s.isFile()) { fileCount++; totalSize += s.size; } } catch {}
+        }
+      } catch {}
+    }
+    data.pdfDocuments = { fileCount, totalSizeBytes: totalSize, totalSize: formatBytes(totalSize), thresholdMb: config.thresholds?.pdfSizeMb };
+  }
+
+  return data;
+}
+
+// Generate system info as JSON string
+export async function generateSystemInfoJson(config: SystemConfig): Promise<string> {
+  const data = await collectSystemData(config);
+  return JSON.stringify(data, null, 2);
+}
+
+// Generate system info as CSV string
+export async function generateSystemInfoCsv(config: SystemConfig): Promise<string> {
+  const data = await collectSystemData(config);
+  const lines: string[] = [`System Info Report - ${data.period} - Generated: ${data.generatedAt}`, ''];
+
+  if (data.blockedIps) {
+    lines.push('BLOCKED IPS', 'IP Address,Reason,Blocked Until,Created');
+    for (const ip of data.blockedIps) {
+      lines.push(`${ip.ipAddress},"${(ip.reason || '-').replace(/"/g, '""')}",${ip.permanent ? 'Permanent' : (ip.blockedUntil || '-')},${ip.createdAt}`);
+    }
+    lines.push('');
+  }
+  if (data.lockedUsers) {
+    lines.push('LOCKED USERS', 'Name,Email,Failed Attempts,Locked Until');
+    for (const u of data.lockedUsers) {
+      lines.push(`"${u.name}",${u.email},${u.failedLoginAttempts || 0},${u.lockedUntil || '-'}`);
+    }
+    lines.push('');
+  }
+  if (data.failedLogins) {
+    lines.push('FAILED LOGINS', 'IP Address,Attempts,Emails,Last Attempt');
+    for (const entry of data.failedLogins.byIp) {
+      lines.push(`${entry.ip},${entry.count},"${entry.emails.join('; ')}",${entry.lastAttempt}`);
+    }
+    lines.push('');
+  }
+  if (data.passwordChanges) {
+    lines.push('PASSWORD CHANGES', 'User,Email,IP Address,Time');
+    for (const p of data.passwordChanges) {
+      lines.push(`"${p.userName}",${p.userEmail},${p.ipAddress || '-'},${p.createdAt}`);
+    }
+    lines.push('');
+  }
+  if (data.resourceUsage) {
+    lines.push('RESOURCE USAGE', `Total Size: ${formatBytes(data.resourceUsage.totalSize)}`, 'File,Size');
+    for (const f of data.resourceUsage.files) {
+      lines.push(`${f.name},${formatBytes(f.size)}`);
+    }
+    lines.push('');
+  }
+  if (data.database) {
+    lines.push('DATABASE', `Size: ${data.database.size}`,
+      `Clients: ${data.database.clients}`, `Domains: ${data.database.domains}`,
+      `Mail Hosting: ${data.database.mailHosting}`, `Audit Logs: ${data.database.auditLogs}`, '');
+  }
+  if (data.auditLogs) {
+    lines.push(`AUDIT LOGS: ${data.auditLogs.total} entries${data.auditLogs.threshold ? ` (threshold: ${data.auditLogs.threshold})` : ''}`, '');
+  }
+  if (data.emailLogs) {
+    lines.push(`EMAIL LOGS: ${data.emailLogs.total} entries${data.emailLogs.threshold ? ` (threshold: ${data.emailLogs.threshold})` : ''}`, '');
+  }
+  if (data.pdfDocuments) {
+    lines.push(`PDF DOCUMENTS: ${data.pdfDocuments.fileCount} files, ${data.pdfDocuments.totalSize}${data.pdfDocuments.thresholdMb ? ` (threshold: ${data.pdfDocuments.thresholdMb} MB)` : ''}`, '');
+  }
+
+  return lines.join('\n');
+}
+
+// Generate system info as PDF buffer
+export async function generateSystemInfoPdf(config: SystemConfig): Promise<Buffer> {
+  const data = await collectSystemData(config);
+
+  const systemSetting = await db.select().from(schema.appSettings).where(eq(schema.appSettings.key, 'system')).get();
+  const systemName = (systemSetting?.value as { systemName?: string })?.systemName || 'Hosting Panel';
+
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
+    doc.registerFont('OpenSans', FONT_REGULAR);
+    doc.registerFont('OpenSans-Bold', FONT_BOLD);
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const pageBottom = doc.page.height - 50;
+    const tableLeft = 40;
+
+    doc.fontSize(11).font('OpenSans-Bold').fill('#666').text(systemName, { align: 'center' });
+    doc.fontSize(16).font('OpenSans-Bold').fill('#111').text('System Info Report', { align: 'center' });
+    doc.fontSize(9).font('OpenSans').fill('#666').text(`Period: ${data.period} | Generated: ${new Date().toLocaleString('sr-RS')}`, { align: 'center' });
+    doc.moveDown(1);
+
+    const drawSectionHeader = (title: string, color: string) => {
+      if (doc.y + 40 > pageBottom) doc.addPage();
+      doc.save();
+      doc.rect(tableLeft, doc.y, 515, 18).fill(color);
+      doc.restore();
+      doc.fontSize(10).font('OpenSans-Bold').fill('#fff').text(title, tableLeft + 6, doc.y + 4, { width: 503 });
+      doc.y += 20;
+      doc.x = tableLeft;
+    };
+
+    const drawKeyValue = (key: string, value: string) => {
+      if (doc.y + 16 > pageBottom) doc.addPage();
+      doc.fontSize(9).font('OpenSans-Bold').fill('#333').text(key + ': ', tableLeft + 6, doc.y, { continued: true, width: 505 });
+      doc.font('OpenSans').text(value);
+    };
+
+    if (data.blockedIps) {
+      drawSectionHeader(`Blocked IPs (${data.blockedIps.length})`, '#dc2626');
+      if (data.blockedIps.length === 0) {
+        drawKeyValue('Status', 'No blocked IPs');
+      } else {
+        for (const ip of data.blockedIps) {
+          if (doc.y + 14 > pageBottom) doc.addPage();
+          doc.fontSize(8).font('OpenSans').fill('#333').text(
+            `${ip.ipAddress}  |  ${ip.reason || '-'}  |  ${ip.permanent ? 'Permanent' : (ip.blockedUntil ? formatDate(ip.blockedUntil) : '-')}`,
+            tableLeft + 6, doc.y, { width: 505 }
+          );
+        }
+      }
+      doc.moveDown(0.5);
+    }
+
+    if (data.lockedUsers) {
+      drawSectionHeader(`Locked Users (${data.lockedUsers.length})`, '#f59e0b');
+      for (const u of data.lockedUsers) {
+        if (doc.y + 14 > pageBottom) doc.addPage();
+        doc.fontSize(8).font('OpenSans').fill('#333').text(
+          `${u.name}  |  ${u.email}  |  Attempts: ${u.failedLoginAttempts || 0}  |  Until: ${u.lockedUntil ? formatDate(u.lockedUntil) : '-'}`,
+          tableLeft + 6, doc.y, { width: 505 }
+        );
+      }
+      doc.moveDown(0.5);
+    }
+
+    if (data.failedLogins) {
+      drawSectionHeader(`Failed Logins (${data.failedLogins.total} total, ${data.failedLogins.byIp.length} IPs)`, '#7c3aed');
+      for (const entry of data.failedLogins.byIp.slice(0, 20)) {
+        if (doc.y + 14 > pageBottom) doc.addPage();
+        doc.fontSize(8).font('OpenSans').fill('#333').text(
+          `${entry.ip}  |  ${entry.count} attempts  |  ${entry.emails.slice(0, 3).join(', ') || '-'}`,
+          tableLeft + 6, doc.y, { width: 505 }
+        );
+      }
+      doc.moveDown(0.5);
+    }
+
+    if (data.passwordChanges) {
+      drawSectionHeader(`Password Changes (${data.passwordChanges.length})`, '#059669');
+      for (const p of data.passwordChanges) {
+        if (doc.y + 14 > pageBottom) doc.addPage();
+        doc.fontSize(8).font('OpenSans').fill('#333').text(
+          `${p.userName}  |  ${p.userEmail}  |  ${p.ipAddress || '-'}  |  ${formatDate(p.createdAt)}`,
+          tableLeft + 6, doc.y, { width: 505 }
+        );
+      }
+      doc.moveDown(0.5);
+    }
+
+    if (data.resourceUsage) {
+      drawSectionHeader('Resource Usage', '#0891b2');
+      drawKeyValue('Total data folder', formatBytes(data.resourceUsage.totalSize));
+      for (const f of data.resourceUsage.files.slice(0, 10)) {
+        if (doc.y + 14 > pageBottom) doc.addPage();
+        doc.fontSize(8).font('OpenSans').fill('#333').text(`${f.name}: ${formatBytes(f.size)}`, tableLeft + 6, doc.y, { width: 505 });
+      }
+      doc.moveDown(0.5);
+    }
+
+    if (data.database) {
+      drawSectionHeader('Database', '#6366f1');
+      drawKeyValue('Size', data.database.size);
+      drawKeyValue('Clients', String(data.database.clients));
+      drawKeyValue('Domains', String(data.database.domains));
+      drawKeyValue('Mail Hosting', String(data.database.mailHosting));
+      drawKeyValue('Audit Logs', String(data.database.auditLogs));
+      doc.moveDown(0.5);
+    }
+
+    if (data.auditLogs) {
+      drawSectionHeader('Audit Logs', '#ea580c');
+      drawKeyValue('Total entries', String(data.auditLogs.total));
+      if (data.auditLogs.threshold && data.auditLogs.total > data.auditLogs.threshold) {
+        doc.fontSize(8).font('OpenSans-Bold').fill('#dc2626').text(
+          `WARNING: Count (${data.auditLogs.total}) exceeds threshold (${data.auditLogs.threshold})`,
+          tableLeft + 6, doc.y, { width: 505 }
+        );
+      }
+      doc.moveDown(0.5);
+    }
+
+    if (data.emailLogs) {
+      drawSectionHeader('Email Logs', '#0284c7');
+      drawKeyValue('Total entries', String(data.emailLogs.total));
+      if (data.emailLogs.threshold && data.emailLogs.total > data.emailLogs.threshold) {
+        doc.fontSize(8).font('OpenSans-Bold').fill('#dc2626').text(
+          `WARNING: Count (${data.emailLogs.total}) exceeds threshold (${data.emailLogs.threshold})`,
+          tableLeft + 6, doc.y, { width: 505 }
+        );
+      }
+      doc.moveDown(0.5);
+    }
+
+    if (data.pdfDocuments) {
+      drawSectionHeader('PDF Documents', '#be123c');
+      drawKeyValue('Files', String(data.pdfDocuments.fileCount));
+      drawKeyValue('Total size', data.pdfDocuments.totalSize);
+      if (data.pdfDocuments.thresholdMb) {
+        const sizeMb = data.pdfDocuments.totalSizeBytes / (1024 * 1024);
+        if (sizeMb > data.pdfDocuments.thresholdMb) {
+          doc.fontSize(8).font('OpenSans-Bold').fill('#dc2626').text(
+            `WARNING: Size (${data.pdfDocuments.totalSize}) exceeds threshold (${data.pdfDocuments.thresholdMb} MB)`,
+            tableLeft + 6, doc.y, { width: 505 }
+          );
+        }
+      }
+      doc.moveDown(0.5);
+    }
+
+    doc.fontSize(7).font('OpenSans').fill('#999').text(`Generated by ${systemName}`, tableLeft, doc.y + 10);
+    doc.end();
+  });
 }

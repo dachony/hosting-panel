@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { sendEmail } from '../services/email.js';
 import { generateHostingListHtml } from '../services/reports.js';
-import { generateSystemInfoHtml } from '../services/system.js';
+import { generateSystemInfoHtml, generateSystemInfoJson, generateSystemInfoCsv, generateSystemInfoPdf } from '../services/system.js';
 import { parseId } from '../utils/validation.js';
 
 const templates = new Hono();
@@ -72,6 +72,11 @@ const systemConfigSchema = z.object({
     auditLogsCount: z.number().optional(),
     emailLogsCount: z.number().optional(),
     pdfSizeMb: z.number().optional(),
+  }).optional(),
+  attachFormats: z.object({
+    csv: z.boolean().optional(),
+    pdf: z.boolean().optional(),
+    json: z.boolean().optional(),
   }).optional(),
 }).nullable().optional();
 
@@ -268,10 +273,30 @@ templates.post('/:id/test', adminMiddleware, async (c) => {
       subject = subject.replace(regex, value);
     }
 
+    // Generate system info attachments
+    const attachments: Array<{ filename: string; content: Buffer }> = [];
+    if (template.type === 'system' && template.systemConfig) {
+      const sysConfig = template.systemConfig as SystemConfig;
+      const dateStr = new Date().toISOString().split('T')[0];
+      if (sysConfig.attachFormats?.json) {
+        const jsonStr = await generateSystemInfoJson(sysConfig);
+        attachments.push({ filename: `system-info-${dateStr}.json`, content: Buffer.from(jsonStr, 'utf-8') });
+      }
+      if (sysConfig.attachFormats?.csv) {
+        const csvStr = await generateSystemInfoCsv(sysConfig);
+        attachments.push({ filename: `system-info-${dateStr}.csv`, content: Buffer.from(csvStr, 'utf-8') });
+      }
+      if (sysConfig.attachFormats?.pdf) {
+        const pdfBuf = await generateSystemInfoPdf(sysConfig);
+        attachments.push({ filename: `system-info-${dateStr}.pdf`, content: pdfBuf });
+      }
+    }
+
     await sendEmail({
       to: email,
       subject,
       html,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
 
     return c.json({ message: 'Test email sent' });

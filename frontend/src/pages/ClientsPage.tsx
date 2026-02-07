@@ -32,7 +32,7 @@ export default function ClientsPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [techSameAsPrimary, setTechSameAsPrimary] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>(window.innerWidth < 768 ? 'cards' : 'list');
 
   const { data, isLoading } = useQuery({
     queryKey: ['clients'],
@@ -129,9 +129,9 @@ export default function ClientsPage() {
 
       {/* Clients List */}
       <div className="card card-flush overflow-hidden">
-        <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-xs">
+        <div className="flex flex-wrap gap-2 justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="relative flex-1 max-w-xs min-w-[120px]">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input
                 type="text"
@@ -277,7 +277,7 @@ export default function ClientsPage() {
                 className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors"
               >
                 {/* Client Name */}
-                <div className="w-44 flex-shrink-0">
+                <div className="w-36 sm:w-44 flex-shrink-0">
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-primary-600 flex-shrink-0" />
                     <span className="font-medium text-sm">{client.name}</span>
@@ -285,7 +285,7 @@ export default function ClientsPage() {
                 </div>
 
                 {/* Contacts */}
-                <div className="min-w-0 flex-1 text-xs space-y-1">
+                <div className="min-w-0 flex-1 text-xs space-y-1 hidden sm:block">
                   <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                     <span className="text-gray-500 font-medium w-28 flex-shrink-0">{t('common.primaryContact')}</span>
                     <span className="truncate">{[client.contactPerson, client.phone, client.email1].filter(Boolean).join(', ') || '-'}</span>
@@ -348,7 +348,7 @@ export default function ClientsPage() {
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-gray-500 uppercase">{t('common.primaryContact')}</span>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs text-gray-500">{t('common.nameAndSurname') + ' *'}</label>
                 <input
@@ -395,7 +395,7 @@ export default function ClientsPage() {
               </label>
             </div>
             {!techSameAsPrimary && (
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs text-gray-500">{t('common.nameAndSurname') + ' *'}</label>
                   <input
@@ -439,7 +439,7 @@ export default function ClientsPage() {
                 className="input py-1.5 text-sm"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
               <div>
                 <label className="text-xs text-gray-500">PIB</label>
                 <input

@@ -106,7 +106,7 @@ export default function DashboardPage() {
       {/* Top section: Left (stats + actions) | Right (missing offers) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left: 2x2 grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Total Clients */}
           <div
             onClick={() => navigate('/clients')}
@@ -192,10 +192,10 @@ export default function DashboardPage() {
                   onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
                   className="flex items-center px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-xs gap-3"
                 >
-                  <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
-                  <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
-                  <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <div className="w-32 shrink-0">
+                  <span className="font-medium truncate w-28 sm:w-40 shrink-0">{item.name}</span>
+                  <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0 hidden sm:inline">{item.clientName || '-'}</span>
+                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
+                  <div className="w-24 sm:w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>
                 </div>
@@ -230,10 +230,10 @@ export default function DashboardPage() {
                   onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
                   className="flex items-center px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-xs gap-3"
                 >
-                  <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
-                  <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
-                  <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <div className="w-32 shrink-0">
+                  <span className="font-medium truncate w-28 sm:w-40 shrink-0">{item.name}</span>
+                  <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0 hidden sm:inline">{item.clientName || '-'}</span>
+                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
+                  <div className="w-24 sm:w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>
                 </div>
@@ -265,10 +265,10 @@ export default function DashboardPage() {
                   onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
                   className="flex items-center px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-xs gap-3"
                 >
-                  <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
-                  <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
-                  <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <div className="w-32 shrink-0">
+                  <span className="font-medium truncate w-28 sm:w-40 shrink-0">{item.name}</span>
+                  <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0 hidden sm:inline">{item.clientName || '-'}</span>
+                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
+                  <div className="w-24 sm:w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>
                 </div>
@@ -300,10 +300,10 @@ export default function DashboardPage() {
                   onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
                   className="flex items-center px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-xs gap-3"
                 >
-                  <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
-                  <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
-                  <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <div className="w-32 shrink-0">
+                  <span className="font-medium truncate w-28 sm:w-40 shrink-0">{item.name}</span>
+                  <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0 hidden sm:inline">{item.clientName || '-'}</span>
+                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
+                  <div className="w-24 sm:w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>
                 </div>
@@ -335,10 +335,10 @@ export default function DashboardPage() {
                   onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
                   className="flex items-center px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-xs gap-3"
                 >
-                  <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
-                  <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
-                  <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <div className="w-32 shrink-0">
+                  <span className="font-medium truncate w-28 sm:w-40 shrink-0">{item.name}</span>
+                  <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0 hidden sm:inline">{item.clientName || '-'}</span>
+                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
+                  <div className="w-24 sm:w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>
                 </div>
