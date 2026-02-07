@@ -169,7 +169,7 @@ export default function SettingsPage() {
     permanentBlockAttempts: 10,
     twoFactorEnforcement: 'optional',
     twoFactorMethods: ['email', 'totp'],
-    passwordMinLength: 8,
+    passwordMinLength: 6,
     passwordRequireUppercase: true,
     passwordRequireLowercase: true,
     passwordRequireNumbers: true,

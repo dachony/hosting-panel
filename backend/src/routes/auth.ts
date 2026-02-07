@@ -637,12 +637,18 @@ auth.post('/forgot-password', rateLimit('forgot-password', 3, 15 * 60 * 1000), a
       expiresAt,
     });
 
+    // Get base URL from system settings
+    const systemSetting = await db.select().from(schema.appSettings).where(eq(schema.appSettings.key, 'system')).get();
+    const systemSettings = (systemSetting?.value as { systemName?: string; baseUrl?: string }) || {};
+    const baseUrl = systemSettings.baseUrl || process.env.FRONTEND_URL || 'http://localhost:3000';
+    const systemName = systemSettings.systemName || 'Hosting Panel';
+
     // Send email
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
+    const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
     await sendEmail({
       to: user.email,
-      subject: 'Hosting Panel - Password Reset',
+      subject: `${systemName} - Password Reset`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2563eb;">Password Reset</h2>
@@ -657,10 +663,10 @@ auth.post('/forgot-password', rateLimit('forgot-password', 3, 15 * 60 * 1000), a
             This link is valid for 1 hour. If you did not request a password reset, please ignore this email.
           </p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-          <p style="color: #9ca3af; font-size: 12px;">Hosting Panel</p>
+          <p style="color: #9ca3af; font-size: 12px;">${systemName}</p>
         </div>
       `,
-      text: `Password Reset\n\nClick the link to reset your password: ${resetUrl}\n\nThis link is valid for 1 hour.`,
+      text: `Password Reset\n\nClick the link to reset your password: ${resetUrl}\n\nThis link is valid for 1 hour.\n\n${systemName}`,
     });
 
     return c.json({ message: 'If the email exists, a reset link has been sent' });
@@ -676,7 +682,7 @@ auth.post('/forgot-password', rateLimit('forgot-password', 3, 15 * 60 * 1000), a
 // Reset password with token
 const resetPasswordSchema = z.object({
   token: z.string().min(1),
-  password: z.string().min(8),
+  password: z.string().min(6),
 });
 
 // Rate limit: 5 attempts per 15 minutes per IP
@@ -735,7 +741,7 @@ const setupSchema = z.object({
   lastName: z.string().min(1),
   email: z.string().email(),
   phone: z.string().optional().default(''),
-  password: z.string().min(8),
+  password: z.string().min(6),
 });
 
 auth.post('/setup', async (c) => {

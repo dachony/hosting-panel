@@ -40,7 +40,7 @@ export default function SetupPage() {
       return;
     }
 
-    if (password.length < 8) {
+    if (password.length < 6) {
       toast.error(t('auth.passwordMinLength'));
       return;
     }
@@ -143,7 +143,7 @@ export default function SetupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input"
-                minLength={8}
+                minLength={6}
                 required
               />
             </div>
@@ -155,7 +155,7 @@ export default function SetupPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="input"
-                minLength={8}
+                minLength={6}
                 required
               />
             </div>

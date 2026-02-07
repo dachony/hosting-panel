@@ -85,7 +85,6 @@ users.post('/', async (c) => {
     if (data.sendInvite) {
       // Generate temporary password
       password = await generateTemporaryPassword();
-      mustChangePassword = true;
     } else {
       if (!data.password) {
         return c.json({ error: 'Password is required when not sending invite' }, 400);
@@ -146,8 +145,6 @@ users.post('/', async (c) => {
                     </tr>
                   </table>
                 </div>
-
-                <p style="color: #dc2626;"><strong>Important:</strong> You must change your password after the first login.</p>
 
                 <div style="text-align: center; margin: 25px 0;">
                   <a href="${baseUrl}" style="background: #1e40af; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">
@@ -345,7 +342,6 @@ users.post('/:id/resend-invite', async (c) => {
   await db.update(schema.users)
     .set({
       passwordHash,
-      mustChangePassword: true,
       updatedAt: getCurrentTimestamp(),
     })
     .where(eq(schema.users.id, id));
@@ -381,8 +377,6 @@ users.post('/:id/resend-invite', async (c) => {
                 </tr>
               </table>
             </div>
-
-            <p style="color: #dc2626;"><strong>Important:</strong> You must change your password after login.</p>
 
             <div style="text-align: center; margin: 25px 0;">
               <a href="${baseUrl}" style="background: #1e40af; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">

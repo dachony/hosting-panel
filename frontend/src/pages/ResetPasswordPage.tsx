@@ -38,7 +38,7 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 8) {
+    if (password.length < 6) {
       toast.error(t('auth.passwordMinLength'));
       return;
     }
@@ -141,7 +141,7 @@ export default function ResetPasswordPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="input"
                   required
-                  minLength={8}
+                  minLength={6}
                   placeholder={t('auth.minCharacters')}
                 />
               </div>

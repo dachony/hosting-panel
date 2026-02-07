@@ -13,7 +13,7 @@ const DEFAULT_SETTINGS = {
   twoFactorEnforcement: 'optional' as string,
   twoFactorMethods: ['email', 'totp'] as string[],
   // Password policy
-  passwordMinLength: 8,
+  passwordMinLength: 6,
   passwordRequireUppercase: true,
   passwordRequireLowercase: true,
   passwordRequireNumbers: true,
@@ -148,10 +148,15 @@ export async function recordLoginAttempt(ipAddress: string, email: string | null
   }
 }
 
+// Format date as SQLite-compatible timestamp (YYYY-MM-DD HH:MM:SS)
+function toSqliteTimestamp(date: Date): string {
+  return date.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
+}
+
 // Check failed attempts and block if needed
 async function checkAndBlockIp(ipAddress: string) {
   const settings = await getSecuritySettings();
-  const windowStart = new Date(Date.now() - settings.lockoutMinutes * 60 * 1000).toISOString();
+  const windowStart = toSqliteTimestamp(new Date(Date.now() - settings.lockoutMinutes * 60 * 1000));
 
   // Count recent failed attempts
   const recentAttempts = await db.select({ count: sql<number>`count(*)` })
@@ -190,7 +195,7 @@ async function checkAndBlockIp(ipAddress: string) {
 
   // Check for temporary block
   if (failedCount >= settings.maxLoginAttempts) {
-    const blockedUntil = new Date(Date.now() + settings.lockoutMinutes * 60 * 1000).toISOString();
+    const blockedUntil = toSqliteTimestamp(new Date(Date.now() + settings.lockoutMinutes * 60 * 1000));
     await blockIp(ipAddress, 'Too many failed login attempts', false, blockedUntil);
   }
 }
@@ -234,7 +239,7 @@ export async function getLoginAttempts(limit = 100) {
 
 // Clean up old login attempts (call periodically)
 export async function cleanupOldAttempts(daysToKeep = 7) {
-  const cutoff = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000).toISOString();
+  const cutoff = toSqliteTimestamp(new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000));
   await db.delete(schema.loginAttempts).where(sql`${schema.loginAttempts.createdAt} < ${cutoff}`);
 }
 
@@ -275,7 +280,7 @@ export function generateTotpSecret(): string {
 
 // Store verification code for email 2FA
 export async function storeVerificationCode(userId: number, code: string, type: string = 'login', expiresInMinutes: number = 10) {
-  const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000).toISOString();
+  const expiresAt = toSqliteTimestamp(new Date(Date.now() + expiresInMinutes * 60 * 1000));
 
   // Delete any existing unused codes for this user and type
   await db.delete(schema.verificationCodes)
