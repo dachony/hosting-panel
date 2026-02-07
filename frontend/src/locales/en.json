@@ -190,6 +190,8 @@
     "willBeDeleted": "Will Be Deleted",
     "expiringItemsNext30Days": "Expiring Items (next 30 days)",
     "noExpiringItems": "No expiring items",
+    "missingOffers": "Missing Offers",
+    "noMissingOffers": "All offers have been sent",
     "willBeDeletedExpired60": "For Deleted (expired 60+ days)",
     "noItemsPendingDeletion": "No items pending deletion",
     "expired": "Expired",

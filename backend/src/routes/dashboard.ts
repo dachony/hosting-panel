@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
-import { getDashboardStats, getExpiringItems, getExpiredItems, getForDeletionItems, getWillBeDeletedItems, getRecentActivity } from '../services/reports.js';
+import { getDashboardStats, getExpiringItems, getExpiredItems, getForDeletionItems, getWillBeDeletedItems, getRecentActivity, getMissingOffers } from '../services/reports.js';
 import { safeParseInt } from '../utils/validation.js';
 
 const dashboard = new Hono();
@@ -30,6 +30,11 @@ dashboard.get('/for-deletion', async (c) => {
 
 dashboard.get('/will-be-deleted', async (c) => {
   const items = await getWillBeDeletedItems();
+  return c.json({ items });
+});
+
+dashboard.get('/missing-offers', async (c) => {
+  const items = await getMissingOffers();
   return c.json({ items });
 });
 

@@ -1,5 +1,5 @@
 import { db, schema } from '../db/index.js';
-import { eq, and, lte, gte, gt, lt, count, isNotNull } from 'drizzle-orm';
+import { eq, and, lte, gte, gt, lt, count, isNotNull, isNull } from 'drizzle-orm';
 import { formatDate, addDaysToDate, daysUntilExpiry, getDomainStatus, DomainStatus } from '../utils/dates.js';
 import { ReportConfig } from '../db/schema.js';
 
@@ -221,6 +221,40 @@ export async function getWillBeDeletedItems(): Promise<ExpiringItem[]> {
 
   // Sort by expiry date ascending (most overdue first, which is most negative daysUntilExpiry)
   return items.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+}
+
+/** Domains with 20-60 days until hosting expiry that have no PDF uploaded */
+export async function getMissingOffers(): Promise<ExpiringItem[]> {
+  const twentyDaysLater = addDaysToDate(new Date(), 20);
+  const sixtyDaysLater = addDaysToDate(new Date(), 60);
+
+  const mail = await db.select({
+    id: schema.mailHosting.id,
+    domainId: schema.mailHosting.domainId,
+    expiryDate: schema.mailHosting.expiryDate,
+    clientName: schema.clients.name,
+    domainName: schema.domains.domainName,
+    pdfFilename: schema.domains.pdfFilename,
+  })
+  .from(schema.mailHosting)
+  .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
+  .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
+  .where(and(
+    isNotNull(schema.mailHosting.domainId),
+    gte(schema.mailHosting.expiryDate, twentyDaysLater),
+    lte(schema.mailHosting.expiryDate, sixtyDaysLater),
+    isNull(schema.domains.pdfFilename)
+  ));
+
+  return mail.map(m => ({
+    id: m.id,
+    domainId: m.domainId,
+    type: 'mail' as const,
+    name: m.domainName || 'Hosting',
+    clientName: m.clientName,
+    expiryDate: m.expiryDate,
+    daysUntilExpiry: daysUntilExpiry(m.expiryDate),
+  })).sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
 }
 
 export async function getRecentActivity(limit: number = 10) {

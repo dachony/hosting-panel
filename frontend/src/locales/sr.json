@@ -190,6 +190,8 @@
     "willBeDeleted": "Biće obrisano",
     "expiringItemsNext30Days": "Stavke koje ističu (narednih 30 dana)",
     "noExpiringItems": "Nema stavki koje ističu",
+    "missingOffers": "Nedostaje ponuda",
+    "noMissingOffers": "Sve ponude su poslate",
     "willBeDeletedExpired60": "Za brisanje (isteklo 60+ dana)",
     "noItemsPendingDeletion": "Nema stavki za brisanje",
     "expired": "Isteklo",
