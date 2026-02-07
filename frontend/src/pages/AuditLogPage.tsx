@@ -41,12 +41,12 @@ interface PaginatedResponse {
   };
 }
 
-const actionLabels: Record<string, string> = {
-  create: 'Create',
-  update: 'Update',
-  delete: 'Delete',
-  login: 'Login',
-  logout: 'Logout',
+const actionLabelKeys: Record<string, string> = {
+  create: 'auditLog.actionCreate',
+  update: 'auditLog.actionUpdate',
+  delete: 'auditLog.actionDelete',
+  login: 'auditLog.actionLogin',
+  logout: 'auditLog.actionLogout',
 };
 
 const actionColors: Record<string, string> = {
@@ -57,95 +57,20 @@ const actionColors: Record<string, string> = {
   logout: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
 };
 
-const entityLabels: Record<string, string> = {
-  client: 'Client',
-  domain: 'Domain',
-  hosting: 'Hosting',
-  mail: 'Mail',
-  user: 'User',
-  template: 'Template',
-  package: 'Package',
-  notification: 'Notification',
-  auth: 'Auth',
-  settings: 'Settings',
+const entityLabelKeys: Record<string, string> = {
+  client: 'auditLog.entityClient',
+  domain: 'auditLog.entityDomain',
+  hosting: 'auditLog.entityHosting',
+  mail: 'auditLog.entityMail',
+  user: 'auditLog.entityUser',
+  template: 'auditLog.entityTemplate',
+  package: 'auditLog.entityPackage',
+  notification: 'auditLog.entityNotification',
+  auth: 'auditLog.entityAuth',
+  settings: 'auditLog.entitySettings',
 };
 
-// Generate short description based on action and entity (for table)
-function generateDescription(log: AuditLog): string {
-  const entity = entityLabels[log.entityType] || log.entityType;
-  const name = log.entityName ? `"${log.entityName}"` : '';
-
-  switch (log.action) {
-    case 'create':
-      return `Created ${entity.toLowerCase()} ${name}`.trim();
-    case 'update':
-      return `Updated ${entity.toLowerCase()} ${name}`.trim();
-    case 'delete':
-      return `Deleted ${entity.toLowerCase()} ${name}`.trim();
-    case 'login':
-      return 'Successful system login';
-    case 'logout':
-      return 'System logout';
-    default:
-      return `${log.action} ${entity.toLowerCase()} ${name}`.trim();
-  }
-}
-
-// Generate detailed description for popup
-function generateDetailedDescription(log: AuditLog): string {
-  const entity = entityLabels[log.entityType] || log.entityType;
-  const name = log.entityName ? `"${log.entityName}"` : '';
-  const details = log.details as Record<string, unknown> | null;
-
-  let description = '';
-
-  switch (log.action) {
-    case 'create':
-      description = `Created new ${entity.toLowerCase()} ${name}`;
-      if (details) {
-        if (details.clientName) description += ` for client "${details.clientName}"`;
-        if (details.domainName) description += `, domain: ${details.domainName}`;
-        if (details.packageName) description += `, package: ${details.packageName}`;
-      }
-      break;
-    case 'update':
-      description = `Updated ${entity.toLowerCase()} ${name}`;
-      if (details) {
-        const changes: string[] = [];
-        if (details.changes && typeof details.changes === 'object') {
-          const changeObj = details.changes as Record<string, unknown>;
-          Object.keys(changeObj).forEach(key => {
-            changes.push(key);
-          });
-        }
-        // Check for common field changes
-        if (details.oldStatus && details.newStatus) {
-          changes.push(`status: ${details.oldStatus} → ${details.newStatus}`);
-        }
-        if (details.oldExpiry && details.newExpiry) {
-          changes.push(`expiry: ${details.oldExpiry} → ${details.newExpiry}`);
-        }
-        if (changes.length > 0) {
-          description += `. Changed: ${changes.join(', ')}`;
-        }
-      }
-      break;
-    case 'delete':
-      description = `Deleted ${entity.toLowerCase()} ${name}`;
-      if (details?.clientName) description += ` (client: ${details.clientName})`;
-      break;
-    case 'login':
-      description = `User ${log.userName} successfully logged in`;
-      break;
-    case 'logout':
-      description = `User ${log.userName} logged out`;
-      break;
-    default:
-      description = `${log.action} ${entity.toLowerCase()} ${name}`;
-  }
-
-  return description.trim();
-}
+// Description generators are now inside the component to access t()
 
 // Extract client and domain info from log
 function extractClientDomain(log: AuditLog): { client: string | null; domain: string | null } {
@@ -177,6 +102,60 @@ function extractClientDomain(log: AuditLog): { client: string | null; domain: st
 
 export default function AuditLogPage() {
   const { t } = useTranslation();
+
+  const getActionLabel = (action: string) => actionLabelKeys[action] ? t(actionLabelKeys[action]) : action;
+  const getEntityLabel = (entityType: string) => entityLabelKeys[entityType] ? t(entityLabelKeys[entityType]) : entityType;
+
+  const generateDescription = (log: AuditLog): string => {
+    const entity = getEntityLabel(log.entityType).toLowerCase();
+    const name = log.entityName ? `"${log.entityName}"` : '';
+    switch (log.action) {
+      case 'create': return t('auditLog.descCreated', { entity, name }).trim();
+      case 'update': return t('auditLog.descUpdated', { entity, name }).trim();
+      case 'delete': return t('auditLog.descDeleted', { entity, name }).trim();
+      case 'login': return t('auditLog.descLogin');
+      case 'logout': return t('auditLog.descLogout');
+      default: return `${log.action} ${entity} ${name}`.trim();
+    }
+  };
+
+  const generateDetailedDescription = (log: AuditLog): string => {
+    const entity = getEntityLabel(log.entityType).toLowerCase();
+    const name = log.entityName ? `"${log.entityName}"` : '';
+    const details = log.details as Record<string, unknown> | null;
+    let description = '';
+    switch (log.action) {
+      case 'create':
+        description = t('auditLog.descCreatedDetail', { entity, name });
+        if (details) {
+          if (details.clientName) description += ` ${t('auditLog.forClient', { name: details.clientName })}`;
+          if (details.domainName) description += `, ${t('auditLog.domainLabel', { name: details.domainName })}`;
+          if (details.packageName) description += `, ${t('auditLog.packageLabel', { name: details.packageName })}`;
+        }
+        break;
+      case 'update':
+        description = t('auditLog.descUpdatedDetail', { entity, name });
+        if (details) {
+          const changes: string[] = [];
+          if (details.changes && typeof details.changes === 'object') {
+            Object.keys(details.changes as Record<string, unknown>).forEach(key => changes.push(key));
+          }
+          if (details.oldStatus && details.newStatus) changes.push(`status: ${details.oldStatus} → ${details.newStatus}`);
+          if (details.oldExpiry && details.newExpiry) changes.push(`expiry: ${details.oldExpiry} → ${details.newExpiry}`);
+          if (changes.length > 0) description += `. ${t('auditLog.changed', { fields: changes.join(', ') })}`;
+        }
+        break;
+      case 'delete':
+        description = t('auditLog.descDeletedDetail', { entity, name });
+        if (details?.clientName) description += ` (${t('auditLog.clientLabel', { name: details.clientName })})`;
+        break;
+      case 'login': description = t('auditLog.descLoginDetail', { name: log.userName }); break;
+      case 'logout': description = t('auditLog.descLogoutDetail', { name: log.userName }); break;
+      default: description = `${log.action} ${entity} ${name}`;
+    }
+    return description.trim();
+  };
+
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 300);
@@ -316,7 +295,7 @@ export default function AuditLogPage() {
             className={`btn btn-secondary btn-sm flex items-center gap-1 ${showFilters ? 'bg-primary-100 dark:bg-primary-900' : ''}`}
           >
             <Filter className="w-3 h-3" />
-            Filters
+            {t('auditLog.filters')}
           </button>
         </div>
 
@@ -327,10 +306,10 @@ export default function AuditLogPage() {
               onChange={(e) => { setEntityTypeFilter(e.target.value); setPage(1); }}
               className="input input-sm text-xs w-auto"
             >
-              <option value="">All types</option>
+              <option value="">{t('auditLog.allTypes')}</option>
               {entityTypesData?.entityTypes.map((type) => (
                 <option key={type} value={type}>
-                  {entityLabels[type] || type}
+                  {getEntityLabel(type)}
                 </option>
               ))}
             </select>
@@ -339,10 +318,10 @@ export default function AuditLogPage() {
               onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
               className="input input-sm text-xs w-auto"
             >
-              <option value="">All actions</option>
+              <option value="">{t('auditLog.allActions')}</option>
               {actionsData?.actions.map((action) => (
                 <option key={action} value={action}>
-                  {actionLabels[action] || action}
+                  {getActionLabel(action)}
                 </option>
               ))}
             </select>
@@ -351,7 +330,7 @@ export default function AuditLogPage() {
                 onClick={() => { setEntityTypeFilter(''); setActionFilter(''); setPage(1); }}
                 className="text-xs text-primary-600 hover:text-primary-700"
               >
-                Reset
+                {t('auditLog.reset')}
               </button>
             )}
           </div>
@@ -372,7 +351,7 @@ export default function AuditLogPage() {
                 <thead className="bg-gray-50 dark:bg-gray-800/50">
                   <tr>
                     <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400 relative" style={{ width: columnWidths.time }}>
-                      Time
+                      {t('auditLog.time')}
                       <div
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary-400 group"
                         onMouseDown={(e) => handleResizeStart('time', e)}
@@ -381,7 +360,7 @@ export default function AuditLogPage() {
                       </div>
                     </th>
                     <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400 relative" style={{ width: columnWidths.user }}>
-                      User
+                      {t('auditLog.user')}
                       <div
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary-400 group"
                         onMouseDown={(e) => handleResizeStart('user', e)}
@@ -390,7 +369,7 @@ export default function AuditLogPage() {
                       </div>
                     </th>
                     <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400 relative" style={{ width: columnWidths.email }}>
-                      Email
+                      {t('auditLog.email')}
                       <div
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary-400 group"
                         onMouseDown={(e) => handleResizeStart('email', e)}
@@ -399,7 +378,7 @@ export default function AuditLogPage() {
                       </div>
                     </th>
                     <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400 relative" style={{ width: columnWidths.action }}>
-                      Action
+                      {t('auditLog.action')}
                       <div
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary-400 group"
                         onMouseDown={(e) => handleResizeStart('action', e)}
@@ -408,7 +387,7 @@ export default function AuditLogPage() {
                       </div>
                     </th>
                     <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400 relative" style={{ width: columnWidths.client }}>
-                      Client
+                      {t('auditLog.client')}
                       <div
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary-400 group"
                         onMouseDown={(e) => handleResizeStart('client', e)}
@@ -417,7 +396,7 @@ export default function AuditLogPage() {
                       </div>
                     </th>
                     <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400 relative" style={{ width: columnWidths.domain }}>
-                      Domain
+                      {t('auditLog.domain')}
                       <div
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary-400 group"
                         onMouseDown={(e) => handleResizeStart('domain', e)}
@@ -426,7 +405,7 @@ export default function AuditLogPage() {
                       </div>
                     </th>
                     <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400" style={{ width: columnWidths.description }}>
-                      Description
+                      {t('auditLog.description')}
                     </th>
                   </tr>
                 </thead>
@@ -450,7 +429,7 @@ export default function AuditLogPage() {
                         </td>
                         <td className="px-2 py-1.5" style={{ width: columnWidths.action }}>
                           <span className={`inline-block px-1.5 py-0.5 text-[10px] rounded font-medium ${actionColors[log.action] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
-                            {actionLabels[log.action] || log.action}
+                            {getActionLabel(log.action)}
                           </span>
                         </td>
                         <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300 overflow-hidden text-ellipsis" style={{ width: columnWidths.client }} title={client || ''}>
@@ -508,7 +487,7 @@ export default function AuditLogPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="font-medium text-gray-900 dark:text-gray-100">Event details</h3>
+              <h3 className="font-medium text-gray-900 dark:text-gray-100">{t('auditLog.eventDetails')}</h3>
               <button
                 onClick={() => setSelectedLog(null)}
                 className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -521,16 +500,16 @@ export default function AuditLogPage() {
               {/* Action Badge */}
               <div className="flex items-center gap-2">
                 <span className={`px-2 py-1 text-sm rounded font-medium ${actionColors[selectedLog.action] || 'bg-gray-100 text-gray-700'}`}>
-                  {actionLabels[selectedLog.action] || selectedLog.action}
+                  {getActionLabel(selectedLog.action)}
                 </span>
                 <span className="text-sm text-gray-500">
-                  {entityLabels[selectedLog.entityType] || selectedLog.entityType}
+                  {getEntityLabel(selectedLog.entityType)}
                 </span>
               </div>
 
               {/* Description */}
               <div>
-                <div className="text-gray-500 text-xs mb-1">Description</div>
+                <div className="text-gray-500 text-xs mb-1">{t('auditLog.description')}</div>
                 <p className="text-gray-900 dark:text-gray-100 text-sm">
                   {generateDetailedDescription(selectedLog)}
                 </p>
@@ -541,7 +520,7 @@ export default function AuditLogPage() {
                 <div className="flex items-start gap-2">
                   <User className="w-4 h-4 text-gray-400 mt-0.5" />
                   <div>
-                    <div className="text-gray-500 text-xs">User</div>
+                    <div className="text-gray-500 text-xs">{t('auditLog.user')}</div>
                     <div className="text-gray-900 dark:text-gray-100">{selectedLog.userName}</div>
                     <div className="text-gray-500 text-xs">{selectedLog.userEmail}</div>
                   </div>
@@ -550,7 +529,7 @@ export default function AuditLogPage() {
                 <div className="flex items-start gap-2">
                   <Clock className="w-4 h-4 text-gray-400 mt-0.5" />
                   <div>
-                    <div className="text-gray-500 text-xs">Time</div>
+                    <div className="text-gray-500 text-xs">{t('auditLog.time')}</div>
                     <div className="text-gray-900 dark:text-gray-100">{formatFullDate(selectedLog.createdAt)}</div>
                   </div>
                 </div>
@@ -559,7 +538,7 @@ export default function AuditLogPage() {
                   <div className="flex items-start gap-2">
                     <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
-                      <div className="text-gray-500 text-xs">IP Address</div>
+                      <div className="text-gray-500 text-xs">{t('auditLog.ipAddress')}</div>
                       <div className="text-gray-900 dark:text-gray-100 font-mono text-xs">{selectedLog.ipAddress}</div>
                     </div>
                   </div>
@@ -569,7 +548,7 @@ export default function AuditLogPage() {
                   <div className="flex items-start gap-2">
                     <Globe className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
-                      <div className="text-gray-500 text-xs">Entity</div>
+                      <div className="text-gray-500 text-xs">{t('auditLog.entity')}</div>
                       <div className="text-gray-900 dark:text-gray-100">{selectedLog.entityName}</div>
                     </div>
                   </div>
@@ -581,7 +560,7 @@ export default function AuditLogPage() {
                 <div className="flex items-start gap-2 text-sm">
                   <Monitor className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="text-gray-500 text-xs">User Agent</div>
+                    <div className="text-gray-500 text-xs">{t('auditLog.userAgent')}</div>
                     <div className="text-gray-600 dark:text-gray-400 text-xs break-all">{selectedLog.userAgent}</div>
                   </div>
                 </div>
@@ -590,7 +569,7 @@ export default function AuditLogPage() {
               {/* Details JSON */}
               {selectedLog.details && Object.keys(selectedLog.details).length > 0 && (
                 <div>
-                  <div className="text-gray-500 text-xs mb-1">Additional details</div>
+                  <div className="text-gray-500 text-xs mb-1">{t('auditLog.additionalDetails')}</div>
                   <pre className="bg-gray-50 dark:bg-gray-900 p-3 rounded text-xs overflow-x-auto text-gray-700 dark:text-gray-300">
                     {JSON.stringify(selectedLog.details, null, 2)}
                   </pre>
@@ -604,7 +583,7 @@ export default function AuditLogPage() {
                 onClick={() => setSelectedLog(null)}
                 className="btn btn-secondary"
               >
-                Close
+                {t('auditLog.close')}
               </button>
             </div>
           </div>
