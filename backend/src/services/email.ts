@@ -58,6 +58,7 @@ async function createTransporter() {
 
 export interface EmailOptions {
   to: string;
+  cc?: string;
   subject: string;
   html: string;
   text?: string;
@@ -72,6 +73,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
     await transporter.sendMail({
       from,
       to: options.to,
+      cc: options.cc,
       subject: options.subject,
       html: options.html,
       text: options.text,
@@ -84,6 +86,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
         fromEmail: settings.fromEmail,
         fromName: settings.fromName || null,
         toEmail: options.to,
+        ccEmail: options.cc || null,
         subject: options.subject,
         htmlContent: options.html,
         textContent: options.text || null,
@@ -99,6 +102,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
         fromEmail: settings.fromEmail,
         fromName: settings.fromName || null,
         toEmail: options.to,
+        ccEmail: options.cc || null,
         subject: options.subject,
         htmlContent: options.html,
         textContent: options.text || null,

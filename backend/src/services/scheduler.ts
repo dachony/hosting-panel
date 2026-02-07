@@ -34,6 +34,21 @@ function applyTemplateVariables(subject: string, html: string, variables: Record
   return { subject, html };
 }
 
+/** Resolve a recipient entry to an actual email address */
+function resolveRecipientEmail(
+  entry: { type: 'variable' | 'custom'; value: string },
+  context: { clientEmail?: string | null; clientTechEmail?: string | null; domainPrimaryEmail?: string | null; domainTechEmail?: string | null }
+): string | null {
+  if (entry.type === 'custom') return entry.value;
+  switch (entry.value) {
+    case 'clientPrimaryContact': return context.clientEmail || null;
+    case 'clientTechContact': return context.clientTechEmail || null;
+    case 'domainPrimaryContact': return context.domainPrimaryEmail || null;
+    case 'domainTechContact': return context.domainTechEmail || null;
+    default: return null;
+  }
+}
+
 function getDomainPdfAttachment(domainId: number, pdfFilename: string | null): Array<{ filename: string; path: string }> {
   if (!pdfFilename) return [];
   const filePath = path.join(PDF_DIR, `${domainId}_${pdfFilename}`);
@@ -70,6 +85,7 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
       expiryDate: schema.mailHosting.expiryDate,
       clientName: schema.clients.name,
       clientEmail: schema.clients.email1,
+      clientTechEmail: schema.clients.techEmail,
       domainId: schema.domains.id,
       domainName: schema.domains.domainName,
       domainPdfFilename: schema.domains.pdfFilename,
@@ -91,9 +107,50 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
     .where(eq(schema.mailHosting.expiryDate, targetDate));
 
   for (const item of mailHosting) {
-    const recipientEmail = setting.recipientType === 'custom'
-      ? setting.customEmail
-      : (item.primaryContactEmail || item.clientEmail);
+    // Resolve recipient context for template-based recipients
+    const recipientContext = {
+      clientEmail: item.clientEmail,
+      clientTechEmail: item.clientTechEmail,
+      domainPrimaryEmail: item.primaryContactEmail,
+      domainTechEmail: item.techContactEmail,
+    };
+
+    let recipientEmail: string | null = null;
+    let ccEmail: string | null = null;
+
+    // Check if template has recipients defined - if so, use those instead of notification setting logic
+    let template: typeof schema.emailTemplates.$inferSelect | undefined;
+    if (setting.templateId) {
+      template = await db.select()
+        .from(schema.emailTemplates)
+        .where(eq(schema.emailTemplates.id, setting.templateId))
+        .get();
+    }
+
+    const templateRecipients = template?.recipients as { to: Array<{type: 'variable'|'custom'; value: string}>; cc: Array<{type: 'variable'|'custom'; value: string}> } | null;
+
+    if (templateRecipients && templateRecipients.to.length > 0) {
+      // Resolve To from template recipients (use first resolved)
+      for (const entry of templateRecipients.to) {
+        const resolved = resolveRecipientEmail(entry, recipientContext);
+        if (resolved) { recipientEmail = resolved; break; }
+      }
+      // Resolve Cc
+      if (templateRecipients.cc.length > 0) {
+        const ccEmails: string[] = [];
+        for (const entry of templateRecipients.cc) {
+          const resolved = resolveRecipientEmail(entry, recipientContext);
+          if (resolved && resolved !== recipientEmail) ccEmails.push(resolved);
+        }
+        if (ccEmails.length > 0) ccEmail = ccEmails.join(', ');
+      }
+    } else {
+      // Fallback to notification setting logic
+      recipientEmail = setting.recipientType === 'custom'
+        ? setting.customEmail
+        : (item.primaryContactEmail || item.clientEmail);
+    }
+
     if (!recipientEmail) continue;
 
     const alreadySent = await db.select()
@@ -113,42 +170,32 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
       let emailHtml: string;
       let mailAttachments: Array<{ filename: string; path: string }> = [];
 
-      if (setting.templateId) {
-        const template = await db.select()
-          .from(schema.emailTemplates)
-          .where(eq(schema.emailTemplates.id, setting.templateId))
-          .get();
+      if (template) {
+        const hasPdf = !!(template.attachDomainPdf && item.domainId && item.domainPdfFilename);
+        const variables: Record<string, string> = {
+          clientName: item.clientName || 'Nepoznat',
+          domainName: item.domainName || '',
+          hostingExpiryDate: item.expiryDate,
+          daysUntilExpiry: String(daysRemaining),
+          packageName: item.packageName || '',
+          packageDescription: item.packageDescription || '',
+          maxMailboxes: String(item.maxMailboxes ?? ''),
+          storageGb: String(item.storageGb ?? ''),
+          primaryContactName: item.primaryContactName || '',
+          primaryContactPhone: item.primaryContactPhone || '',
+          primaryContactEmail: item.primaryContactEmail || '',
+          techContactName: item.techContactName || '',
+          techContactPhone: item.techContactPhone || '',
+          techContactEmail: item.techContactEmail || '',
+          attachedPdf: hasPdf ? 'Da' : 'Ne',
+        };
 
-        if (template) {
-          const variables: Record<string, string> = {
-            clientName: item.clientName || 'Nepoznat',
-            domainName: item.domainName || '',
-            expiryDate: item.expiryDate,
-            hostingExpiryDate: item.expiryDate,
-            daysUntilExpiry: String(daysRemaining),
-            packageName: item.packageName || '',
-            packageDescription: item.packageDescription || '',
-            maxMailboxes: String(item.maxMailboxes ?? ''),
-            storageGb: String(item.storageGb ?? ''),
-            primaryContactName: item.primaryContactName || '',
-            primaryContactPhone: item.primaryContactPhone || '',
-            primaryContactEmail: item.primaryContactEmail || '',
-            techContactName: item.techContactName || '',
-            techContactPhone: item.techContactPhone || '',
-            techContactEmail: item.techContactEmail || '',
-          };
+        const result = applyTemplateVariables(template.subject, template.htmlContent, variables);
+        emailSubject = result.subject;
+        emailHtml = result.html;
 
-          const result = applyTemplateVariables(template.subject, template.htmlContent, variables);
-          emailSubject = result.subject;
-          emailHtml = result.html;
-
-          if (template.attachDomainPdf && item.domainId) {
-            mailAttachments = getDomainPdfAttachment(item.domainId, item.domainPdfFilename);
-          }
-        } else {
-          const emailOptions = getExpiryNotificationEmail('hosting', itemName, item.clientName || 'Nepoznat', item.expiryDate, daysRemaining);
-          emailSubject = emailOptions.subject;
-          emailHtml = emailOptions.html;
+        if (template.attachDomainPdf && item.domainId) {
+          mailAttachments = getDomainPdfAttachment(item.domainId, item.domainPdfFilename);
         }
       } else {
         const emailOptions = getExpiryNotificationEmail('hosting', itemName, item.clientName || 'Nepoznat', item.expiryDate, daysRemaining);
@@ -156,7 +203,7 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
         emailHtml = emailOptions.html;
       }
 
-      await sendEmail({ to: recipientEmail, subject: emailSubject, html: emailHtml, attachments: mailAttachments.length > 0 ? mailAttachments : undefined });
+      await sendEmail({ to: recipientEmail, cc: ccEmail || undefined, subject: emailSubject, html: emailHtml, attachments: mailAttachments.length > 0 ? mailAttachments : undefined });
 
       await db.insert(schema.notificationLog).values({
         type: 'mail',
@@ -630,6 +677,7 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
       expiryDate: schema.mailHosting.expiryDate,
       clientName: schema.clients.name,
       clientEmail: schema.clients.email1,
+      clientTechEmail: schema.clients.techEmail,
       domainId: schema.domains.id,
       domainName: schema.domains.domainName,
       domainPdfFilename: schema.domains.pdfFilename,
@@ -653,20 +701,49 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
       : and(gte(schema.mailHosting.expiryDate, rangeStart), lte(schema.mailHosting.expiryDate, rangeEnd))
     );
 
+  // Template recipients
+  const templateRecipients = template.recipients as { to: Array<{type: 'variable'|'custom'; value: string}>; cc: Array<{type: 'variable'|'custom'; value: string}> } | null;
+
   for (const item of mailHosting) {
-    const recipientEmail = setting.recipientType === 'custom'
-      ? setting.customEmail
-      : (item.primaryContactEmail || item.clientEmail);
+    const recipientContext = {
+      clientEmail: item.clientEmail,
+      clientTechEmail: item.clientTechEmail,
+      domainPrimaryEmail: item.primaryContactEmail,
+      domainTechEmail: item.techContactEmail,
+    };
+
+    let recipientEmail: string | null = null;
+    let ccEmail: string | null = null;
+
+    if (templateRecipients && templateRecipients.to.length > 0) {
+      for (const entry of templateRecipients.to) {
+        const resolved = resolveRecipientEmail(entry, recipientContext);
+        if (resolved) { recipientEmail = resolved; break; }
+      }
+      if (templateRecipients.cc.length > 0) {
+        const ccEmails: string[] = [];
+        for (const entry of templateRecipients.cc) {
+          const resolved = resolveRecipientEmail(entry, recipientContext);
+          if (resolved && resolved !== recipientEmail) ccEmails.push(resolved);
+        }
+        if (ccEmails.length > 0) ccEmail = ccEmails.join(', ');
+      }
+    } else {
+      recipientEmail = setting.recipientType === 'custom'
+        ? setting.customEmail
+        : (item.primaryContactEmail || item.clientEmail);
+    }
+
     if (!recipientEmail) continue;
 
     const daysLeft = daysUntilExpiry(item.expiryDate);
     const itemName = item.domainName || item.packageName || 'Mail hosting';
 
     try {
+      const hasPdf = !!(template.attachDomainPdf && item.domainId && item.domainPdfFilename);
       const variables: Record<string, string> = {
         clientName: item.clientName || 'Nepoznat',
         domainName: item.domainName || '',
-        expiryDate: item.expiryDate,
         hostingExpiryDate: item.expiryDate,
         daysUntilExpiry: String(daysLeft),
         packageName: item.packageName || '',
@@ -679,6 +756,7 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
         techContactName: item.techContactName || '',
         techContactPhone: item.techContactPhone || '',
         techContactEmail: item.techContactEmail || '',
+        attachedPdf: hasPdf ? 'Da' : 'Ne',
       };
 
       const { subject: emailSubject, html: emailHtml } = applyTemplateVariables(template.subject, template.htmlContent, variables);
@@ -688,7 +766,7 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
         attachments = getDomainPdfAttachment(item.domainId, item.domainPdfFilename);
       }
 
-      await sendEmail({ to: recipientEmail, subject: emailSubject, html: emailHtml, attachments: attachments.length > 0 ? attachments : undefined });
+      await sendEmail({ to: recipientEmail, cc: ccEmail || undefined, subject: emailSubject, html: emailHtml, attachments: attachments.length > 0 ? attachments : undefined });
       sentCount++;
       console.log(`[Trigger] Sent hosting notification for ${itemName} to ${recipientEmail}`);
     } catch (error) {

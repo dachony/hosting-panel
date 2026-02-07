@@ -75,6 +75,11 @@ const systemConfigSchema = z.object({
   }).optional(),
 }).nullable().optional();
 
+const recipientsSchema = z.object({
+  to: z.array(z.object({ type: z.enum(['variable', 'custom']), value: z.string().min(1) })),
+  cc: z.array(z.object({ type: z.enum(['variable', 'custom']), value: z.string().min(1) })),
+}).nullable().optional();
+
 const templateSchema = z.object({
   name: z.string().min(1),
   type: z.enum(['client', 'service_request', 'sales_request', 'reports', 'system']),
@@ -85,6 +90,11 @@ const templateSchema = z.object({
   reportConfig: reportConfigSchema,
   systemConfig: systemConfigSchema,
   attachDomainPdf: z.boolean().optional().default(false),
+  recipients: recipientsSchema,
+  headerLogoSize: z.enum(['small', 'medium', 'large']).optional().default('medium'),
+  headerImageSize: z.enum(['small', 'medium', 'large']).optional().default('medium'),
+  signatureLogoSize: z.enum(['small', 'medium', 'large']).optional().default('medium'),
+  footerImageSize: z.enum(['small', 'medium', 'large']).optional().default('medium'),
   isActive: z.boolean().default(true),
 });
 

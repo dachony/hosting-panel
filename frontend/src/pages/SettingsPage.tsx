@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { NotificationSetting, User, MailServer, MailSecurity, CompanyInfo, BankAccount, EmailTemplate, Package, ReportConfig, DomainStatus, SystemConfig } from '../types';
+import { NotificationSetting, User, MailServer, MailSecurity, CompanyInfo, BankAccount, EmailTemplate, Package, ReportConfig, DomainStatus, SystemConfig, TemplateRecipients, ImageSize } from '../types';
 import Modal from '../components/common/Modal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import ColorPicker from '../components/common/ColorPicker';
@@ -45,6 +45,7 @@ import {
   Clock,
   RefreshCw,
   AlertTriangle,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createBackupZip, readBackupZip, isEncryptedBackup } from '../utils/zipCrypto';
@@ -256,7 +257,7 @@ export default function SettingsPage() {
   const [notificationForm, setNotificationForm] = useState({
     name: '',
     type: 'client' as 'client' | 'service_request' | 'sales_request' | 'reports' | 'system',
-    schedule: [30, 14, 7, 1, 0] as number[],
+    schedule: [50, 35, 30, 14, 7, 1, 0] as number[],
     runAtTime: '09:00',
     templateId: null as number | null,
     recipientType: 'primary' as 'custom' | 'primary',
@@ -327,7 +328,28 @@ export default function SettingsPage() {
     reportConfig: defaultReportConfig,
     systemConfig: defaultSystemConfig,
     attachDomainPdf: false,
+    headerLogoSize: 'medium' as ImageSize,
+    headerImageSize: 'medium' as ImageSize,
+    signatureLogoSize: 'medium' as ImageSize,
+    footerImageSize: 'medium' as ImageSize,
+    recipients: { to: [], cc: [] } as TemplateRecipients,
   });
+
+  // Image size maps for HTML generation
+  const imageSizeMap = {
+    headerLogo: { small: { h: 40, w: 150 }, medium: { h: 60, w: 200 }, large: { h: 80, w: 250 } },
+    headerImage: { small: 120, medium: 200, large: 300 },
+    signatureLogo: { small: { h: 30, w: 100 }, medium: { h: 40, w: 150 }, large: { h: 60, w: 200 } },
+    footerImage: { small: 60, medium: 100, large: 150 },
+  };
+
+  // Contact variable options for recipients
+  const contactVariables = [
+    { value: 'clientPrimaryContact', label: t('settings.clientPrimaryContact') },
+    { value: 'clientTechContact', label: t('settings.clientTechContact') },
+    { value: 'domainPrimaryContact', label: t('settings.domainPrimaryContact') },
+    { value: 'domainTechContact', label: t('settings.domainTechContact') },
+  ];
   const templateBodyRef = useRef<HTMLTextAreaElement>(null);
   const templateSubjectRef = useRef<HTMLInputElement>(null);
   const logoUploadRef = useRef<HTMLInputElement>(null);
@@ -347,7 +369,6 @@ export default function SettingsPage() {
   const templateVariables = [
     { key: 'clientName', label: 'Client Name', description: 'Client name' },
     { key: 'domainName', label: 'Domain', description: 'Domain name' },
-    { key: 'expiryDate', label: 'Expiry Date', description: 'Expiry date' },
     { key: 'hostingExpiryDate', label: 'Hosting Expiry', description: 'Hosting package expiry date' },
     { key: 'daysUntilExpiry', label: 'Days Left', description: 'Days until expiry' },
     { key: 'packageName', label: 'Package', description: 'Package name' },
@@ -362,6 +383,7 @@ export default function SettingsPage() {
     { key: 'techContactName', label: 'Tech Contact', description: 'Technical contact name' },
     { key: 'techContactPhone', label: 'Tech Phone', description: 'Technical contact phone' },
     { key: 'techContactEmail', label: 'Tech Email', description: 'Technical contact email' },
+    { key: 'attachedPdf', label: 'Has PDF', description: 'Whether PDF is attached (Da/Ne)' },
   ];
 
   // Report-specific variable
@@ -413,6 +435,12 @@ export default function SettingsPage() {
     // Determine signature logo source
     const signatureLogoSrc = templateForm.useCompanyLogoInSignature ? '{{companyLogo}}' : templateForm.signatureLogo;
 
+    // Dynamic image sizes
+    const hlSize = imageSizeMap.headerLogo[templateForm.headerLogoSize];
+    const hiSize = imageSizeMap.headerImage[templateForm.headerImageSize];
+    const slSize = imageSizeMap.signatureLogo[templateForm.signatureLogoSize];
+    const fiSize = imageSizeMap.footerImage[templateForm.footerImageSize];
+
     // Build header HTML with logo position
     let headerHtml = '';
     if (templateForm.showHeader) {
@@ -421,9 +449,9 @@ export default function SettingsPage() {
       headerHtml = `
   <div data-section="header" style="background-color: ${bgStyle}; padding: 20px; border-radius: 8px 8px 0 0;">
     <div style="text-align: ${logoAlign};">
-      ${headerLogoSrc ? `<img src="${headerLogoSrc}" alt="Logo" style="max-height: 60px; max-width: 200px;" />` : ''}
+      ${headerLogoSrc ? `<img src="${headerLogoSrc}" alt="Logo" data-size="${templateForm.headerLogoSize}" style="max-height: ${hlSize.h}px; max-width: ${hlSize.w}px;" />` : ''}
     </div>
-    ${templateForm.headerImage ? `<div style="text-align: center; margin-top: 10px;"><img src="${templateForm.headerImage}" alt="Header" style="max-width: 100%;" /></div>` : ''}
+    ${templateForm.headerImage ? `<div style="text-align: center; margin-top: 10px;"><img src="${templateForm.headerImage}" alt="Header" data-size="${templateForm.headerImageSize}" style="max-width: 100%; max-height: ${hiSize}px;" /></div>` : ''}
   </div>`;
     }
 
@@ -438,7 +466,7 @@ export default function SettingsPage() {
       signatureHtml = `
     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
       ${signatureTextHtml}
-      ${signatureLogoSrc ? `<img src="${signatureLogoSrc}" alt="Logo" style="max-height: 40px; max-width: 150px; margin-top: 15px;" />` : ''}
+      ${signatureLogoSrc ? `<img src="${signatureLogoSrc}" alt="Logo" data-size="${templateForm.signatureLogoSize}" style="max-height: ${slSize.h}px; max-width: ${slSize.w}px; margin-top: 15px;" />` : ''}
       ${templateForm.signatureImage ? `<img src="${templateForm.signatureImage}" alt="" style="max-width: 200px; margin-top: 10px; display: block;" />` : ''}
     </div>`;
     }
@@ -449,7 +477,7 @@ export default function SettingsPage() {
       const footerBgStyle = templateForm.footerBgTransparent ? 'transparent' : templateForm.footerBgColor;
       footerHtml = `
   <div data-section="footer" style="background-color: ${footerBgStyle}; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
-    ${templateForm.footerImage ? `<img src="${templateForm.footerImage}" alt="Footer" style="max-width: 100%; max-height: 100px;" />` : ''}
+    ${templateForm.footerImage ? `<img src="${templateForm.footerImage}" alt="Footer" data-size="${templateForm.footerImageSize}" style="max-width: 100%; max-height: ${fiSize}px;" />` : ''}
   </div>`;
     }
 
@@ -593,11 +621,41 @@ export default function SettingsPage() {
       body = tempDiv.textContent || '';
     }
 
+    // Extract image sizes from data-size attributes
+    let headerLogoSize: ImageSize = 'medium';
+    let headerImageSize: ImageSize = 'medium';
+    let signatureLogoSize: ImageSize = 'medium';
+    let footerImageSize: ImageSize = 'medium';
+
+    if (headerDiv) {
+      const imgs = headerDiv.querySelectorAll('img');
+      imgs.forEach((img, i) => {
+        const size = img.getAttribute('data-size') as ImageSize | null;
+        if (i === 0 && size) headerLogoSize = size;
+        if (i === 1 && size) headerImageSize = size;
+      });
+    }
+    if (signatureDiv) {
+      const sigImgs = signatureDiv.querySelectorAll('img');
+      if (sigImgs[0]) {
+        const size = sigImgs[0].getAttribute('data-size') as ImageSize | null;
+        if (size) signatureLogoSize = size;
+      }
+    }
+    if (footerDiv) {
+      const footerImg = footerDiv.querySelector('img');
+      if (footerImg) {
+        const size = footerImg.getAttribute('data-size') as ImageSize | null;
+        if (size) footerImageSize = size;
+      }
+    }
+
     return {
       title, body, signature,
       showHeader, headerLogo, headerImage, headerBgColor, headerBgTransparent, headerLogoPosition, useCompanyLogo,
       showSignature, signatureLogo, signatureImage, useCompanyLogoInSignature,
-      showFooter, footerImage, footerBgColor, footerBgTransparent
+      showFooter, footerImage, footerBgColor, footerBgTransparent,
+      headerLogoSize, headerImageSize, signatureLogoSize, footerImageSize,
     };
   };
 
@@ -637,6 +695,11 @@ export default function SettingsPage() {
             }
           : defaultSystemConfig,
         attachDomainPdf: template.attachDomainPdf || false,
+        headerLogoSize: template.headerLogoSize || parsed.headerLogoSize || 'medium',
+        headerImageSize: template.headerImageSize || parsed.headerImageSize || 'medium',
+        signatureLogoSize: template.signatureLogoSize || parsed.signatureLogoSize || 'medium',
+        footerImageSize: template.footerImageSize || parsed.footerImageSize || 'medium',
+        recipients: template.recipients || { to: [], cc: [] },
       });
     } else {
       setTemplateForm({
@@ -665,6 +728,11 @@ export default function SettingsPage() {
         reportConfig: defaultReportConfig,
         systemConfig: defaultSystemConfig,
         attachDomainPdf: false,
+        headerLogoSize: 'medium',
+        headerImageSize: 'medium',
+        signatureLogoSize: 'medium',
+        footerImageSize: 'medium',
+        recipients: { to: [], cc: [] },
       });
     }
     setSelectedTemplate(template);
@@ -775,6 +843,13 @@ export default function SettingsPage() {
       variables: variables.length > 0 ? variables : null,
       isActive: templateForm.isActive,
       attachDomainPdf: templateForm.type === 'client' ? templateForm.attachDomainPdf : false,
+      headerLogoSize: templateForm.headerLogoSize,
+      headerImageSize: templateForm.headerImageSize,
+      signatureLogoSize: templateForm.signatureLogoSize,
+      footerImageSize: templateForm.footerImageSize,
+      recipients: (templateForm.recipients.to.length > 0 || templateForm.recipients.cc.length > 0)
+        ? templateForm.recipients
+        : null,
     };
 
     // Include reportConfig only for report templates
@@ -1927,19 +2002,41 @@ export default function SettingsPage() {
   };
 
 
+  // Dummy data for template variable preview
+  const dummyVariables: Record<string, string> = {
+    clientName: 'Petar Petrović d.o.o.',
+    domainName: 'example.rs',
+    hostingExpiryDate: '15.03.2026',
+    daysUntilExpiry: '14',
+    packageName: 'Business Pro',
+    companyName: 'MojHosting d.o.o.',
+    hostingStatus: 'Aktivan',
+    packageDescription: 'Poslovni paket sa 10 sandučića',
+    maxMailboxes: '10',
+    storageGb: '25',
+    primaryContactName: 'Petar Petrović',
+    primaryContactPhone: '+381 11 123 4567',
+    primaryContactEmail: 'petar@example.rs',
+    techContactName: 'Marko Marković',
+    techContactPhone: '+381 11 987 6543',
+    techContactEmail: 'marko@example.rs',
+    attachedPdf: 'Da',
+  };
+
+  /** Replace {{variable}} placeholders with dummy data for live preview */
+  const replaceDummyVars = (text: string): string => {
+    if (!text) return text;
+    return text.replace(/\{\{(\w+)\}\}/g, (_, key) => dummyVariables[key] || `{{${key}}}`);
+  };
+
   const handleTemplatePreview = async (e: React.MouseEvent, template: EmailTemplate) => {
     e.stopPropagation();
     try {
       const response = await api.post<{ html: string }>(`/api/templates/${template.id}/preview`, {
-        variables: {
-          domainName: 'example.com',
-          clientName: 'Test Client',
-          expiryDate: '2024-12-31',
-          hostingExpiryDate: '2024-12-31',
-          daysUntilExpiry: 7,
-        },
+        variables: dummyVariables,
       });
       setPreviewHtml(response.html);
+      setSelectedTemplate(template);
       setTemplatePreviewModalOpen(true);
     } catch {
       toast.error(t('settings.errorLoadingPreview'));
@@ -1972,7 +2069,7 @@ export default function SettingsPage() {
     setNotificationForm({
       name: '',
       type: 'client',
-      schedule: [30, 14, 7, 1, 0],
+      schedule: [50, 35, 30, 14, 7, 1, 0],
       runAtTime: '09:00',
       templateId: null,
       recipientType: 'primary',
@@ -4726,7 +4823,7 @@ export default function SettingsPage() {
               <div className="space-y-1">
                 <span className="text-xs text-gray-500 dark:text-gray-400">Before expiry:</span>
                 <div className="flex flex-wrap gap-2">
-                  {[60, 30, 21, 14, 7, 1].map((day) => (
+                  {[60, 50, 40, 35, 30, 21, 14, 7, 1].map((day) => (
                     <label
                       key={day}
                       className={`px-3 py-1.5 rounded border cursor-pointer text-sm font-medium transition-colors ${
@@ -5032,17 +5129,96 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Attach domain PDF checkbox - only for client type */}
+          {/* To: Recipients */}
           {templateForm.type === 'client' && (
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={templateForm.attachDomainPdf}
-                onChange={(e) => setTemplateForm(prev => ({ ...prev, attachDomainPdf: e.target.checked }))}
-                className="checkbox"
-              />
-              <span className="text-gray-700 dark:text-gray-300">Attach domain PDF to email</span>
-            </label>
+            <div>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">{t('settings.toRecipients')}</label>
+              <div className="flex flex-wrap items-center gap-1 p-1.5 min-h-[34px] border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900">
+                {templateForm.recipients.to.map((entry, i) => (
+                  <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-full ${entry.type === 'variable' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}>
+                    {entry.type === 'variable' ? contactVariables.find(v => v.value === entry.value)?.label || entry.value : entry.value}
+                    <button type="button" onClick={() => setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, to: prev.recipients.to.filter((_, idx) => idx !== i) } }))} className="hover:text-red-500">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+                <div className="relative inline-block">
+                  <select
+                    className="text-[11px] bg-transparent border-none outline-none cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 pr-1"
+                    value=""
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) return;
+                      if (val === '__custom__') {
+                        const email = prompt(t('settings.customEmailInput'));
+                        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                          setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, to: [...prev.recipients.to, { type: 'custom', value: email }] } }));
+                        } else if (email) {
+                          toast.error(t('settings.invalidEmail'));
+                        }
+                      } else {
+                        if (!templateForm.recipients.to.some(r => r.type === 'variable' && r.value === val)) {
+                          setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, to: [...prev.recipients.to, { type: 'variable', value: val }] } }));
+                        }
+                      }
+                      e.target.value = '';
+                    }}
+                  >
+                    <option value="">+ {t('settings.addRecipient')}</option>
+                    {contactVariables.map(v => (
+                      <option key={v.value} value={v.value}>{v.label}</option>
+                    ))}
+                    <option value="__custom__">{t('settings.customEmailInput')}...</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Cc: Recipients */}
+          {templateForm.type === 'client' && (
+            <div>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">{t('settings.ccRecipients')}</label>
+              <div className="flex flex-wrap items-center gap-1 p-1.5 min-h-[34px] border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900">
+                {templateForm.recipients.cc.map((entry, i) => (
+                  <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-full ${entry.type === 'variable' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}>
+                    {entry.type === 'variable' ? contactVariables.find(v => v.value === entry.value)?.label || entry.value : entry.value}
+                    <button type="button" onClick={() => setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, cc: prev.recipients.cc.filter((_, idx) => idx !== i) } }))} className="hover:text-red-500">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+                <div className="relative inline-block">
+                  <select
+                    className="text-[11px] bg-transparent border-none outline-none cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 pr-1"
+                    value=""
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) return;
+                      if (val === '__custom__') {
+                        const email = prompt(t('settings.customEmailInput'));
+                        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                          setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, cc: [...prev.recipients.cc, { type: 'custom', value: email }] } }));
+                        } else if (email) {
+                          toast.error(t('settings.invalidEmail'));
+                        }
+                      } else {
+                        if (!templateForm.recipients.cc.some(r => r.type === 'variable' && r.value === val)) {
+                          setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, cc: [...prev.recipients.cc, { type: 'variable', value: val }] } }));
+                        }
+                      }
+                      e.target.value = '';
+                    }}
+                  >
+                    <option value="">+ {t('settings.addRecipient')}</option>
+                    {contactVariables.map(v => (
+                      <option key={v.value} value={v.value}>{v.label}</option>
+                    ))}
+                    <option value="__custom__">{t('settings.customEmailInput')}...</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Subject with variable buttons */}
@@ -5073,6 +5249,19 @@ export default function SettingsPage() {
             />
           </div>
 
+          {/* Attach domain PDF checkbox - only for client type, below Subject */}
+          {templateForm.type === 'client' && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={templateForm.attachDomainPdf}
+                onChange={(e) => setTemplateForm(prev => ({ ...prev, attachDomainPdf: e.target.checked }))}
+                className="checkbox"
+              />
+              <span className="text-gray-700 dark:text-gray-300">{t('settings.attachDomainPdf')}</span>
+            </label>
+          )}
+
           {/* Email Header Section */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
             <div className="bg-gray-50 dark:bg-gray-900 px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -5093,7 +5282,17 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-3 gap-3">
                   {/* Logo */}
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">Logo</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] text-gray-500 dark:text-gray-400">Logo</label>
+                      <div className="flex gap-0.5">
+                        {(['small', 'medium', 'large'] as const).map(s => (
+                          <button key={s} type="button" onClick={() => setTemplateForm(prev => ({ ...prev, headerLogoSize: s }))}
+                            className={`px-1.5 py-0.5 text-[9px] rounded border ${templateForm.headerLogoSize === s ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-gray-50 border-gray-200 text-gray-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}`}>
+                            {t(`settings.imageSize${s.charAt(0).toUpperCase() + s.slice(1)}`)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <div className="flex items-center gap-2">
                       <label className="flex items-center text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
                         <input
@@ -5189,7 +5388,17 @@ export default function SettingsPage() {
 
                 {/* Header Image (Banner) */}
                 <div>
-                  <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">Header Image (optional banner)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Header Image (optional banner)</label>
+                    <div className="flex gap-0.5">
+                      {(['small', 'medium', 'large'] as const).map(s => (
+                        <button key={s} type="button" onClick={() => setTemplateForm(prev => ({ ...prev, headerImageSize: s }))}
+                          className={`px-1.5 py-0.5 text-[9px] rounded border ${templateForm.headerImageSize === s ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-gray-50 border-gray-200 text-gray-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}`}>
+                          {t(`settings.imageSize${s.charAt(0).toUpperCase() + s.slice(1)}`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     {templateForm.headerImage ? (
                       <div className="relative group">
@@ -5571,7 +5780,17 @@ Your team"
                 <div className="grid grid-cols-2 gap-3">
                   {/* Signature Logo */}
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">Logo (optional)</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] text-gray-500 dark:text-gray-400">Logo (optional)</label>
+                      <div className="flex gap-0.5">
+                        {(['small', 'medium', 'large'] as const).map(s => (
+                          <button key={s} type="button" onClick={() => setTemplateForm(prev => ({ ...prev, signatureLogoSize: s }))}
+                            className={`px-1.5 py-0.5 text-[9px] rounded border ${templateForm.signatureLogoSize === s ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-gray-50 border-gray-200 text-gray-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}`}>
+                            {t(`settings.imageSize${s.charAt(0).toUpperCase() + s.slice(1)}`)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <div className="flex items-center gap-2">
                       <label className="flex items-center text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
                         <input
@@ -5695,7 +5914,17 @@ Your team"
                 <div className="grid grid-cols-2 gap-3">
                   {/* Footer Image */}
                   <div>
-                    <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">Footer Image</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] text-gray-500 dark:text-gray-400">Footer Image</label>
+                      <div className="flex gap-0.5">
+                        {(['small', 'medium', 'large'] as const).map(s => (
+                          <button key={s} type="button" onClick={() => setTemplateForm(prev => ({ ...prev, footerImageSize: s }))}
+                            className={`px-1.5 py-0.5 text-[9px] rounded border ${templateForm.footerImageSize === s ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-gray-50 border-gray-200 text-gray-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}`}>
+                            {t(`settings.imageSize${s.charAt(0).toUpperCase() + s.slice(1)}`)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <div className="flex items-center gap-2">
                       {templateForm.footerImage ? (
                         <div className="relative group">
@@ -5797,21 +6026,21 @@ Your team"
                                 [Company Logo]
                               </span>
                             ) : templateForm.headerLogo ? (
-                              <img src={templateForm.headerLogo} alt="Logo" className="max-h-10 max-w-[150px] object-contain inline-block" />
+                              <img src={templateForm.headerLogo} alt="Logo" style={{ maxHeight: `${imageSizeMap.headerLogo[templateForm.headerLogoSize].h}px`, maxWidth: `${imageSizeMap.headerLogo[templateForm.headerLogoSize].w}px` }} className="object-contain inline-block" />
                             ) : null}
                           </div>
                         )}
                         {templateForm.headerImage && (
-                          <img src={templateForm.headerImage} alt="Header" className="max-w-full mt-2 mx-auto block" />
+                          <img src={templateForm.headerImage} alt="Header" style={{ maxHeight: `${imageSizeMap.headerImage[templateForm.headerImageSize]}px` }} className="max-w-full mt-2 mx-auto block" />
                         )}
                       </div>
                     )}
                     {/* Content Preview */}
                     <div className="p-4 text-sm text-gray-700 dark:text-gray-300 space-y-2">
                       {templateForm.title && (
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{templateForm.title}</h3>
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{replaceDummyVars(templateForm.title)}</h3>
                       )}
-                      <div className="whitespace-pre-wrap text-xs">{templateForm.body || '(Message body...)'}</div>
+                      <div className="whitespace-pre-wrap text-xs">{replaceDummyVars(templateForm.body) || '(Message body...)'}</div>
                       {templateForm.showSignature && (
                         <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700">
                           <div className="whitespace-pre-wrap text-xs">
@@ -5824,7 +6053,7 @@ Your team"
                                   [Company Logo]
                                 </div>
                               ) : templateForm.signatureLogo ? (
-                                <img src={templateForm.signatureLogo} alt="Logo" className="max-h-6 max-w-[80px] object-contain" />
+                                <img src={templateForm.signatureLogo} alt="Logo" style={{ maxHeight: `${imageSizeMap.signatureLogo[templateForm.signatureLogoSize].h}px`, maxWidth: `${imageSizeMap.signatureLogo[templateForm.signatureLogoSize].w}px` }} className="object-contain" />
                               ) : null}
                             </div>
                           )}
@@ -5841,7 +6070,7 @@ Your team"
                         style={{ backgroundColor: templateForm.footerBgTransparent ? 'transparent' : templateForm.footerBgColor }}
                       >
                         {templateForm.footerImage ? (
-                          <img src={templateForm.footerImage} alt="Footer" className="max-h-16 max-w-full object-contain mx-auto" />
+                          <img src={templateForm.footerImage} alt="Footer" style={{ maxHeight: `${imageSizeMap.footerImage[templateForm.footerImageSize]}px` }} className="max-w-full object-contain mx-auto" />
                         ) : (
                           <span className="text-white/50 text-xs">[Footer Image]</span>
                         )}
@@ -5900,15 +6129,26 @@ Your team"
                       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                       margin: 0;
                       padding: 20px;
-                      background: ${isDark ? '#111827' : 'white'};
+                      background: ${isDark ? '#111827' : '#f3f4f6'};
                       color: ${isDark ? '#e5e7eb' : '#333'};
                     }
+                    ${isDark ? `
+                    div[style*="background: #ffffff"], div[style*="background:#ffffff"],
+                    div[style*="background: #fff"], div[style*="background:#fff"] {
+                      background: #1f2937 !important;
+                    }
+                    h2, h3, p, td, th, span { color: #e5e7eb !important; }
+                    div[style*="box-shadow"] { background: #1f2937 !important; box-shadow: 0 2px 4px rgba(0,0,0,0.3) !important; }
+                    table { border-color: #374151 !important; }
+                    td, th { border-color: #374151 !important; }
+                    hr { border-color: #374151 !important; }
+                    ` : ''}
                   </style>
                 </head>
                 <body>${previewHtml}</body>
                 </html>
               `}
-              className={`w-full ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+              className={`w-full ${isDark ? 'bg-gray-900' : 'bg-gray-100'}`}
               style={{ height: '500px', border: 'none' }}
               title="Email Preview"
             />
