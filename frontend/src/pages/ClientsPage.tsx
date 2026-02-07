@@ -32,7 +32,7 @@ export default function ClientsPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [techSameAsPrimary, setTechSameAsPrimary] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>(window.innerWidth < 768 ? 'cards' : 'list');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   const { data, isLoading } = useQuery({
     queryKey: ['clients'],

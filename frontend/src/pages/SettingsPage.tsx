@@ -5207,7 +5207,7 @@ export default function SettingsPage() {
         title={selectedTemplate ? 'Edit Template' : 'Add Template'}
         size="full"
       >
-        <form onSubmit={handleVisualTemplateSubmit} className="flex gap-6" style={{ height: '80vh' }}>
+        <form onSubmit={handleVisualTemplateSubmit} className="flex gap-6 h-full">
           <div className="flex-1 min-w-0 overflow-y-auto space-y-4 pr-2">
           {/* Basic Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -6227,8 +6227,8 @@ Your team"
           </div>
 
           {/* Right column - Live Preview */}
-          <div className="w-[420px] shrink-0 overflow-y-auto">
-            <div className="sticky top-0">
+          <div className="hidden sm:block w-[420px] shrink-0 overflow-y-auto">
+            <div>
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                 <div className="bg-gray-50 dark:bg-gray-900 px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                   <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Preview</span>

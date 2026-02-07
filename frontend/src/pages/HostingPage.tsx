@@ -108,7 +108,7 @@ export default function HostingPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [domainToDelete, setDomainToDelete] = useState<{ domainId: number; domainName: string } | null>(null);
   const [statusFilters, setStatusFilters] = useState<Set<FilterStatus>>(new Set());
-  const [viewMode, setViewMode] = useState<ViewMode>(window.innerWidth < 768 ? 'cards' : 'list');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [addDomainModalOpen, setAddDomainModalOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<number | ''>('');
   const [sameAsPrimary, setSameAsPrimary] = useState(true);

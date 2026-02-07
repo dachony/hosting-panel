@@ -1,9 +1,9 @@
-import { differenceInDays, format, parseISO, addDays } from 'date-fns';
+import { differenceInCalendarDays, format, parseISO, addDays } from 'date-fns';
 
 export function daysUntilExpiry(expiryDate: string): number {
   const expiry = parseISO(expiryDate);
   const today = new Date();
-  return differenceInDays(expiry, today);
+  return differenceInCalendarDays(expiry, today);
 }
 
 export function isExpiringSoon(expiryDate: string, daysBefore: number[]): boolean {

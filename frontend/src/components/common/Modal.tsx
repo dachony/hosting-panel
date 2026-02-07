@@ -117,7 +117,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
             </button>
           </div>
 
-          <div className="p-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+          <div className={`p-4 ${size === 'full' ? 'overflow-hidden' : 'max-h-[calc(100vh-200px)] overflow-y-auto'}`} style={size === 'full' ? { height: 'calc(100vh - 200px)' } : undefined}>
             {children}
           </div>
         </div>
