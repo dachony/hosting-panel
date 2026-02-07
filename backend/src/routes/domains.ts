@@ -194,6 +194,14 @@ domains.post('/:id/pdf', async (c) => {
     return c.json({ error: 'File too large (max 10MB)' }, 400);
   }
 
+  // Validate PDF magic bytes (%PDF-)
+  const arrayBuffer = await file.arrayBuffer();
+  const header = new Uint8Array(arrayBuffer).slice(0, 5);
+  const pdfMagic = [0x25, 0x50, 0x44, 0x46, 0x2D]; // %PDF-
+  if (!pdfMagic.every((byte, i) => header[i] === byte)) {
+    return c.json({ error: 'Invalid PDF file' }, 400);
+  }
+
   ensurePdfDir();
 
   // Delete old PDF if exists
@@ -201,7 +209,7 @@ domains.post('/:id/pdf', async (c) => {
 
   const filename = sanitizeFilename(file.name);
   const filePath = getDomainPdfPath(id, filename);
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const buffer = Buffer.from(arrayBuffer);
   fs.writeFileSync(filePath, buffer);
 
   await db.update(schema.domains)

@@ -240,7 +240,8 @@ audit.get('/export', superAdminMiddleware, async (c) => {
     .select()
     .from(schema.auditLogs)
     .where(whereClause)
-    .orderBy(desc(schema.auditLogs.createdAt));
+    .orderBy(desc(schema.auditLogs.createdAt))
+    .limit(50000);
 
   if (format === 'csv') {
     const headers = ['ID', 'Date', 'User', 'Email', 'Action', 'Type', 'Entity', 'IP Address', 'Details'];

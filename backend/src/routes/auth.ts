@@ -65,6 +65,9 @@ auth.post('/login', rateLimit('login', 10, 60 * 1000), async (c) => {
     const user = await db.select().from(schema.users).where(eq(schema.users.email, email)).get();
 
     if (!user) {
+      // Timing attack prevention: run bcrypt.compare with dummy hash
+      // so response time matches the case where user exists but password is wrong
+      await bcrypt.compare(password, '$2a$10$0000000000000000000000uDummyHashForTimingAttackPrevention.');
       await recordLoginAttempt(ipAddress, email, false, userAgent);
       return c.json({ error: 'Invalid credentials' }, 401);
     }
