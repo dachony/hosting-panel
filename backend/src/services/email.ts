@@ -62,7 +62,7 @@ export interface EmailOptions {
   subject: string;
   html: string;
   text?: string;
-  attachments?: Array<{ filename: string; path: string }>;
+  attachments?: Array<{ filename: string; path?: string; content?: Buffer }>;
 }
 
 export async function sendEmail(options: EmailOptions): Promise<void> {

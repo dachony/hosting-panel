@@ -169,7 +169,8 @@ export interface ReportSetting {
 export interface RecipientEntry { type: 'variable' | 'custom'; value: string; }
 export interface TemplateRecipients { to: RecipientEntry[]; cc: RecipientEntry[]; }
 
-export type ImageSize = 'small' | 'medium' | 'large';
+export type ImageSize = 'xs' | 'small' | 'medium' | 'large' | 'xl';
+export type TemplateWidth = 'compact' | 'standard' | 'wide' | 'full';
 
 export interface EmailTemplate {
   id: number;
@@ -187,6 +188,8 @@ export interface EmailTemplate {
   headerImageSize?: ImageSize;
   signatureLogoSize?: ImageSize;
   footerImageSize?: ImageSize;
+  templateWidth?: TemplateWidth;
+  sendAsPdf?: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

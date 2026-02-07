@@ -3,7 +3,7 @@ import { db, schema, ReportConfig, SystemConfig } from '../db/index.js';
 import { eq, and, lte, gte } from 'drizzle-orm';
 import { sendEmail, getExpiryNotificationEmail, getDailyReportEmail } from './email.js';
 import { formatDate, addDaysToDate, daysUntilExpiry } from '../utils/dates.js';
-import { generateHostingListHtml } from './reports.js';
+import { generateHostingListHtml, generateReportPdf } from './reports.js';
 import { generateSystemInfoHtml } from './system.js';
 import { escapeHtml } from '../utils/validation.js';
 import fs from 'fs';
@@ -393,11 +393,25 @@ async function sendReportNotifications() {
     // Replace variables in template
     const { subject, html } = applyTemplateVariables(template.subject, template.htmlContent, variables);
 
+    // Generate PDF attachment if enabled
+    const attachments: Array<{ filename: string; content: Buffer }> = [];
+    if (template.sendAsPdf && template.reportConfig) {
+      try {
+        const pdfBuffer = await generateReportPdf(template.reportConfig as ReportConfig);
+        const dateStr = new Date().toISOString().slice(0, 10);
+        attachments.push({ filename: `hosting-report-${dateStr}.pdf`, content: pdfBuffer });
+        console.log(`[Scheduler] Generated report PDF (${(pdfBuffer.length / 1024).toFixed(1)}KB)`);
+      } catch (pdfError) {
+        console.error(`[Scheduler] Failed to generate report PDF:`, pdfError);
+      }
+    }
+
     try {
       await sendEmail({
         to: recipient,
         subject,
         html,
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
       console.log(`[Scheduler] Sent report notification "${setting.name}" to ${recipient}`);
 

@@ -91,10 +91,12 @@ const templateSchema = z.object({
   systemConfig: systemConfigSchema,
   attachDomainPdf: z.boolean().optional().default(false),
   recipients: recipientsSchema,
-  headerLogoSize: z.enum(['small', 'medium', 'large']).optional().default('medium'),
-  headerImageSize: z.enum(['small', 'medium', 'large']).optional().default('medium'),
-  signatureLogoSize: z.enum(['small', 'medium', 'large']).optional().default('medium'),
-  footerImageSize: z.enum(['small', 'medium', 'large']).optional().default('medium'),
+  headerLogoSize: z.enum(['xs', 'small', 'medium', 'large', 'xl']).optional().default('medium'),
+  headerImageSize: z.enum(['xs', 'small', 'medium', 'large', 'xl']).optional().default('medium'),
+  signatureLogoSize: z.enum(['xs', 'small', 'medium', 'large', 'xl']).optional().default('medium'),
+  footerImageSize: z.enum(['xs', 'small', 'medium', 'large', 'xl']).optional().default('medium'),
+  templateWidth: z.enum(['compact', 'standard', 'wide', 'full']).optional().default('standard'),
+  sendAsPdf: z.boolean().optional().default(false),
   isActive: z.boolean().default(true),
 });
 

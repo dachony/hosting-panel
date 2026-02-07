@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { NotificationSetting, User, MailServer, MailSecurity, CompanyInfo, BankAccount, EmailTemplate, Package, ReportConfig, DomainStatus, SystemConfig, TemplateRecipients, ImageSize } from '../types';
+import { NotificationSetting, User, MailServer, MailSecurity, CompanyInfo, BankAccount, EmailTemplate, Package, ReportConfig, DomainStatus, SystemConfig, TemplateRecipients, ImageSize, TemplateWidth } from '../types';
 import Modal from '../components/common/Modal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import ColorPicker from '../components/common/ColorPicker';
@@ -275,6 +275,7 @@ export default function SettingsPage() {
   const [deleteTemplateDialogOpen, setDeleteTemplateDialogOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [previewHtml, setPreviewHtml] = useState('');
+  const [previewSubject, setPreviewSubject] = useState('');
   const defaultReportConfig: ReportConfig = {
     filters: {
       statuses: ['green', 'yellow', 'orange', 'red'],
@@ -332,16 +333,32 @@ export default function SettingsPage() {
     headerImageSize: 'medium' as ImageSize,
     signatureLogoSize: 'medium' as ImageSize,
     footerImageSize: 'medium' as ImageSize,
+    templateWidth: 'standard' as TemplateWidth,
+    sendAsPdf: false,
     recipients: { to: [], cc: [] } as TemplateRecipients,
+    customToEmail: '',
+    customCcEmail: '',
   });
 
   // Image size maps for HTML generation
   const imageSizeMap = {
-    headerLogo: { small: { h: 40, w: 150 }, medium: { h: 60, w: 200 }, large: { h: 80, w: 250 } },
-    headerImage: { small: 120, medium: 200, large: 300 },
-    signatureLogo: { small: { h: 30, w: 100 }, medium: { h: 40, w: 150 }, large: { h: 60, w: 200 } },
-    footerImage: { small: 60, medium: 100, large: 150 },
+    headerLogo: { xs: { h: 24, w: 100 }, small: { h: 40, w: 150 }, medium: { h: 60, w: 200 }, large: { h: 80, w: 250 }, xl: { h: 100, w: 300 } },
+    headerImage: { xs: 80, small: 120, medium: 200, large: 300, xl: 400 },
+    signatureLogo: { xs: { h: 20, w: 70 }, small: { h: 30, w: 100 }, medium: { h: 40, w: 150 }, large: { h: 60, w: 200 }, xl: { h: 80, w: 250 } },
+    footerImage: { xs: 40, small: 60, medium: 100, large: 150, xl: 200 },
   };
+
+  // Template width options
+  const templateWidthMap: Record<TemplateWidth, number> = { compact: 480, standard: 600, wide: 720, full: 800 };
+  const templateWidthOptions: { value: TemplateWidth; label: string; px: number }[] = [
+    { value: 'compact', label: `${t('settings.widthCompact')} (480px)`, px: 480 },
+    { value: 'standard', label: `${t('settings.widthStandard')} (600px)`, px: 600 },
+    { value: 'wide', label: `${t('settings.widthWide')} (720px)`, px: 720 },
+    { value: 'full', label: `${t('settings.widthFull')} (800px)`, px: 800 },
+  ];
+
+  const imageSizes: ImageSize[] = ['xs', 'small', 'medium', 'large', 'xl'];
+  const imageSizeLabel = (s: ImageSize) => t(`settings.imageSize${s === 'xs' ? 'Xs' : s === 'xl' ? 'Xl' : s.charAt(0).toUpperCase() + s.slice(1)}`);
 
   // Contact variable options for recipients
   const contactVariables = [
@@ -481,7 +498,8 @@ export default function SettingsPage() {
   </div>`;
     }
 
-    return `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    const tplWidth = templateWidthMap[templateForm.templateWidth] || 600;
+    return `<div data-template-width="${templateForm.templateWidth}" style="font-family: Arial, sans-serif; max-width: ${tplWidth}px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
   ${headerHtml}
   <div style="padding: 30px;">
     ${titleHtml}
@@ -621,6 +639,14 @@ export default function SettingsPage() {
       body = tempDiv.textContent || '';
     }
 
+    // Extract template width
+    let templateWidth: TemplateWidth = 'standard';
+    const mainDiv = tempDiv.querySelector('div[data-template-width]');
+    if (mainDiv) {
+      const w = mainDiv.getAttribute('data-template-width') as TemplateWidth | null;
+      if (w) templateWidth = w;
+    }
+
     // Extract image sizes from data-size attributes
     let headerLogoSize: ImageSize = 'medium';
     let headerImageSize: ImageSize = 'medium';
@@ -656,6 +682,7 @@ export default function SettingsPage() {
       showSignature, signatureLogo, signatureImage, useCompanyLogoInSignature,
       showFooter, footerImage, footerBgColor, footerBgTransparent,
       headerLogoSize, headerImageSize, signatureLogoSize, footerImageSize,
+      templateWidth,
     };
   };
 
@@ -699,7 +726,11 @@ export default function SettingsPage() {
         headerImageSize: template.headerImageSize || parsed.headerImageSize || 'medium',
         signatureLogoSize: template.signatureLogoSize || parsed.signatureLogoSize || 'medium',
         footerImageSize: template.footerImageSize || parsed.footerImageSize || 'medium',
+        templateWidth: template.templateWidth || parsed.templateWidth || 'standard',
+        sendAsPdf: template.sendAsPdf || false,
         recipients: template.recipients || { to: [], cc: [] },
+        customToEmail: '',
+        customCcEmail: '',
       });
     } else {
       setTemplateForm({
@@ -732,7 +763,11 @@ export default function SettingsPage() {
         headerImageSize: 'medium',
         signatureLogoSize: 'medium',
         footerImageSize: 'medium',
+        templateWidth: 'standard',
+        sendAsPdf: false,
         recipients: { to: [], cc: [] },
+        customToEmail: '',
+        customCcEmail: '',
       });
     }
     setSelectedTemplate(template);
@@ -847,6 +882,8 @@ export default function SettingsPage() {
       headerImageSize: templateForm.headerImageSize,
       signatureLogoSize: templateForm.signatureLogoSize,
       footerImageSize: templateForm.footerImageSize,
+      templateWidth: templateForm.templateWidth,
+      sendAsPdf: templateForm.type === 'reports' ? templateForm.sendAsPdf : false,
       recipients: (templateForm.recipients.to.length > 0 || templateForm.recipients.cc.length > 0)
         ? templateForm.recipients
         : null,
@@ -2032,10 +2069,12 @@ export default function SettingsPage() {
   const handleTemplatePreview = async (e: React.MouseEvent, template: EmailTemplate) => {
     e.stopPropagation();
     try {
-      const response = await api.post<{ html: string }>(`/api/templates/${template.id}/preview`, {
+      const response = await api.post<{ html: string; subject: string }>(`/api/templates/${template.id}/preview`, {
         variables: dummyVariables,
       });
-      setPreviewHtml(response.html);
+      // Apply dummy vars client-side too as fallback
+      setPreviewHtml(replaceDummyVars(response.html));
+      setPreviewSubject(replaceDummyVars(response.subject || template.subject));
       setSelectedTemplate(template);
       setTemplatePreviewModalOpen(true);
     } catch {
@@ -5132,7 +5171,25 @@ export default function SettingsPage() {
           {/* To: Recipients */}
           {templateForm.type === 'client' && (
             <div>
-              <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">{t('settings.toRecipients')}</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('settings.toRecipients')}</label>
+                <select
+                  className="text-[10px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-1.5 py-0.5 text-gray-600 dark:text-gray-300 cursor-pointer"
+                  value=""
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val && !templateForm.recipients.to.some(r => r.type === 'variable' && r.value === val)) {
+                      setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, to: [...prev.recipients.to, { type: 'variable', value: val }] } }));
+                    }
+                    e.target.value = '';
+                  }}
+                >
+                  <option value="">+ {t('settings.addRecipient')}</option>
+                  {contactVariables.map(v => (
+                    <option key={v.value} value={v.value}>{v.label}</option>
+                  ))}
+                </select>
+              </div>
               <div className="flex flex-wrap items-center gap-1 p-1.5 min-h-[34px] border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900">
                 {templateForm.recipients.to.map((entry, i) => (
                   <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-full ${entry.type === 'variable' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}>
@@ -5142,35 +5199,30 @@ export default function SettingsPage() {
                     </button>
                   </span>
                 ))}
-                <div className="relative inline-block">
-                  <select
-                    className="text-[11px] bg-transparent border-none outline-none cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 pr-1"
-                    value=""
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (!val) return;
-                      if (val === '__custom__') {
-                        const email = prompt(t('settings.customEmailInput'));
-                        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                          setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, to: [...prev.recipients.to, { type: 'custom', value: email }] } }));
-                        } else if (email) {
-                          toast.error(t('settings.invalidEmail'));
-                        }
-                      } else {
-                        if (!templateForm.recipients.to.some(r => r.type === 'variable' && r.value === val)) {
-                          setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, to: [...prev.recipients.to, { type: 'variable', value: val }] } }));
-                        }
+                <input
+                  type="email"
+                  value={templateForm.customToEmail}
+                  onChange={(e) => setTemplateForm(prev => ({ ...prev, customToEmail: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      const email = templateForm.customToEmail.trim().replace(/,$/, '');
+                      if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                        setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, to: [...prev.recipients.to, { type: 'custom', value: email }] }, customToEmail: '' }));
+                      } else if (email) {
+                        toast.error(t('settings.invalidEmail'));
                       }
-                      e.target.value = '';
-                    }}
-                  >
-                    <option value="">+ {t('settings.addRecipient')}</option>
-                    {contactVariables.map(v => (
-                      <option key={v.value} value={v.value}>{v.label}</option>
-                    ))}
-                    <option value="__custom__">{t('settings.customEmailInput')}...</option>
-                  </select>
-                </div>
+                    }
+                  }}
+                  onBlur={() => {
+                    const email = templateForm.customToEmail.trim();
+                    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                      setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, to: [...prev.recipients.to, { type: 'custom', value: email }] }, customToEmail: '' }));
+                    }
+                  }}
+                  className="flex-1 min-w-[120px] text-[11px] bg-transparent border-none outline-none text-gray-700 dark:text-gray-300 placeholder-gray-400"
+                  placeholder={t('settings.customEmailInput')}
+                />
               </div>
             </div>
           )}
@@ -5178,7 +5230,25 @@ export default function SettingsPage() {
           {/* Cc: Recipients */}
           {templateForm.type === 'client' && (
             <div>
-              <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">{t('settings.ccRecipients')}</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('settings.ccRecipients')}</label>
+                <select
+                  className="text-[10px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-1.5 py-0.5 text-gray-600 dark:text-gray-300 cursor-pointer"
+                  value=""
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val && !templateForm.recipients.cc.some(r => r.type === 'variable' && r.value === val)) {
+                      setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, cc: [...prev.recipients.cc, { type: 'variable', value: val }] } }));
+                    }
+                    e.target.value = '';
+                  }}
+                >
+                  <option value="">+ {t('settings.addRecipient')}</option>
+                  {contactVariables.map(v => (
+                    <option key={v.value} value={v.value}>{v.label}</option>
+                  ))}
+                </select>
+              </div>
               <div className="flex flex-wrap items-center gap-1 p-1.5 min-h-[34px] border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900">
                 {templateForm.recipients.cc.map((entry, i) => (
                   <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-full ${entry.type === 'variable' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}>
@@ -5188,35 +5258,30 @@ export default function SettingsPage() {
                     </button>
                   </span>
                 ))}
-                <div className="relative inline-block">
-                  <select
-                    className="text-[11px] bg-transparent border-none outline-none cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 pr-1"
-                    value=""
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (!val) return;
-                      if (val === '__custom__') {
-                        const email = prompt(t('settings.customEmailInput'));
-                        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                          setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, cc: [...prev.recipients.cc, { type: 'custom', value: email }] } }));
-                        } else if (email) {
-                          toast.error(t('settings.invalidEmail'));
-                        }
-                      } else {
-                        if (!templateForm.recipients.cc.some(r => r.type === 'variable' && r.value === val)) {
-                          setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, cc: [...prev.recipients.cc, { type: 'variable', value: val }] } }));
-                        }
+                <input
+                  type="email"
+                  value={templateForm.customCcEmail}
+                  onChange={(e) => setTemplateForm(prev => ({ ...prev, customCcEmail: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      const email = templateForm.customCcEmail.trim().replace(/,$/, '');
+                      if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                        setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, cc: [...prev.recipients.cc, { type: 'custom', value: email }] }, customCcEmail: '' }));
+                      } else if (email) {
+                        toast.error(t('settings.invalidEmail'));
                       }
-                      e.target.value = '';
-                    }}
-                  >
-                    <option value="">+ {t('settings.addRecipient')}</option>
-                    {contactVariables.map(v => (
-                      <option key={v.value} value={v.value}>{v.label}</option>
-                    ))}
-                    <option value="__custom__">{t('settings.customEmailInput')}...</option>
-                  </select>
-                </div>
+                    }
+                  }}
+                  onBlur={() => {
+                    const email = templateForm.customCcEmail.trim();
+                    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                      setTemplateForm(prev => ({ ...prev, recipients: { ...prev.recipients, cc: [...prev.recipients.cc, { type: 'custom', value: email }] }, customCcEmail: '' }));
+                    }
+                  }}
+                  className="flex-1 min-w-[120px] text-[11px] bg-transparent border-none outline-none text-gray-700 dark:text-gray-300 placeholder-gray-400"
+                  placeholder={t('settings.customEmailInput')}
+                />
               </div>
             </div>
           )}
@@ -5249,18 +5314,43 @@ export default function SettingsPage() {
             />
           </div>
 
-          {/* Attach domain PDF checkbox - only for client type, below Subject */}
-          {templateForm.type === 'client' && (
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={templateForm.attachDomainPdf}
-                onChange={(e) => setTemplateForm(prev => ({ ...prev, attachDomainPdf: e.target.checked }))}
-                className="checkbox"
-              />
-              <span className="text-gray-700 dark:text-gray-300">{t('settings.attachDomainPdf')}</span>
-            </label>
-          )}
+          {/* Options row: Attach PDF, Report PDF, Template Width */}
+          <div className="flex flex-wrap items-center gap-4">
+            {templateForm.type === 'client' && (
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={templateForm.attachDomainPdf}
+                  onChange={(e) => setTemplateForm(prev => ({ ...prev, attachDomainPdf: e.target.checked }))}
+                  className="checkbox"
+                />
+                <span className="text-gray-700 dark:text-gray-300">{t('settings.attachDomainPdf')}</span>
+              </label>
+            )}
+            {templateForm.type === 'reports' && (
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={templateForm.sendAsPdf}
+                  onChange={(e) => setTemplateForm(prev => ({ ...prev, sendAsPdf: e.target.checked }))}
+                  className="checkbox"
+                />
+                <span className="text-gray-700 dark:text-gray-300">{t('settings.sendReportAsPdf')}</span>
+              </label>
+            )}
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-[10px] text-gray-500 dark:text-gray-400">{t('settings.templateWidth')}:</span>
+              <div className="flex gap-0.5">
+                {templateWidthOptions.map(opt => (
+                  <button key={opt.value} type="button" onClick={() => setTemplateForm(prev => ({ ...prev, templateWidth: opt.value }))}
+                    className={`px-1.5 py-0.5 text-[9px] rounded border ${templateForm.templateWidth === opt.value ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-gray-50 border-gray-200 text-gray-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}`}
+                    title={`${opt.px}px`}>
+                    {opt.value === 'compact' ? 'C' : opt.value === 'standard' ? 'S' : opt.value === 'wide' ? 'W' : 'F'} {opt.px}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
 
           {/* Email Header Section */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -5285,10 +5375,10 @@ export default function SettingsPage() {
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-[11px] text-gray-500 dark:text-gray-400">Logo</label>
                       <div className="flex gap-0.5">
-                        {(['small', 'medium', 'large'] as const).map(s => (
+                        {imageSizes.map(s => (
                           <button key={s} type="button" onClick={() => setTemplateForm(prev => ({ ...prev, headerLogoSize: s }))}
                             className={`px-1.5 py-0.5 text-[9px] rounded border ${templateForm.headerLogoSize === s ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-gray-50 border-gray-200 text-gray-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}`}>
-                            {t(`settings.imageSize${s.charAt(0).toUpperCase() + s.slice(1)}`)}
+                            {imageSizeLabel(s)}
                           </button>
                         ))}
                       </div>
@@ -5391,10 +5481,10 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-[11px] text-gray-500 dark:text-gray-400">Header Image (optional banner)</label>
                     <div className="flex gap-0.5">
-                      {(['small', 'medium', 'large'] as const).map(s => (
+                      {imageSizes.map(s => (
                         <button key={s} type="button" onClick={() => setTemplateForm(prev => ({ ...prev, headerImageSize: s }))}
                           className={`px-1.5 py-0.5 text-[9px] rounded border ${templateForm.headerImageSize === s ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-gray-50 border-gray-200 text-gray-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}`}>
-                          {t(`settings.imageSize${s.charAt(0).toUpperCase() + s.slice(1)}`)}
+                          {imageSizeLabel(s)}
                         </button>
                       ))}
                     </div>
@@ -5783,10 +5873,10 @@ Your team"
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-[11px] text-gray-500 dark:text-gray-400">Logo (optional)</label>
                       <div className="flex gap-0.5">
-                        {(['small', 'medium', 'large'] as const).map(s => (
+                        {imageSizes.map(s => (
                           <button key={s} type="button" onClick={() => setTemplateForm(prev => ({ ...prev, signatureLogoSize: s }))}
                             className={`px-1.5 py-0.5 text-[9px] rounded border ${templateForm.signatureLogoSize === s ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-gray-50 border-gray-200 text-gray-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}`}>
-                            {t(`settings.imageSize${s.charAt(0).toUpperCase() + s.slice(1)}`)}
+                            {imageSizeLabel(s)}
                           </button>
                         ))}
                       </div>
@@ -5917,10 +6007,10 @@ Your team"
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-[11px] text-gray-500 dark:text-gray-400">Footer Image</label>
                       <div className="flex gap-0.5">
-                        {(['small', 'medium', 'large'] as const).map(s => (
+                        {imageSizes.map(s => (
                           <button key={s} type="button" onClick={() => setTemplateForm(prev => ({ ...prev, footerImageSize: s }))}
                             className={`px-1.5 py-0.5 text-[9px] rounded border ${templateForm.footerImageSize === s ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-gray-50 border-gray-200 text-gray-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}`}>
-                            {t(`settings.imageSize${s.charAt(0).toUpperCase() + s.slice(1)}`)}
+                            {imageSizeLabel(s)}
                           </button>
                         ))}
                       </div>
@@ -6102,7 +6192,7 @@ Your team"
               <div className="text-gray-300 dark:text-gray-600">|</div>
               <div>
                 <span className="text-gray-500">Subject:</span>
-                <span className="ml-1 font-medium">{selectedTemplate.subject}</span>
+                <span className="ml-1 font-medium">{previewSubject || replaceDummyVars(selectedTemplate.subject)}</span>
               </div>
               <div className="text-gray-300 dark:text-gray-600">|</div>
               <div>

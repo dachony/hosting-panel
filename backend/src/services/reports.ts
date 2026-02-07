@@ -2,6 +2,7 @@ import { db, schema } from '../db/index.js';
 import { eq, and, lte, gte, gt, lt, count, isNotNull, isNull } from 'drizzle-orm';
 import { formatDate, addDaysToDate, daysUntilExpiry, getDomainStatus, DomainStatus } from '../utils/dates.js';
 import { ReportConfig } from '../db/schema.js';
+import PDFDocument from 'pdfkit';
 
 export interface DashboardStats {
   totalClients: number;
@@ -465,4 +466,183 @@ export async function generateHostingListHtml(config: ReportConfig): Promise<str
       </tbody>
     </table>`;
   }
+}
+
+// Extract hosting items for PDF (reuses same query as HTML)
+async function getHostingItems(config: ReportConfig): Promise<HostingItem[]> {
+  const [webHosting, mailHosting] = await Promise.all([
+    db.select({
+      id: schema.webHosting.id,
+      packageName: schema.webHosting.packageName,
+      expiryDate: schema.webHosting.expiryDate,
+      isEnabled: schema.webHosting.isEnabled,
+      clientName: schema.clients.name,
+      domainName: schema.domains.domainName,
+      domainIsActive: schema.domains.isActive,
+    })
+    .from(schema.webHosting)
+    .leftJoin(schema.clients, eq(schema.webHosting.clientId, schema.clients.id))
+    .leftJoin(schema.domains, eq(schema.webHosting.domainId, schema.domains.id)),
+
+    db.select({
+      id: schema.mailHosting.id,
+      expiryDate: schema.mailHosting.expiryDate,
+      isActive: schema.mailHosting.isActive,
+      clientName: schema.clients.name,
+      domainName: schema.domains.domainName,
+      domainIsActive: schema.domains.isActive,
+      packageName: schema.mailPackages.name,
+    })
+    .from(schema.mailHosting)
+    .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
+    .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
+    .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id)),
+  ]);
+
+  const items: HostingItem[] = [
+    ...webHosting.filter(h => h.domainIsActive !== false).map(h => {
+      const days = daysUntilExpiry(h.expiryDate);
+      return { id: h.id, type: 'web' as const, domainName: h.domainName, clientName: h.clientName, expiryDate: h.expiryDate, daysUntilExpiry: days, status: getDomainStatus(days), packageName: h.packageName, isEnabled: h.isEnabled !== false };
+    }),
+    ...mailHosting.filter(m => m.domainIsActive !== false).map(m => {
+      const days = daysUntilExpiry(m.expiryDate);
+      return { id: m.id, type: 'mail' as const, domainName: m.domainName, clientName: m.clientName, expiryDate: m.expiryDate, daysUntilExpiry: days, status: getDomainStatus(days), packageName: m.packageName, isEnabled: m.isActive !== false };
+    }),
+  ];
+
+  const filtered = items.filter(item => config.filters.statuses.includes(item.status));
+
+  const sorted = [...filtered].sort((a, b) => {
+    let cmp = 0;
+    switch (config.sorting.field) {
+      case 'domainName': cmp = (a.domainName || '').localeCompare(b.domainName || ''); break;
+      case 'clientName': cmp = (a.clientName || '').localeCompare(b.clientName || ''); break;
+      case 'expiryDate': cmp = a.daysUntilExpiry - b.daysUntilExpiry; break;
+    }
+    return config.sorting.direction === 'asc' ? cmp : -cmp;
+  });
+
+  return sorted;
+}
+
+/** Generate a PDF report buffer (in-memory, no file created) */
+export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
+  const items = await getHostingItems(config);
+  const now = new Date().toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    // Title
+    doc.fontSize(16).font('Helvetica-Bold').text('Hosting Report', { align: 'center' });
+    doc.fontSize(9).font('Helvetica').text(`Generated: ${now}`, { align: 'center' });
+    doc.moveDown(1);
+
+    if (items.length === 0) {
+      doc.fontSize(11).text('No items match the selected filters.', { align: 'center' });
+      doc.end();
+      return;
+    }
+
+    // Table config
+    const cols = [
+      { header: 'Domain', width: 130 },
+      { header: 'Client', width: 120 },
+      { header: 'Expiry', width: 70 },
+      { header: 'Days', width: 45 },
+      { header: 'Status', width: 70 },
+      { header: 'Active', width: 55 },
+    ];
+    const tableLeft = 40;
+    const rowHeight = 18;
+    const headerHeight = 20;
+    const fontSize = 8;
+    const headerFontSize = 8;
+    const pageBottom = doc.page.height - 50;
+
+    const formatDisplayDate = (dateStr: string) => {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+
+    const daysText = (d: number) => d > 0 ? `${d}` : d === 0 ? 'Today' : `${Math.abs(d)} exp.`;
+
+    const drawTableHeader = () => {
+      let x = tableLeft;
+      doc.fontSize(headerFontSize).font('Helvetica-Bold');
+      doc.rect(x, doc.y, cols.reduce((s, c) => s + c.width, 0), headerHeight).fill('#f3f4f6');
+      const headerY = doc.y + 5;
+      for (const col of cols) {
+        doc.fill('#333').text(col.header, x + 4, headerY, { width: col.width - 8, lineBreak: false });
+        x += col.width;
+      }
+      doc.y = headerY + headerHeight - 5;
+      doc.x = tableLeft;
+    };
+
+    const drawRow = (item: HostingItem) => {
+      if (doc.y + rowHeight > pageBottom) {
+        doc.addPage();
+        drawTableHeader();
+      }
+      let x = tableLeft;
+      const y = doc.y + 3;
+      doc.fontSize(fontSize).font('Helvetica').fill('#333');
+
+      // Draw bottom border
+      doc.save().strokeColor('#e5e7eb').lineWidth(0.5)
+        .moveTo(tableLeft, doc.y + rowHeight)
+        .lineTo(tableLeft + cols.reduce((s, c) => s + c.width, 0), doc.y + rowHeight)
+        .stroke().restore();
+
+      const values = [
+        item.domainName || item.packageName || '-',
+        item.clientName || '-',
+        formatDisplayDate(item.expiryDate),
+        daysText(item.daysUntilExpiry),
+        statusColors[item.status].label,
+        item.isEnabled ? 'Yes' : 'No',
+      ];
+
+      for (let i = 0; i < cols.length; i++) {
+        doc.fill('#333').text(values[i], x + 4, y, { width: cols[i].width - 8, lineBreak: false });
+        x += cols[i].width;
+      }
+      doc.y += rowHeight;
+      doc.x = tableLeft;
+    };
+
+    if (config.groupByStatus) {
+      const statusOrder: DomainStatus[] = ['deleted', 'forDeletion', 'red', 'orange', 'yellow', 'green'];
+      const grouped = statusOrder
+        .filter(s => config.filters.statuses.includes(s))
+        .map(s => ({ status: s, items: items.filter(i => i.status === s) }))
+        .filter(g => g.items.length > 0);
+
+      for (const group of grouped) {
+        const color = statusColors[group.status];
+        if (doc.y + headerHeight + rowHeight * 2 > pageBottom) doc.addPage();
+
+        doc.fontSize(10).font('Helvetica-Bold').fill(color.text)
+          .text(`${color.label} (${group.items.length})`, tableLeft, doc.y + 5);
+        doc.moveDown(0.3);
+        drawTableHeader();
+        for (const item of group.items) drawRow(item);
+        doc.moveDown(0.5);
+      }
+    } else {
+      drawTableHeader();
+      for (const item of items) drawRow(item);
+    }
+
+    // Footer
+    doc.fontSize(7).font('Helvetica').fill('#999')
+      .text(`Total: ${items.length} items`, tableLeft, doc.y + 10);
+
+    doc.end();
+  });
 }
