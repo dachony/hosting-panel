@@ -1223,7 +1223,7 @@ export default function ClientDetailPage() {
                 key={option.value}
                 className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                   selectedExtendPeriod === option.value
-                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                    ? 'border-primary-500 bg-primary-50 dark:bg-gray-700/50'
                     : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
               >
@@ -1480,7 +1480,7 @@ export default function ClientDetailPage() {
             <div className="pt-3 border-t dark:border-gray-700">
               <div className="grid grid-cols-2 gap-4">
                 <div />
-                <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-3 -m-1">
+                <div className="bg-primary-50 dark:bg-gray-700/50 rounded-lg p-3 -m-1">
                   <span className="text-xs font-medium text-primary-700 dark:text-primary-300 uppercase">{t('common.expiry')} *</span>
                   <div className="mt-2">
                     <DateInput
@@ -1794,7 +1794,7 @@ export default function ClientDetailPage() {
               </div>
 
               {/* Right: Extend To Date */}
-              <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-3 -m-1">
+              <div className="bg-primary-50 dark:bg-gray-700/50 rounded-lg p-3 -m-1">
                 <span className="text-xs font-medium text-primary-700 dark:text-primary-300 uppercase">{t('common.extendTo')}</span>
                 <div className="mt-2">
                   <DateInput
@@ -1966,7 +1966,7 @@ export default function ClientDetailPage() {
               </div>
 
               {/* Right: Extend To Date */}
-              <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-3 -m-1">
+              <div className="bg-primary-50 dark:bg-gray-700/50 rounded-lg p-3 -m-1">
                 <span className="text-xs font-medium text-primary-700 dark:text-primary-300 uppercase">{t('common.extendTo')}</span>
                 <div className="mt-2">
                   <DateInput

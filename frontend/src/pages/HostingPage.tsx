@@ -993,7 +993,7 @@ export default function HostingPage() {
                 key={option.value}
                 className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                   selectedExtendPeriod === option.value
-                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                    ? 'border-primary-500 bg-primary-50 dark:bg-gray-700/50'
                     : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
               >
