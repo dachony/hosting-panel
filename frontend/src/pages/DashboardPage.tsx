@@ -2,9 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
-import { DashboardStats, ExpiringItem } from '../types';
+import { DashboardStats, ExpiringItem, ExpiryStatus } from '../types';
 import { Users, Globe, Server, AlertTriangle, Trash2, Loader2, Plus, UserPlus } from 'lucide-react';
-import ExpiryBadge from '../components/common/ExpiryBadge';
 
 // Format date for display: YYYY-MM-DD -> DD.MM.YYYY
 function formatDateDisplay(dateStr: string): string {
@@ -12,6 +11,49 @@ function formatDateDisplay(dateStr: string): string {
   const [year, month, day] = dateStr.split('-');
   if (!year || !month || !day) return dateStr;
   return `${day}.${month}.${year}`;
+}
+
+function getExpiryStatus(days: number): ExpiryStatus {
+  if (days <= -60) return 'deleted';
+  if (days <= -30) return 'forDeletion';
+  if (days <= 0) return 'red';
+  if (days <= 7) return 'orange';
+  if (days <= 31) return 'yellow';
+  return 'green';
+}
+
+const statusColors: Record<ExpiryStatus, { dot: string; text: string }> = {
+  green: { dot: 'bg-green-500', text: 'text-green-600 dark:text-green-400' },
+  yellow: { dot: 'bg-yellow-500', text: 'text-yellow-600 dark:text-yellow-400' },
+  orange: { dot: 'bg-orange-500', text: 'text-orange-600 dark:text-orange-400' },
+  red: { dot: 'bg-red-500', text: 'text-red-600 dark:text-red-400' },
+  forDeletion: { dot: 'bg-purple-500', text: 'text-purple-600 dark:text-purple-400' },
+  deleted: { dot: 'bg-gray-500', text: 'text-gray-600 dark:text-gray-400' },
+};
+
+function StatusBadge({ days }: { days: number }) {
+  const { t } = useTranslation();
+  const status = getExpiryStatus(days);
+  const config = statusColors[status];
+
+  let label: string;
+  if (status === 'deleted') label = t('common.statusDeleted');
+  else if (status === 'forDeletion') label = t('common.statusForDeletion');
+  else if (days <= 0) label = t('common.statusExpired');
+  else if (status === 'green') label = t('common.statusOk');
+  else label = t('common.statusExpiring');
+
+  const showDays = days > 0;
+  const daysStr = showDays ? (days > 36000 ? '∞' : `${days} ${t('dashboard.daysLeft')}`) : null;
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${config.dot}`}></div>
+      <span className={`text-xs font-semibold ${config.text} whitespace-nowrap`}>
+        {label}{daysStr ? ` | ${daysStr}` : ''}
+      </span>
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -165,8 +207,8 @@ export default function DashboardPage() {
                   <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
                   <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <div className="w-24 shrink-0">
-                    <ExpiryBadge daysUntilExpiry={item.daysUntilExpiry} size="sm" />
+                  <div className="w-36 shrink-0">
+                    <StatusBadge days={item.daysUntilExpiry} />
                   </div>
                 </div>
               ))}
@@ -200,8 +242,8 @@ export default function DashboardPage() {
                   <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
                   <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <div className="w-24 shrink-0">
-                    <ExpiryBadge daysUntilExpiry={item.daysUntilExpiry} size="sm" />
+                  <div className="w-36 shrink-0">
+                    <StatusBadge days={item.daysUntilExpiry} />
                   </div>
                 </div>
               ))}
@@ -235,8 +277,8 @@ export default function DashboardPage() {
                   <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
                   <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <div className="w-24 shrink-0">
-                    <ExpiryBadge daysUntilExpiry={item.daysUntilExpiry} size="sm" />
+                  <div className="w-36 shrink-0">
+                    <StatusBadge days={item.daysUntilExpiry} />
                   </div>
                 </div>
               ))}
@@ -270,8 +312,8 @@ export default function DashboardPage() {
                   <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
                   <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <div className="w-24 shrink-0">
-                    <ExpiryBadge daysUntilExpiry={item.daysUntilExpiry} size="sm" />
+                  <div className="w-36 shrink-0">
+                    <StatusBadge days={item.daysUntilExpiry} />
                   </div>
                 </div>
               ))}
