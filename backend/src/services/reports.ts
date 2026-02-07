@@ -267,14 +267,14 @@ export async function getRecentActivity(limit: number = 10) {
   return notifications;
 }
 
-// Status colors for HTML table
-const statusColors: Record<DomainStatus, { bg: string; text: string; label: string }> = {
-  green: { bg: '#dcfce7', text: '#166534', label: 'OK' },
-  yellow: { bg: '#fef9c3', text: '#854d0e', label: 'Warning' },
-  orange: { bg: '#ffedd5', text: '#c2410c', label: 'Critical' },
-  red: { bg: '#fee2e2', text: '#dc2626', label: 'Expired' },
-  forDeletion: { bg: '#f3e8ff', text: '#7c3aed', label: 'For Deletion' },
-  deleted: { bg: '#f3f4f6', text: '#6b7280', label: 'Deleted' },
+// Status colors for HTML table — bg is full color, bgLight is 12% opacity version for group background
+const statusColors: Record<DomainStatus, { bg: string; bgLight: string; text: string; label: string; description: string }> = {
+  green: { bg: '#dcfce7', bgLight: 'rgba(34,197,94,0.12)', text: '#166534', label: 'OK', description: 'Active — more than 31 days to expiry' },
+  yellow: { bg: '#fef9c3', bgLight: 'rgba(234,179,8,0.12)', text: '#854d0e', label: 'Warning', description: '31–8 days to expiry' },
+  orange: { bg: '#ffedd5', bgLight: 'rgba(249,115,22,0.12)', text: '#c2410c', label: 'Critical', description: '7–1 days to expiry' },
+  red: { bg: '#fee2e2', bgLight: 'rgba(239,68,68,0.12)', text: '#dc2626', label: 'Expired', description: 'Expired 0–30 days' },
+  forDeletion: { bg: '#f3e8ff', bgLight: 'rgba(139,92,246,0.12)', text: '#7c3aed', label: 'For Deletion', description: 'Expired 30–60 days' },
+  deleted: { bg: '#f3f4f6', bgLight: 'rgba(107,114,128,0.12)', text: '#6b7280', label: 'Deleted', description: 'Expired 60+ days' },
 };
 
 interface HostingItem {
@@ -290,182 +290,64 @@ interface HostingItem {
 }
 
 export async function generateHostingListHtml(config: ReportConfig): Promise<string> {
-  // Query web_hosting and mail_hosting
-  const [webHosting, mailHosting] = await Promise.all([
-    db.select({
-      id: schema.webHosting.id,
-      packageName: schema.webHosting.packageName,
-      expiryDate: schema.webHosting.expiryDate,
-      isEnabled: schema.webHosting.isEnabled,
-      clientName: schema.clients.name,
-      domainName: schema.domains.domainName,
-      domainIsActive: schema.domains.isActive,
-    })
-    .from(schema.webHosting)
-    .leftJoin(schema.clients, eq(schema.webHosting.clientId, schema.clients.id))
-    .leftJoin(schema.domains, eq(schema.webHosting.domainId, schema.domains.id)),
+  const items = await getHostingItems(config);
 
-    db.select({
-      id: schema.mailHosting.id,
-      expiryDate: schema.mailHosting.expiryDate,
-      isActive: schema.mailHosting.isActive,
-      clientName: schema.clients.name,
-      domainName: schema.domains.domainName,
-      domainIsActive: schema.domains.isActive,
-      packageName: schema.mailPackages.name,
-    })
-    .from(schema.mailHosting)
-    .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
-    .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
-    .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id)),
-  ]);
+  if (items.length === 0) {
+    return '<p style="color:#6b7280;">No items match the selected filters.</p>';
+  }
 
-  // Transform to unified format with status (exclude inactive domains)
-  const items: HostingItem[] = [
-    ...webHosting.filter(h => h.domainIsActive !== false).map(h => {
-      const days = daysUntilExpiry(h.expiryDate);
-      return {
-        id: h.id,
-        type: 'web' as const,
-        domainName: h.domainName,
-        clientName: h.clientName,
-        expiryDate: h.expiryDate,
-        daysUntilExpiry: days,
-        status: getDomainStatus(days),
-        packageName: h.packageName,
-        isEnabled: h.isEnabled !== false,
-      };
-    }),
-    ...mailHosting.filter(m => m.domainIsActive !== false).map(m => {
-      const days = daysUntilExpiry(m.expiryDate);
-      return {
-        id: m.id,
-        type: 'mail' as const,
-        domainName: m.domainName,
-        clientName: m.clientName,
-        expiryDate: m.expiryDate,
-        daysUntilExpiry: days,
-        status: getDomainStatus(days),
-        packageName: m.packageName,
-        isEnabled: m.isActive !== false,
-      };
-    }),
-  ];
-
-  // Filter by statuses
-  const filteredItems = items.filter(item =>
-    config.filters.statuses.includes(item.status)
-  );
-
-  // Sort items
-  const sortedItems = [...filteredItems].sort((a, b) => {
-    let comparison = 0;
-    switch (config.sorting.field) {
-      case 'domainName':
-        comparison = (a.domainName || '').localeCompare(b.domainName || '');
-        break;
-      case 'clientName':
-        comparison = (a.clientName || '').localeCompare(b.clientName || '');
-        break;
-      case 'expiryDate':
-        comparison = a.daysUntilExpiry - b.daysUntilExpiry;
-        break;
-    }
-    return config.sorting.direction === 'asc' ? comparison : -comparison;
-  });
-
-  // Format date for display
   const formatDisplayDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
-  // Generate table rows
-  const generateRow = (item: HostingItem) => {
-    const color = statusColors[item.status];
-    const daysText = item.daysUntilExpiry > 0
-      ? `${item.daysUntilExpiry}`
-      : item.daysUntilExpiry === 0
-        ? 'Today'
-        : `${Math.abs(item.daysUntilExpiry)} expired`;
-    const enabledBg = item.isEnabled ? '#dcfce7' : '#f3f4f6';
-    const enabledText = item.isEnabled ? '#166534' : '#6b7280';
-    const enabledLabel = item.isEnabled ? 'Enabled' : 'Disabled';
+  const daysText = (d: number) => d > 0 ? `${d}` : d === 0 ? 'Today' : `${Math.abs(d)} expired`;
 
-    return `
+  const generateRow = (item: HostingItem) => `
     <tr>
-      <td style="padding:8px; border-bottom:1px solid #e5e7eb;">${item.domainName || item.packageName || '-'}</td>
-      <td style="padding:8px; border-bottom:1px solid #e5e7eb;">${item.clientName || '-'}</td>
-      <td style="padding:8px; border-bottom:1px solid #e5e7eb;">${formatDisplayDate(item.expiryDate)}</td>
-      <td style="padding:8px; border-bottom:1px solid #e5e7eb; text-align:center;">${daysText}</td>
-      <td style="padding:8px; border-bottom:1px solid #e5e7eb;">
-        <span style="display:inline-block; padding:2px 8px; border-radius:4px; font-size:12px; background:${color.bg}; color:${color.text};">${color.label}</span>
-      </td>
-      <td style="padding:8px; border-bottom:1px solid #e5e7eb;">
-        <span style="display:inline-block; padding:2px 8px; border-radius:4px; font-size:12px; background:${enabledBg}; color:${enabledText};">${enabledLabel}</span>
-      </td>
+      <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">${item.domainName || item.packageName || '-'}</td>
+      <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">${item.clientName || '-'}</td>
+      <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb; text-align:center; font-weight:600; color:${statusColors[item.status].text};">${daysText(item.daysUntilExpiry)}</td>
+      <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">${formatDisplayDate(item.expiryDate)}</td>
     </tr>`;
-  };
 
-  // Generate HTML based on groupByStatus
-  if (config.groupByStatus) {
-    // Group items by status
-    const statusOrder: DomainStatus[] = ['deleted', 'forDeletion', 'red', 'orange', 'yellow', 'green'];
-    const grouped = statusOrder
-      .filter(status => config.filters.statuses.includes(status))
-      .map(status => ({
-        status,
-        items: sortedItems.filter(item => item.status === status),
-      }))
-      .filter(group => group.items.length > 0);
+  const tableHeader = `
+    <thead>
+      <tr>
+        <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #d1d5db; font-size:12px; color:#374151;">Domain</th>
+        <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #d1d5db; font-size:12px; color:#374151;">Client</th>
+        <th style="padding:6px 8px; text-align:center; border-bottom:2px solid #d1d5db; font-size:12px; color:#374151;">Days</th>
+        <th style="padding:6px 8px; text-align:left; border-bottom:2px solid #d1d5db; font-size:12px; color:#374151;">Expiry Date</th>
+      </tr>
+    </thead>`;
 
-    let html = '';
-    for (const group of grouped) {
-      const color = statusColors[group.status];
-      html += `
-      <h3 style="margin:20px 0 10px 0; padding:8px; background:${color.bg}; color:${color.text}; border-radius:4px;">
-        ${color.label} (${group.items.length})
-      </h3>
-      <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
-        <thead>
-          <tr style="background:#f3f4f6;">
-            <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Domain</th>
-            <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Client</th>
-            <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Expiry Date</th>
-            <th style="padding:8px; text-align:center; border-bottom:2px solid #e5e7eb;">Days</th>
-            <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Status</th>
-            <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Active</th>
-          </tr>
-        </thead>
+  // Always group by status in the correct order: green → yellow → orange → red → forDeletion → deleted
+  const statusOrder: DomainStatus[] = ['green', 'yellow', 'orange', 'red', 'forDeletion', 'deleted'];
+  const grouped = statusOrder
+    .filter(status => config.filters.statuses.includes(status))
+    .map(status => ({
+      status,
+      items: items.filter(item => item.status === status),
+    }))
+    .filter(group => group.items.length > 0);
+
+  let html = '';
+  for (const group of grouped) {
+    const color = statusColors[group.status];
+    html += `
+    <div style="margin-bottom:16px; border-radius:6px; overflow:hidden; background:${color.bgLight}; border-left:4px solid ${color.text};">
+      <div style="padding:6px 12px; font-size:12px; font-weight:600; color:${color.text};">
+        ${color.label} — ${color.description} (${group.items.length})
+      </div>
+      <table style="width:100%; border-collapse:collapse; background:rgba(255,255,255,0.6);">
+        ${tableHeader}
         <tbody>
           ${group.items.map(generateRow).join('')}
         </tbody>
-      </table>`;
-    }
-    return html || '<p style="color:#6b7280;">No items match the selected filters.</p>';
-  } else {
-    // Single table without grouping
-    if (sortedItems.length === 0) {
-      return '<p style="color:#6b7280;">No items match the selected filters.</p>';
-    }
-
-    return `
-    <table style="width:100%; border-collapse:collapse;">
-      <thead>
-        <tr style="background:#f3f4f6;">
-          <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Domain</th>
-          <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Client</th>
-          <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Expiry Date</th>
-          <th style="padding:8px; text-align:center; border-bottom:2px solid #e5e7eb;">Days</th>
-          <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Status</th>
-          <th style="padding:8px; text-align:left; border-bottom:2px solid #e5e7eb;">Active</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${sortedItems.map(generateRow).join('')}
-      </tbody>
-    </table>`;
+      </table>
+    </div>`;
   }
+  return html;
 }
 
 // Extract hosting items for PDF (reuses same query as HTML)
@@ -525,6 +407,16 @@ async function getHostingItems(config: ReportConfig): Promise<HostingItem[]> {
   return sorted;
 }
 
+// PDF status colors (RGB 0-1 for pdfkit)
+const pdfStatusColors: Record<DomainStatus, { r: number; g: number; b: number }> = {
+  green: { r: 0.13, g: 0.77, b: 0.37 },
+  yellow: { r: 0.92, g: 0.70, b: 0.03 },
+  orange: { r: 0.98, g: 0.45, b: 0.09 },
+  red: { r: 0.94, g: 0.27, b: 0.27 },
+  forDeletion: { r: 0.55, g: 0.36, b: 0.96 },
+  deleted: { r: 0.42, g: 0.45, b: 0.50 },
+};
+
 /** Generate a PDF report buffer (in-memory, no file created) */
 export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
   const items = await getHostingItems(config);
@@ -548,16 +440,15 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
       return;
     }
 
-    // Table config
+    // 4 columns: Domain, Client, Days, Expiry Date
     const cols = [
-      { header: 'Domain', width: 130 },
-      { header: 'Client', width: 120 },
-      { header: 'Expiry', width: 70 },
-      { header: 'Days', width: 45 },
-      { header: 'Status', width: 70 },
-      { header: 'Active', width: 55 },
+      { header: 'Domain', width: 170 },
+      { header: 'Client', width: 160 },
+      { header: 'Days', width: 55 },
+      { header: 'Expiry Date', width: 90 },
     ];
     const tableLeft = 40;
+    const tableWidth = cols.reduce((s, c) => s + c.width, 0);
     const rowHeight = 18;
     const headerHeight = 20;
     const fontSize = 8;
@@ -574,7 +465,7 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
     const drawTableHeader = () => {
       let x = tableLeft;
       doc.fontSize(headerFontSize).font('Helvetica-Bold');
-      doc.rect(x, doc.y, cols.reduce((s, c) => s + c.width, 0), headerHeight).fill('#f3f4f6');
+      doc.rect(x, doc.y, tableWidth, headerHeight).fill('#e5e7eb');
       const headerY = doc.y + 5;
       for (const col of cols) {
         doc.fill('#333').text(col.header, x + 4, headerY, { width: col.width - 8, lineBreak: false });
@@ -584,59 +475,81 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
       doc.x = tableLeft;
     };
 
-    const drawRow = (item: HostingItem) => {
+    const drawRow = (item: HostingItem, groupColor: { r: number; g: number; b: number }) => {
       if (doc.y + rowHeight > pageBottom) {
         doc.addPage();
         drawTableHeader();
       }
-      let x = tableLeft;
-      const y = doc.y + 3;
-      doc.fontSize(fontSize).font('Helvetica').fill('#333');
+      const y = doc.y;
 
-      // Draw bottom border
+      // Row background with group color at 10% opacity
+      doc.save();
+      doc.rect(tableLeft, y, tableWidth, rowHeight)
+        .fillOpacity(0.10).fillColor([groupColor.r * 255, groupColor.g * 255, groupColor.b * 255] as any).fill();
+      doc.restore();
+
+      // Bottom border
       doc.save().strokeColor('#e5e7eb').lineWidth(0.5)
-        .moveTo(tableLeft, doc.y + rowHeight)
-        .lineTo(tableLeft + cols.reduce((s, c) => s + c.width, 0), doc.y + rowHeight)
+        .moveTo(tableLeft, y + rowHeight)
+        .lineTo(tableLeft + tableWidth, y + rowHeight)
         .stroke().restore();
 
+      const textY = y + 4;
+      let x = tableLeft;
       const values = [
         item.domainName || item.packageName || '-',
         item.clientName || '-',
-        formatDisplayDate(item.expiryDate),
         daysText(item.daysUntilExpiry),
-        statusColors[item.status].label,
-        item.isEnabled ? 'Yes' : 'No',
+        formatDisplayDate(item.expiryDate),
       ];
 
+      doc.fontSize(fontSize).font('Helvetica');
       for (let i = 0; i < cols.length; i++) {
-        doc.fill('#333').text(values[i], x + 4, y, { width: cols[i].width - 8, lineBreak: false });
+        // Days column (index 2) in bold status color
+        if (i === 2) {
+          const sc = statusColors[item.status];
+          doc.fill(sc.text).font('Helvetica-Bold')
+            .text(values[i], x + 4, textY, { width: cols[i].width - 8, lineBreak: false });
+          doc.font('Helvetica');
+        } else {
+          doc.fill('#333').text(values[i], x + 4, textY, { width: cols[i].width - 8, lineBreak: false });
+        }
         x += cols[i].width;
       }
-      doc.y += rowHeight;
+      doc.y = y + rowHeight;
       doc.x = tableLeft;
     };
 
-    if (config.groupByStatus) {
-      const statusOrder: DomainStatus[] = ['deleted', 'forDeletion', 'red', 'orange', 'yellow', 'green'];
-      const grouped = statusOrder
-        .filter(s => config.filters.statuses.includes(s))
-        .map(s => ({ status: s, items: items.filter(i => i.status === s) }))
-        .filter(g => g.items.length > 0);
+    // Always group by status: green → yellow → orange → red → forDeletion → deleted
+    const statusOrder: DomainStatus[] = ['green', 'yellow', 'orange', 'red', 'forDeletion', 'deleted'];
+    const grouped = statusOrder
+      .filter(s => config.filters.statuses.includes(s))
+      .map(s => ({ status: s, items: items.filter(i => i.status === s) }))
+      .filter(g => g.items.length > 0);
 
-      for (const group of grouped) {
-        const color = statusColors[group.status];
-        if (doc.y + headerHeight + rowHeight * 2 > pageBottom) doc.addPage();
+    for (const group of grouped) {
+      const color = statusColors[group.status];
+      const pdfColor = pdfStatusColors[group.status];
+      if (doc.y + headerHeight + rowHeight * 2 + 20 > pageBottom) doc.addPage();
 
-        doc.fontSize(10).font('Helvetica-Bold').fill(color.text)
-          .text(`${color.label} (${group.items.length})`, tableLeft, doc.y + 5);
-        doc.moveDown(0.3);
-        drawTableHeader();
-        for (const item of group.items) drawRow(item);
-        doc.moveDown(0.5);
-      }
-    } else {
+      // Group header with colored background
+      const groupHeaderHeight = 16;
+      doc.save();
+      doc.rect(tableLeft, doc.y, tableWidth, groupHeaderHeight)
+        .fillOpacity(0.15).fillColor([pdfColor.r * 255, pdfColor.g * 255, pdfColor.b * 255] as any).fill();
+      doc.restore();
+      doc.save();
+      doc.rect(tableLeft, doc.y, 3, groupHeaderHeight).fill(color.text);
+      doc.restore();
+
+      doc.fontSize(8).font('Helvetica-Bold').fill(color.text)
+        .text(`${color.label} — ${color.description} (${group.items.length})`, tableLeft + 8, doc.y + 3);
+      doc.y += groupHeaderHeight + 2;
+      doc.x = tableLeft;
+
       drawTableHeader();
-      for (const item of items) drawRow(item);
+      for (const item of group.items) drawRow(item, pdfColor);
+      doc.moveDown(0.5);
     }
 
     // Footer

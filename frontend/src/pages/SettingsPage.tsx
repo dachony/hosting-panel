@@ -254,6 +254,7 @@ export default function SettingsPage() {
   const [selectedNotification, setSelectedNotification] = useState<NotificationSetting | null>(null);
   const [triggerModalOpen, setTriggerModalOpen] = useState(false);
   const [triggerDomainId, setTriggerDomainId] = useState<number | undefined>(undefined);
+  const [triggerEmail, setTriggerEmail] = useState('');
   const [notificationForm, setNotificationForm] = useState({
     name: '',
     type: 'client' as 'client' | 'service_request' | 'sales_request' | 'reports' | 'system',
@@ -1309,12 +1310,13 @@ export default function SettingsPage() {
   });
 
   const triggerNotificationMutation = useMutation({
-    mutationFn: ({ id, domainId }: { id: number; domainId?: number }) =>
-      api.post<{ message: string }>(`/api/notifications/settings/${id}/trigger`, domainId ? { domainId } : {}),
+    mutationFn: ({ id, domainId, email }: { id: number; domainId?: number; email?: string }) =>
+      api.post<{ message: string }>(`/api/notifications/settings/${id}/trigger`, { ...(domainId ? { domainId } : {}), ...(email ? { email } : {}) }),
     onSuccess: (data) => {
       toast.success(data.message || t('settings.notificationTriggered'));
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
       setTriggerModalOpen(false);
+      setTriggerEmail('');
     },
     onError: (error: any) => toast.error(error?.message || t('settings.errorTriggeringNotification')),
   });
@@ -5053,6 +5055,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => {
                     setTriggerDomainId(undefined);
+                    setTriggerEmail('');
                     setTriggerModalOpen(true);
                   }}
                   className="py-1.5 px-3 text-sm flex items-center gap-1 rounded bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-200 hover:border-amber-400 active:bg-amber-300 active:scale-[0.97] dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/50 dark:hover:bg-amber-500/40 dark:hover:border-amber-400/70 dark:active:bg-amber-500/50 transition-all duration-150"
@@ -5091,30 +5094,49 @@ export default function SettingsPage() {
         size="md"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Select a domain to send a test notification, or leave empty to trigger for all matching domains.
-          </p>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Domain</label>
-            <select
-              value={triggerDomainId || ''}
-              onChange={(e) => setTriggerDomainId(e.target.value ? Number(e.target.value) : undefined)}
-              className="input w-full"
-            >
-              <option value="">-- All domains --</option>
-              {(triggerDomainsData?.domains || []).map(d => (
-                <option key={d.id} value={d.id}>
-                  {d.domainName}{d.clientName ? ` (${d.clientName})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          {selectedNotification?.type === 'client' ? (
+            <>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Select a domain to send a test notification, or leave empty to trigger for all matching domains.
+              </p>
+              <div>
+                <label className="block text-sm font-medium mb-1">Domain</label>
+                <select
+                  value={triggerDomainId || ''}
+                  onChange={(e) => setTriggerDomainId(e.target.value ? Number(e.target.value) : undefined)}
+                  className="input w-full"
+                >
+                  <option value="">-- All domains --</option>
+                  {(triggerDomainsData?.domains || []).map(d => (
+                    <option key={d.id} value={d.id}>
+                      {d.domainName}{d.clientName ? ` (${d.clientName})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Enter email address to send this notification to.
+              </p>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <input
+                  type="email"
+                  value={triggerEmail}
+                  onChange={(e) => setTriggerEmail(e.target.value)}
+                  placeholder="recipient@example.com"
+                  className="input w-full"
+                />
+              </div>
+            </>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
-              onClick={() => setTriggerModalOpen(false)}
+              onClick={() => { setTriggerModalOpen(false); setTriggerEmail(''); }}
               className="btn btn-secondary"
             >
               Cancel
@@ -5123,14 +5145,18 @@ export default function SettingsPage() {
               type="button"
               onClick={() => {
                 if (selectedNotification) {
-                  triggerNotificationMutation.mutate({ id: selectedNotification.id, domainId: triggerDomainId });
+                  if (selectedNotification.type === 'client') {
+                    triggerNotificationMutation.mutate({ id: selectedNotification.id, domainId: triggerDomainId });
+                  } else {
+                    triggerNotificationMutation.mutate({ id: selectedNotification.id, email: triggerEmail || undefined });
+                  }
                 }
               }}
               className="btn btn-primary flex items-center gap-1"
-              disabled={triggerNotificationMutation.isPending}
+              disabled={triggerNotificationMutation.isPending || (selectedNotification?.type !== 'client' && !triggerEmail)}
             >
               <Send className="w-3.5 h-3.5" />
-              {triggerNotificationMutation.isPending ? 'Sending...' : triggerDomainId ? 'Send to Domain' : 'Trigger All'}
+              {triggerNotificationMutation.isPending ? 'Sending...' : 'Send'}
             </button>
           </div>
         </div>

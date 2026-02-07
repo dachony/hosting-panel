@@ -5,7 +5,7 @@ import { authMiddleware, adminMiddleware, superAdminMiddleware } from '../middle
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { sendEmail, sendTestEmail, testSmtpConnection } from '../services/email.js';
-import { generateHostingListHtml } from '../services/reports.js';
+import { generateHostingListHtml, generateReportPdf } from '../services/reports.js';
 import { generateSystemInfoHtml } from '../services/system.js';
 import { triggerClientNotification } from '../services/scheduler.js';
 import type { ReportConfig, SystemConfig } from '../db/schema.js';
@@ -439,14 +439,19 @@ notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
       return c.json({ message: `Sent ${sentCount} notification(s)${domainId ? ' for selected domain' : ' to matching contacts'}` });
     }
 
-    // Determine recipient for non-client types
+    // For non-client types, accept custom email from request body or fall back to setting
+    const body = await c.req.json().catch(() => ({}));
     let recipient: string | null = null;
-    if (setting.recipientType === 'custom' && setting.customEmail) {
+
+    // Prefer email from request body (for trigger modal custom email input)
+    if (body.email && typeof body.email === 'string' && body.email.includes('@')) {
+      recipient = body.email;
+    } else if (setting.recipientType === 'custom' && setting.customEmail) {
       recipient = setting.customEmail;
     }
 
     if (!recipient) {
-      return c.json({ error: 'No recipient configured (set recipient type to Custom and enter an email)' }, 400);
+      return c.json({ error: 'No recipient configured — enter an email address' }, 400);
     }
 
     // Get company info for variables
@@ -478,7 +483,16 @@ notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
       subject = subject.replace(regex, value);
     }
 
-    await sendEmail({ to: recipient, subject, html });
+    // Generate PDF attachment for reports if sendAsPdf is enabled
+    let attachments: Array<{ filename: string; content: Buffer }> | undefined;
+    if (setting.type === 'reports' && template.sendAsPdf && template.reportConfig) {
+      const reportConfig = template.reportConfig as ReportConfig;
+      const pdfBuffer = await generateReportPdf(reportConfig);
+      const dateStr = new Date().toISOString().split('T')[0];
+      attachments = [{ filename: `hosting-report-${dateStr}.pdf`, content: pdfBuffer }];
+    }
+
+    await sendEmail({ to: recipient, subject, html, attachments });
 
     // Update lastSent
     await db.update(schema.notificationSettings)
