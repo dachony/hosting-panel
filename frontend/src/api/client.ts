@@ -9,8 +9,6 @@ export function setOnUnauthorized(cb: (() => void) | null) {
 }
 
 function handleUnauthorized() {
-  // Guard: if token already cleared, skip (prevents N calls from N parallel requests)
-  if (!localStorage.getItem('token')) return;
   localStorage.removeItem('token');
   localStorage.removeItem('user');
   if (onUnauthorized) {
