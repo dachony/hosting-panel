@@ -253,6 +253,7 @@ export default function SettingsPage() {
   const [deleteNotificationDialogOpen, setDeleteNotificationDialogOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<NotificationSetting | null>(null);
   const [triggerModalOpen, setTriggerModalOpen] = useState(false);
+  const [triggerNotification, setTriggerNotification] = useState<NotificationSetting | null>(null);
   const [triggerDomainId, setTriggerDomainId] = useState<number | undefined>(undefined);
   const [triggerEmail, setTriggerEmail] = useState('');
   const [notificationForm, setNotificationForm] = useState({
@@ -5092,8 +5093,10 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => {
+                    setTriggerNotification(selectedNotification);
                     setTriggerDomainId(undefined);
                     setTriggerEmail('');
+                    setNotificationModalOpen(false);
                     setTriggerModalOpen(true);
                   }}
                   className="py-1.5 px-3 text-sm flex items-center gap-1 rounded bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-200 hover:border-amber-400 active:bg-amber-300 active:scale-[0.97] dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/50 dark:hover:bg-amber-500/40 dark:hover:border-amber-400/70 dark:active:bg-amber-500/50 transition-all duration-150"
@@ -5132,44 +5135,36 @@ export default function SettingsPage() {
         size="md"
       >
         <div className="space-y-4">
-          {/* Domain dropdown for client/service/sales types */}
-          {(selectedNotification?.type === 'client' || selectedNotification?.type === 'service_request' || selectedNotification?.type === 'sales_request') && (
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                {selectedNotification.type === 'client'
-                  ? 'Select a domain to send a test notification, or leave empty to trigger for all matching domains.'
-                  : 'Select a domain to populate template variables (domainName, clientName, expiryDate, etc.).'
-                }
-              </p>
-              <label className="block text-sm font-medium mb-1">Domain</label>
-              <select
-                value={triggerDomainId || ''}
-                onChange={(e) => setTriggerDomainId(e.target.value ? Number(e.target.value) : undefined)}
-                className="input w-full"
-              >
-                <option value="">{selectedNotification.type === 'client' ? '-- All domains --' : '-- Select domain --'}</option>
-                {(triggerDomainsData?.domains || []).map(d => (
-                  <option key={d.id} value={d.id}>
-                    {d.domainName}{d.clientName ? ` (${d.clientName})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Select a domain to populate template variables and enter the email address to send to.
+          </p>
 
-          {/* Email input for non-client types */}
-          {selectedNotification?.type !== 'client' && (
-            <div>
-              <label className="block text-sm font-medium mb-1">Email</label>
-              <input
-                type="email"
-                value={triggerEmail}
-                onChange={(e) => setTriggerEmail(e.target.value)}
-                placeholder="recipient@example.com"
-                className="input w-full"
-              />
-            </div>
-          )}
+          <div>
+            <label className="block text-sm font-medium mb-1">Domain</label>
+            <select
+              value={triggerDomainId || ''}
+              onChange={(e) => setTriggerDomainId(e.target.value ? Number(e.target.value) : undefined)}
+              className="input w-full"
+            >
+              <option value="">-- Select domain --</option>
+              {(triggerDomainsData?.domains || []).map(d => (
+                <option key={d.id} value={d.id}>
+                  {d.domainName}{d.clientName ? ` (${d.clientName})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Email</label>
+            <input
+              type="email"
+              value={triggerEmail}
+              onChange={(e) => setTriggerEmail(e.target.value)}
+              placeholder="recipient@example.com"
+              className="input w-full"
+            />
+          </div>
 
           <div className="flex justify-end gap-2 pt-2">
             <button
@@ -5182,16 +5177,16 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => {
-                if (selectedNotification) {
-                  if (selectedNotification.type === 'client') {
-                    triggerNotificationMutation.mutate({ id: selectedNotification.id, domainId: triggerDomainId });
-                  } else {
-                    triggerNotificationMutation.mutate({ id: selectedNotification.id, email: triggerEmail || undefined, domainId: triggerDomainId });
-                  }
+                if (triggerNotification) {
+                  triggerNotificationMutation.mutate({
+                    id: triggerNotification.id,
+                    email: triggerEmail || undefined,
+                    domainId: triggerDomainId,
+                  });
                 }
               }}
               className="btn btn-primary flex items-center gap-1"
-              disabled={triggerNotificationMutation.isPending || (selectedNotification?.type !== 'client' && !triggerEmail)}
+              disabled={triggerNotificationMutation.isPending || !triggerEmail}
             >
               <Send className="w-3.5 h-3.5" />
               {triggerNotificationMutation.isPending ? 'Sending...' : 'Send'}

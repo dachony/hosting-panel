@@ -425,9 +425,10 @@ notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
       return c.json({ error: 'Template not found or inactive' }, 400);
     }
 
-    // For client-type notifications with primary recipients, use the scheduler logic
-    if (setting.type === 'client' && setting.recipientType === 'primary') {
-      const body = await c.req.json().catch(() => ({}));
+    const body = await c.req.json().catch(() => ({}));
+
+    // For client-type notifications with primary recipients and no custom email, use the scheduler logic
+    if (setting.type === 'client' && setting.recipientType === 'primary' && !body.email) {
       const domainId = body.domainId ? parseInt(body.domainId) : undefined;
 
       const sentCount = await triggerClientNotification(setting, domainId);
@@ -439,11 +440,9 @@ notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
       return c.json({ message: `Sent ${sentCount} notification(s)${domainId ? ' for selected domain' : ' to matching contacts'}` });
     }
 
-    // For non-client types, accept custom email from request body or fall back to setting
-    const body = await c.req.json().catch(() => ({}));
+    // Accept custom email from request body or fall back to setting
     let recipient: string | null = null;
 
-    // Prefer email from request body (for trigger modal custom email input)
     if (body.email && typeof body.email === 'string' && body.email.includes('@')) {
       recipient = body.email;
     } else if (setting.recipientType === 'custom' && setting.customEmail) {
@@ -462,9 +461,9 @@ notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
       companyLogo: companyInfo?.logo || '',
     };
 
-    // Populate domain/hosting variables if domainId provided (client/service/sales triggers)
+    // Populate domain/hosting variables if domainId provided
     const domainId = body.domainId ? parseInt(body.domainId) : undefined;
-    if (domainId && (setting.type === 'client' || setting.type === 'service_request' || setting.type === 'sales_request')) {
+    if (domainId) {
       const domainData = await db.select({
         domainName: schema.domains.domainName,
         clientName: schema.clients.name,
