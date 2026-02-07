@@ -60,6 +60,20 @@ app.get('/api/public/branding', async (c) => {
   return c.json({ systemName, logo });
 });
 
+// Public password policy endpoint (no auth required)
+app.get('/api/public/password-policy', async (c) => {
+  const setting = await db.select().from(schema.appSettings).where(eq(schema.appSettings.key, 'security')).get();
+  const defaults = { passwordMinLength: 6, passwordRequireUppercase: true, passwordRequireLowercase: true, passwordRequireNumbers: true, passwordRequireSpecial: false };
+  const settings = setting?.value ? { ...defaults, ...(setting.value as object) } : defaults;
+  return c.json({
+    minLength: settings.passwordMinLength,
+    requireUppercase: settings.passwordRequireUppercase,
+    requireLowercase: settings.passwordRequireLowercase,
+    requireNumbers: settings.passwordRequireNumbers,
+    requireSpecial: settings.passwordRequireSpecial,
+  });
+});
+
 // Routes
 app.route('/api/auth', auth);
 app.route('/api/users', users);

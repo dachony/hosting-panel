@@ -20,14 +20,19 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // Branding state
+  // Branding & password policy state
   const [branding, setBranding] = useState<Branding>({ systemName: 'Hosting Panel', logo: null });
+  const [minLength, setMinLength] = useState(6);
 
   useEffect(() => {
     fetch('/api/public/branding')
       .then(res => res.json())
       .then(data => setBranding(data))
       .catch((e) => console.warn('Failed to load branding', e));
+    fetch('/api/public/password-policy')
+      .then(res => res.json())
+      .then(data => setMinLength(data.minLength || 6))
+      .catch(() => {});
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,8 +43,8 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 6) {
-      toast.error(t('auth.passwordMinLength'));
+    if (password.length < minLength) {
+      toast.error(t('auth.passwordMinLength', { count: minLength }));
       return;
     }
 
@@ -141,8 +146,8 @@ export default function ResetPasswordPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="input"
                   required
-                  minLength={6}
-                  placeholder={t('auth.minCharacters')}
+                  minLength={minLength}
+                  placeholder={t('auth.minCharacters', { count: minLength })}
                 />
               </div>
 

@@ -706,6 +706,12 @@ auth.post('/reset-password', rateLimit('reset-password', 5, 15 * 60 * 1000), asy
       return c.json({ error: 'Invalid or expired token' }, 400);
     }
 
+    // Validate password against policy
+    const validation = await validatePassword(password);
+    if (!validation.valid) {
+      return c.json({ error: 'Password does not meet requirements', details: validation.errors }, 400);
+    }
+
     // Hash new password
     const passwordHash = await bcrypt.hash(password, 10);
 
@@ -755,6 +761,12 @@ auth.post('/setup', async (c) => {
 
     const body = await c.req.json();
     const { firstName, lastName, email, phone, password } = setupSchema.parse(body);
+
+    // Validate password against policy
+    const validation = await validatePassword(password);
+    if (!validation.valid) {
+      return c.json({ error: 'Password does not meet requirements', details: validation.errors }, 400);
+    }
 
     const name = `${firstName} ${lastName}`.trim();
     const passwordHash = await bcrypt.hash(password, 10);

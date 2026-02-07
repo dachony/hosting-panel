@@ -16,12 +16,17 @@ export default function SetupPage() {
   const { completeSetup } = useAuth();
 
   const [branding, setBranding] = useState<Branding>({ systemName: 'Hosting Panel', logo: null });
+  const [minLength, setMinLength] = useState(6);
 
   useEffect(() => {
     fetch('/api/public/branding')
       .then(res => res.json())
       .then(data => setBranding(data))
       .catch((e) => console.warn('Failed to load branding', e));
+    fetch('/api/public/password-policy')
+      .then(res => res.json())
+      .then(data => setMinLength(data.minLength || 6))
+      .catch(() => {});
   }, []);
 
   const [firstName, setFirstName] = useState('');
@@ -40,8 +45,8 @@ export default function SetupPage() {
       return;
     }
 
-    if (password.length < 6) {
-      toast.error(t('auth.passwordMinLength'));
+    if (password.length < minLength) {
+      toast.error(t('auth.passwordMinLength', { count: minLength }));
       return;
     }
 
@@ -143,8 +148,9 @@ export default function SetupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input"
-                minLength={6}
+                minLength={minLength}
                 required
+                placeholder={t('auth.minCharacters', { count: minLength })}
               />
             </div>
 
@@ -155,7 +161,7 @@ export default function SetupPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="input"
-                minLength={6}
+                minLength={minLength}
                 required
               />
             </div>
