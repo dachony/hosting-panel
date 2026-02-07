@@ -120,7 +120,7 @@ export async function getExpiringItems(days: number = 30): Promise<ExpiringItem[
   .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
   .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
   .where(and(
-    gte(schema.mailHosting.expiryDate, today),
+    gt(schema.mailHosting.expiryDate, today),
     lte(schema.mailHosting.expiryDate, futureDate)
   ));
 
@@ -153,7 +153,7 @@ export async function getExpiredItems(): Promise<ExpiringItem[]> {
   .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
   .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
   .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
-  .where(and(lt(schema.mailHosting.expiryDate, today), gt(schema.mailHosting.expiryDate, sevenDaysAgo)));
+  .where(and(lte(schema.mailHosting.expiryDate, today), gt(schema.mailHosting.expiryDate, sevenDaysAgo)));
 
   const items: ExpiringItem[] = mail.filter(m => m.domainId != null).map(m => ({
     id: m.id,
@@ -428,6 +428,10 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
   const items = await getHostingItems(config);
   const now = new Date().toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
+  // Get system name from settings
+  const systemSetting = await db.select().from(schema.appSettings).where(eq(schema.appSettings.key, 'system')).get();
+  const systemName = (systemSetting?.value as { systemName?: string })?.systemName || 'Hosting Panel';
+
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
     doc.registerFont('Roboto', FONT_REGULAR);
@@ -437,9 +441,10 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    // Title
-    doc.fontSize(16).font('Roboto-Bold').text('Hosting Report', { align: 'center' });
-    doc.fontSize(9).font('Roboto').text(`Generated: ${now}`, { align: 'center' });
+    // Title with system name
+    doc.fontSize(11).font('Roboto-Bold').fill('#666').text(systemName, { align: 'center' });
+    doc.fontSize(16).font('Roboto-Bold').fill('#111').text('Hosting Report', { align: 'center' });
+    doc.fontSize(9).font('Roboto').fill('#666').text(`Generated: ${now}`, { align: 'center' });
     doc.moveDown(1);
 
     if (items.length === 0) {
@@ -457,10 +462,10 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
     ];
     const tableLeft = 40;
     const tableWidth = cols.reduce((s, c) => s + c.width, 0);
-    const rowHeight = 18;
-    const headerHeight = 20;
-    const fontSize = 8;
-    const headerFontSize = 8;
+    const rowHeight = 20;
+    const headerHeight = 22;
+    const fontSize = 9;
+    const headerFontSize = 9;
     const pageBottom = doc.page.height - 50;
 
     const formatDisplayDate = (dateStr: string) => {
@@ -511,14 +516,13 @@ export async function generateReportPdf(config: ReportConfig): Promise<Buffer> {
         formatDisplayDate(item.expiryDate),
       ];
 
-      doc.fontSize(fontSize).font('Roboto');
+      doc.fontSize(fontSize).font('Roboto-Bold');
       for (let i = 0; i < cols.length; i++) {
-        // Days column (index 2) in bold status color
+        // Days column (index 2) in status color
         if (i === 2) {
           const sc = statusColors[item.status];
-          doc.fill(sc.text).font('Roboto-Bold')
+          doc.fill(sc.text)
             .text(values[i], x + 4, textY, { width: cols[i].width - 8, lineBreak: false });
-          doc.font('Roboto');
         } else {
           doc.fill('#333').text(values[i], x + 4, textY, { width: cols[i].width - 8, lineBreak: false });
         }
