@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { NotificationSetting, User, MailServer, MailSecurity, CompanyInfo, BankAccount, EmailTemplate, Package, ReportConfig, DomainStatus, SystemConfig } from '../types';
 import Modal from '../components/common/Modal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
@@ -115,6 +116,7 @@ interface MailSettings {
 export default function SettingsPage() {
   const { t } = useTranslation();
   const { isAdmin, isSalesAdmin, canManageSystem, canManageContent, canEditPackages } = useAuth();
+  const { isDark } = useTheme();
   const queryClient = useQueryClient();
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<TabType>(canManageSystem ? 'system' : canManageContent ? 'owner' : 'packages');
@@ -4999,9 +5001,10 @@ export default function SettingsPage() {
         isOpen={templateModalOpen}
         onClose={() => { setTemplateModalOpen(false); setSelectedTemplate(null); }}
         title={selectedTemplate ? 'Edit Template' : 'Add Template'}
-        size="xl"
+        size="full"
       >
-        <form onSubmit={handleVisualTemplateSubmit} className="space-y-4">
+        <form onSubmit={handleVisualTemplateSubmit} className="flex gap-6" style={{ height: '80vh' }}>
+          <div className="flex-1 min-w-0 overflow-y-auto space-y-4 pr-2">
           {/* Basic Info */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -5744,80 +5747,6 @@ Your team"
             )}
           </div>
 
-          {/* Preview */}
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            <div className="bg-gray-50 dark:bg-gray-900 px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Preview</span>
-            </div>
-            <div className="bg-gray-100 dark:bg-gray-950 p-4">
-              <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm">
-                {/* Header Preview */}
-                {templateForm.showHeader && (
-                  <div
-                    className="p-4"
-                    style={{ backgroundColor: templateForm.headerBgTransparent ? 'transparent' : templateForm.headerBgColor }}
-                  >
-                    {(templateForm.useCompanyLogo || templateForm.headerLogo) && (
-                      <div style={{ textAlign: templateForm.headerLogoPosition }}>
-                        {templateForm.useCompanyLogo ? (
-                          <span className="inline-block bg-white/20 rounded px-3 py-1 text-white text-xs">
-                            [Company Logo]
-                          </span>
-                        ) : templateForm.headerLogo ? (
-                          <img src={templateForm.headerLogo} alt="Logo" className="max-h-10 max-w-[150px] object-contain inline-block" />
-                        ) : null}
-                      </div>
-                    )}
-                    {templateForm.headerImage && (
-                      <img src={templateForm.headerImage} alt="Header" className="max-w-full mt-2 mx-auto block" />
-                    )}
-                  </div>
-                )}
-                {/* Content Preview */}
-                <div className="p-4 text-sm text-gray-700 dark:text-gray-300 space-y-2">
-                  {templateForm.title && (
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">{templateForm.title}</h3>
-                  )}
-                  <div className="whitespace-pre-wrap text-xs">{templateForm.body || '(Message body...)'}</div>
-                  {templateForm.showSignature && (
-                    <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700">
-                      <div className="whitespace-pre-wrap text-xs">
-                        {templateForm.signature || 'Best regards,\nYour team'}
-                      </div>
-                      {(templateForm.useCompanyLogoInSignature || templateForm.signatureLogo) && (
-                        <div className="mt-2">
-                          {templateForm.useCompanyLogoInSignature ? (
-                            <div className="bg-gray-200 dark:bg-gray-700 rounded px-2 py-1 text-[10px] text-gray-500 inline-block">
-                              [Company Logo]
-                            </div>
-                          ) : templateForm.signatureLogo ? (
-                            <img src={templateForm.signatureLogo} alt="Logo" className="max-h-6 max-w-[80px] object-contain" />
-                          ) : null}
-                        </div>
-                      )}
-                      {templateForm.signatureImage && (
-                        <img src={templateForm.signatureImage} alt="" className="max-w-[100px] mt-1" />
-                      )}
-                    </div>
-                  )}
-                </div>
-                {/* Footer Preview */}
-                {templateForm.showFooter && (
-                  <div
-                    className="p-4 text-center"
-                    style={{ backgroundColor: templateForm.footerBgTransparent ? 'transparent' : templateForm.footerBgColor }}
-                  >
-                    {templateForm.footerImage ? (
-                      <img src={templateForm.footerImage} alt="Footer" className="max-h-16 max-w-full object-contain mx-auto" />
-                    ) : (
-                      <span className="text-white/50 text-xs">[Footer Image]</span>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
           <div className="flex justify-between pt-2">
             <div>
               {selectedTemplate && (
@@ -5842,6 +5771,85 @@ Your team"
               <button type="submit" className="btn btn-primary" disabled={saveTemplateMutation.isPending}>
                 {saveTemplateMutation.isPending ? 'Saving...' : 'Save'}
               </button>
+            </div>
+          </div>
+          </div>
+
+          {/* Right column - Live Preview */}
+          <div className="w-[420px] shrink-0 overflow-y-auto">
+            <div className="sticky top-0">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <div className="bg-gray-50 dark:bg-gray-900 px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Preview</span>
+                </div>
+                <div className="bg-gray-100 dark:bg-gray-950 p-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm">
+                    {/* Header Preview */}
+                    {templateForm.showHeader && (
+                      <div
+                        className="p-4"
+                        style={{ backgroundColor: templateForm.headerBgTransparent ? 'transparent' : templateForm.headerBgColor }}
+                      >
+                        {(templateForm.useCompanyLogo || templateForm.headerLogo) && (
+                          <div style={{ textAlign: templateForm.headerLogoPosition }}>
+                            {templateForm.useCompanyLogo ? (
+                              <span className="inline-block bg-white/20 rounded px-3 py-1 text-white text-xs">
+                                [Company Logo]
+                              </span>
+                            ) : templateForm.headerLogo ? (
+                              <img src={templateForm.headerLogo} alt="Logo" className="max-h-10 max-w-[150px] object-contain inline-block" />
+                            ) : null}
+                          </div>
+                        )}
+                        {templateForm.headerImage && (
+                          <img src={templateForm.headerImage} alt="Header" className="max-w-full mt-2 mx-auto block" />
+                        )}
+                      </div>
+                    )}
+                    {/* Content Preview */}
+                    <div className="p-4 text-sm text-gray-700 dark:text-gray-300 space-y-2">
+                      {templateForm.title && (
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{templateForm.title}</h3>
+                      )}
+                      <div className="whitespace-pre-wrap text-xs">{templateForm.body || '(Message body...)'}</div>
+                      {templateForm.showSignature && (
+                        <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700">
+                          <div className="whitespace-pre-wrap text-xs">
+                            {templateForm.signature || 'Best regards,\nYour team'}
+                          </div>
+                          {(templateForm.useCompanyLogoInSignature || templateForm.signatureLogo) && (
+                            <div className="mt-2">
+                              {templateForm.useCompanyLogoInSignature ? (
+                                <div className="bg-gray-200 dark:bg-gray-700 rounded px-2 py-1 text-[10px] text-gray-500 inline-block">
+                                  [Company Logo]
+                                </div>
+                              ) : templateForm.signatureLogo ? (
+                                <img src={templateForm.signatureLogo} alt="Logo" className="max-h-6 max-w-[80px] object-contain" />
+                              ) : null}
+                            </div>
+                          )}
+                          {templateForm.signatureImage && (
+                            <img src={templateForm.signatureImage} alt="" className="max-w-[100px] mt-1" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {/* Footer Preview */}
+                    {templateForm.showFooter && (
+                      <div
+                        className="p-4 text-center"
+                        style={{ backgroundColor: templateForm.footerBgTransparent ? 'transparent' : templateForm.footerBgColor }}
+                      >
+                        {templateForm.footerImage ? (
+                          <img src={templateForm.footerImage} alt="Footer" className="max-h-16 max-w-full object-contain mx-auto" />
+                        ) : (
+                          <span className="text-white/50 text-xs">[Footer Image]</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </form>
@@ -5892,15 +5900,15 @@ Your team"
                       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                       margin: 0;
                       padding: 20px;
-                      background: white;
-                      color: #333;
+                      background: ${isDark ? '#111827' : 'white'};
+                      color: ${isDark ? '#e5e7eb' : '#333'};
                     }
                   </style>
                 </head>
                 <body>${previewHtml}</body>
                 </html>
               `}
-              className="w-full bg-white"
+              className={`w-full ${isDark ? 'bg-gray-900' : 'bg-white'}`}
               style={{ height: '500px', border: 'none' }}
               title="Email Preview"
             />

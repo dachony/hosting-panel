@@ -195,7 +195,7 @@ export default function DashboardPage() {
                   <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
                   <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <div className="w-36 shrink-0">
+                  <div className="w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>
                 </div>
@@ -233,7 +233,7 @@ export default function DashboardPage() {
                   <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
                   <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <div className="w-36 shrink-0">
+                  <div className="w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>
                 </div>
@@ -268,7 +268,7 @@ export default function DashboardPage() {
                   <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
                   <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <div className="w-36 shrink-0">
+                  <div className="w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>
                 </div>
@@ -303,7 +303,7 @@ export default function DashboardPage() {
                   <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
                   <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <div className="w-36 shrink-0">
+                  <div className="w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>
                 </div>
@@ -338,7 +338,7 @@ export default function DashboardPage() {
                   <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
                   <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
-                  <div className="w-36 shrink-0">
+                  <div className="w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>
                 </div>
