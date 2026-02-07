@@ -749,6 +749,7 @@ const backupSettingsSchema = z.object({
     dayOfWeek: z.number().min(0).max(6).optional(),
     dayOfMonth: z.number().min(1).max(31).optional(),
   }),
+  password: z.string().optional().default(''),
   notifications: z.object({
     enabled: z.boolean(),
     email: z.string().email().or(z.literal('')),
@@ -762,7 +763,9 @@ const backupSettingsSchema = z.object({
 // Create a server-side backup
 backup.post('/create', async (c) => {
   try {
-    const result = await createServerBackup();
+    const body = await c.req.json().catch(() => ({}));
+    const password = typeof body.password === 'string' && body.password.length > 0 ? body.password : undefined;
+    const result = await createServerBackup(password);
     return c.json(result);
   } catch (error) {
     console.error('Backup creation error:', error);
@@ -790,6 +793,7 @@ backup.get('/settings', async (c) => {
 
   const defaults = {
     schedule: { enabled: false, frequency: 'daily' as const, time: '02:00' },
+    password: '',
     notifications: { enabled: false, email: '' },
     retention: { enabled: false, days: 30 },
   };
@@ -864,7 +868,8 @@ backup.get('/files/:filename/download', async (c) => {
     }
 
     const fileContent = fs.readFileSync(filePath);
-    c.header('Content-Type', 'application/json');
+    const contentType = filename.endsWith('.zip') ? 'application/zip' : 'application/json';
+    c.header('Content-Type', contentType);
     c.header('Content-Disposition', `attachment; filename="${filename}"`);
     return c.body(fileContent);
   } catch (error) {

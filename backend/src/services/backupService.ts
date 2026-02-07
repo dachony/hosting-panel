@@ -1,9 +1,14 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
+import { zipSync, strToU8 } from 'fflate';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 
 const BACKUP_DIR = '/app/data/backups';
+const PBKDF2_ITERATIONS = 100_000;
+const SALT_LENGTH = 16;
+const IV_LENGTH = 12;
 
 /** Ensure backup directory exists */
 function ensureBackupDir(): void {
@@ -81,17 +86,68 @@ export async function getSystemName(): Promise<string> {
   return 'Hosting Panel';
 }
 
-/** Generate backup filename: "{systemName} Backup-yyyy-mm-dd-hh:mm.json" */
+/** Get next sequence number for backups with same timestamp prefix */
+function getNextSequence(prefix: string): string {
+  ensureBackupDir();
+  const entries = fs.readdirSync(BACKUP_DIR);
+  let maxSeq = 0;
+  for (const entry of entries) {
+    if (entry.startsWith(prefix)) {
+      const match = entry.match(/(\d{3})\.zip$/);
+      if (match) {
+        const seq = parseInt(match[1], 10);
+        if (seq > maxSeq) maxSeq = seq;
+      }
+    }
+  }
+  return String(maxSeq + 1).padStart(3, '0');
+}
+
+/** Generate backup filename: "{systemName} Backup-yyyymmddhhmmSSS.zip" */
 export function generateBackupFilename(systemName: string): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
-  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-  const time = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  return `${systemName} Backup-${date}-${time}.json`;
+  const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
+  const prefix = `${systemName} Backup-${timestamp}`;
+  const seq = getNextSequence(prefix);
+  return `${prefix}${seq}.zip`;
+}
+
+/** Encrypt data with AES-256-GCM using password */
+function encryptData(data: Buffer, password: string): { ciphertext: Buffer; salt: Buffer; iv: Buffer } {
+  const salt = crypto.randomBytes(SALT_LENGTH);
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const key = crypto.pbkdf2Sync(password, salt, PBKDF2_ITERATIONS, 32, 'sha256');
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return { ciphertext: Buffer.concat([encrypted, authTag]), salt, iv };
+}
+
+/** Create a ZIP backup with optional password encryption */
+function createZipBuffer(jsonString: string, password?: string): Buffer {
+  if (password) {
+    const jsonBytes = Buffer.from(jsonString, 'utf-8');
+    const { ciphertext, salt, iv } = encryptData(jsonBytes, password);
+    const meta = JSON.stringify({
+      encrypted: true,
+      salt: salt.toString('base64'),
+      iv: iv.toString('base64'),
+    });
+    const zipData = zipSync({
+      'backup.enc': new Uint8Array(ciphertext),
+      'meta.json': strToU8(meta),
+    });
+    return Buffer.from(zipData);
+  }
+  const zipData = zipSync({
+    'backup.json': strToU8(jsonString),
+  });
+  return Buffer.from(zipData);
 }
 
 /** Create a server-side backup, returns file info */
-export async function createServerBackup(): Promise<{ filename: string; size: number; createdAt: string }> {
+export async function createServerBackup(password?: string): Promise<{ filename: string; size: number; createdAt: string }> {
   ensureBackupDir();
 
   const data = await getExportData();
@@ -106,8 +162,9 @@ export async function createServerBackup(): Promise<{ filename: string; size: nu
   };
 
   const jsonString = JSON.stringify(exportData, null, 2);
+  const zipBuffer = createZipBuffer(jsonString, password);
   const filePath = path.join(BACKUP_DIR, filename);
-  fs.writeFileSync(filePath, jsonString, 'utf-8');
+  fs.writeFileSync(filePath, zipBuffer);
 
   const stats = fs.statSync(filePath);
   return {
@@ -125,7 +182,7 @@ export function cleanupOldBackups(retentionDays: number): number {
 
   const files = fs.readdirSync(BACKUP_DIR);
   for (const file of files) {
-    if (!file.endsWith('.json')) continue;
+    if (!file.endsWith('.zip') && !file.endsWith('.json')) continue;
     const filePath = path.join(BACKUP_DIR, file);
     const stats = fs.statSync(filePath);
     if (stats.mtime.getTime() < cutoff) {
@@ -151,7 +208,7 @@ export function getBackupFiles(): { files: BackupFileInfo[]; count: number; tota
   let totalSize = 0;
 
   for (const entry of entries) {
-    if (!entry.endsWith('.json')) continue;
+    if (!entry.endsWith('.zip') && !entry.endsWith('.json')) continue;
     const filePath = path.join(BACKUP_DIR, entry);
     const stats = fs.statSync(filePath);
     files.push({

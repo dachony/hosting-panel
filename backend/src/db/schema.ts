@@ -15,6 +15,8 @@ export const users = sqliteTable('users', {
   twoFactorEnabled: integer('two_factor_enabled', { mode: 'boolean' }).default(false),
   twoFactorMethod: text('two_factor_method', { enum: ['email', 'totp'] }),
   twoFactorSecret: text('two_factor_secret'),
+  twoFactorEmailEnabled: integer('two_factor_email_enabled', { mode: 'boolean' }).default(false),
+  twoFactorTotpEnabled: integer('two_factor_totp_enabled', { mode: 'boolean' }).default(false),
   lockedUntil: text('locked_until'),
   failedLoginAttempts: integer('failed_login_attempts').default(0),
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),

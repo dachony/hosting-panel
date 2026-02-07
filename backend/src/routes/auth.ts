@@ -19,6 +19,7 @@ import {
   getSecuritySettings,
   generateBackupCodes,
   validatePassword,
+  getEffective2FAState,
 } from '../services/security.js';
 import { authenticator } from 'otplib';
 import { seedDefaults } from '../db/seed.js';
@@ -114,7 +115,8 @@ auth.post('/login', rateLimit('login', 10, 60 * 1000), async (c) => {
     }
 
     // Check if 2FA is enabled (or skip if enforcement is 'disabled')
-    if (enforcement !== 'disabled' && user.twoFactorEnabled && user.twoFactorMethod) {
+    const twoFA = getEffective2FAState(user);
+    if (enforcement !== 'disabled' && twoFA.anyEnabled) {
       // Generate a temporary session token
       const sessionToken = crypto.randomBytes(32).toString('hex');
       pending2FASessions.set(sessionToken, {
@@ -125,8 +127,12 @@ auth.post('/login', rateLimit('login', 10, 60 * 1000), async (c) => {
         expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
       });
 
-      // If email 2FA, send code
-      if (user.twoFactorMethod === 'email') {
+      // Determine primary method: TOTP takes precedence when enabled
+      const primaryMethod = twoFA.totpEnabled ? 'totp' : 'email';
+      const hasEmailFallback = twoFA.totpEnabled && twoFA.emailEnabled;
+
+      // If primary method is email (only email enabled), send code immediately
+      if (primaryMethod === 'email') {
         const code = generateVerificationCode();
         await storeVerificationCode(user.id, code, 'login', 5);
         await sendEmail({
@@ -140,10 +146,12 @@ auth.post('/login', rateLimit('login', 10, 60 * 1000), async (c) => {
           `,
         });
       }
+      // If primary is TOTP, do NOT send email — user can request it via fallback
 
       return c.json({
         requires2FA: true,
-        method: user.twoFactorMethod,
+        method: primaryMethod,
+        hasEmailFallback,
         sessionToken,
       });
     }
@@ -195,7 +203,7 @@ auth.post('/login/verify-2fa', rateLimit('verify-2fa', 5, 60 * 1000), async (c) 
   const userAgent = c.req.header('user-agent') || 'unknown';
 
   try {
-    const { sessionToken, code, useBackupCode } = await c.req.json();
+    const { sessionToken, code, useBackupCode, method } = await c.req.json();
 
     // Get pending session
     const session = pending2FASessions.get(sessionToken);
@@ -212,12 +220,16 @@ auth.post('/login/verify-2fa', rateLimit('verify-2fa', 5, 60 * 1000), async (c) 
 
     let valid = false;
 
+    // Determine which verification method to use
+    // 'method' param from frontend tells us what the user submitted
+    const verifyMethod = method || user.twoFactorMethod;
+
     // Check backup code first if specified
     if (useBackupCode) {
       valid = await verifyBackupCode(user.id, code);
-    } else if (user.twoFactorMethod === 'email') {
+    } else if (verifyMethod === 'email') {
       valid = await verifyEmailCode(user.id, code, 'login');
-    } else if (user.twoFactorMethod === 'totp' && user.twoFactorSecret) {
+    } else if (verifyMethod === 'totp' && user.twoFactorSecret) {
       valid = authenticator.verify({ token: code, secret: user.twoFactorSecret });
     }
 
@@ -245,7 +257,7 @@ auth.post('/login/verify-2fa', rateLimit('verify-2fa', 5, 60 * 1000), async (c) 
       entityType: 'auth',
       entityId: user.id,
       entityName: user.email,
-      details: { twoFactor: true, method: user.twoFactorMethod },
+      details: { twoFactor: true, method: verifyMethod },
       ipAddress,
       userAgent,
     });
@@ -276,8 +288,14 @@ auth.post('/login/resend-2fa', async (c) => {
     }
 
     const user = await db.select().from(schema.users).where(eq(schema.users.id, session.userId)).get();
-    if (!user || user.twoFactorMethod !== 'email') {
+    if (!user) {
       return c.json({ error: 'Cannot resend code' }, 400);
+    }
+
+    // Check that email 2FA is enabled (new dual columns or legacy)
+    const state = getEffective2FAState(user);
+    if (!state.emailEnabled) {
+      return c.json({ error: 'Email 2FA is not enabled' }, 400);
     }
 
     const code = generateVerificationCode();
@@ -298,6 +316,50 @@ auth.post('/login/resend-2fa', async (c) => {
     return c.json({ message: 'Code sent' });
   } catch (error) {
     return c.json({ error: 'Failed to resend code' }, 500);
+  }
+});
+
+// Send email fallback code during TOTP login (when both methods enabled)
+// Rate limit: 3 requests per minute per IP
+auth.post('/login/send-email-fallback', rateLimit('email-fallback', 3, 60 * 1000), async (c) => {
+  try {
+    const { sessionToken } = await c.req.json();
+
+    const session = pending2FASessions.get(sessionToken);
+    if (!session || session.expiresAt < Date.now()) {
+      return c.json({ error: 'Session expired. Please login again.' }, 401);
+    }
+
+    const user = await db.select().from(schema.users).where(eq(schema.users.id, session.userId)).get();
+    if (!user) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+
+    // Verify email 2FA is enabled for this user
+    const state = getEffective2FAState(user);
+    if (!state.emailEnabled) {
+      return c.json({ error: 'Email 2FA is not enabled' }, 400);
+    }
+
+    const code = generateVerificationCode();
+    await storeVerificationCode(user.id, code, 'login', 5);
+    await sendEmail({
+      to: user.email,
+      subject: 'Login Verification Code',
+      html: `
+        <h2>Login Verification</h2>
+        <p>Your verification code is: <strong style="font-size: 24px; letter-spacing: 3px;">${code}</strong></p>
+        <p>This code expires in 5 minutes.</p>
+        <p style="color: #6b7280; font-size: 12px;">If you didn't try to log in, please secure your account.</p>
+      `,
+    });
+
+    // Extend session
+    session.expiresAt = Date.now() + 5 * 60 * 1000;
+
+    return c.json({ message: 'Code sent' });
+  } catch (error) {
+    return c.json({ error: 'Failed to send code' }, 500);
   }
 });
 

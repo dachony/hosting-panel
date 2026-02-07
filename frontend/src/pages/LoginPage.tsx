@@ -15,7 +15,7 @@ type LoginStep = 'credentials' | 'verify2fa' | 'setup2fa' | 'verify-setup' | 'ba
 export default function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { login, verify2FA, setup2FA, verify2FASetup, resend2FACode } = useAuth();
+  const { login, verify2FA, setup2FA, verify2FASetup, resend2FACode, sendEmailFallback } = useAuth();
 
   // Branding state
   const [branding, setBranding] = useState<Branding>({ systemName: 'Hosting Panel', logo: null });
@@ -38,6 +38,8 @@ export default function LoginPage() {
   const [sessionToken, setSessionToken] = useState('');
   const [setupToken, setSetupToken] = useState('');
   const [twoFactorMethod, setTwoFactorMethod] = useState<'email' | 'totp'>('email');
+  const [hasEmailFallback, setHasEmailFallback] = useState(false);
+  const [activeVerifyMethod, setActiveVerifyMethod] = useState<'email' | 'totp'>('totp');
   const [availableMethods, setAvailableMethods] = useState<('email' | 'totp')[]>(['email', 'totp']);
   const [totpSecret, setTotpSecret] = useState('');
   const [totpQrCode, setTotpQrCode] = useState('');
@@ -60,6 +62,8 @@ export default function LoginPage() {
       } else if (result.requires2FA) {
         setSessionToken(result.requires2FA.sessionToken);
         setTwoFactorMethod(result.requires2FA.method);
+        setActiveVerifyMethod(result.requires2FA.method);
+        setHasEmailFallback(result.requires2FA.hasEmailFallback);
         setStep('verify2fa');
         if (result.requires2FA.method === 'email') {
           toast.success(t('auth.verificationCodeSentToEmail'));
@@ -81,12 +85,26 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await verify2FA(sessionToken, verificationCode, useBackupCode);
+      await verify2FA(sessionToken, verificationCode, useBackupCode, activeVerifyMethod);
       navigate('/');
     } catch {
       toast.error(t('auth.invalidVerificationCode'));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSendEmailFallback = async () => {
+    setIsResending(true);
+    try {
+      await sendEmailFallback(sessionToken);
+      setActiveVerifyMethod('email');
+      setVerificationCode('');
+      toast.success(t('auth.verificationCodeSentToEmail'));
+    } catch {
+      toast.error(t('auth.failedToResendCode'));
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -168,6 +186,8 @@ export default function LoginPage() {
     setUseBackupCode(false);
     setTotpSecret('');
     setTotpQrCode('');
+    setHasEmailFallback(false);
+    setActiveVerifyMethod('totp');
   };
 
   return (
@@ -240,7 +260,7 @@ export default function LoginPage() {
           {step === 'verify2fa' && (
             <form onSubmit={handleVerify2FA} className="space-y-4">
               <div className="text-center mb-4">
-                {twoFactorMethod === 'email' ? (
+                {activeVerifyMethod === 'email' ? (
                   <>
                     <Mail className="w-12 h-12 mx-auto text-primary-600 mb-2" />
                     <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -278,25 +298,50 @@ export default function LoginPage() {
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : t('auth.verify')}
               </button>
 
-              <div className="flex justify-between items-center text-sm">
-                {twoFactorMethod === 'email' && (
+              <div className="flex flex-col gap-2 text-sm">
+                {/* Email fallback / switch buttons */}
+                {hasEmailFallback && activeVerifyMethod === 'totp' && (
                   <button
                     type="button"
-                    onClick={handleResendCode}
+                    onClick={handleSendEmailFallback}
                     disabled={isResending}
                     className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
                   >
-                    {isResending ? t('common.sending') : t('auth.resendCode')}
+                    {isResending ? t('common.sending') : t('auth.sendCodeToEmail')}
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => setUseBackupCode(!useBackupCode)}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                >
-                  {useBackupCode ? t('auth.useVerificationCode') : t('auth.useBackupCode')}
-                </button>
+                {hasEmailFallback && activeVerifyMethod === 'email' && (
+                  <button
+                    type="button"
+                    onClick={() => { setActiveVerifyMethod('totp'); setVerificationCode(''); }}
+                    className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                  >
+                    {t('auth.useAuthenticatorInstead')}
+                  </button>
+                )}
+
+                {/* Resend button: only for email method */}
+                <div className="flex justify-between items-center">
+                  {activeVerifyMethod === 'email' && (
+                    <button
+                      type="button"
+                      onClick={handleResendCode}
+                      disabled={isResending}
+                      className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                    >
+                      {isResending ? t('common.sending') : t('auth.resendCode')}
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setUseBackupCode(!useBackupCode)}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 ml-auto"
+                  >
+                    {useBackupCode ? t('auth.useVerificationCode') : t('auth.useBackupCode')}
+                  </button>
+                </div>
               </div>
 
               <button

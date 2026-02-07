@@ -160,14 +160,12 @@ export default function DashboardPage() {
                 <div
                   key={`exp-${item.type}-${item.id}`}
                   onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
-                  className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  className="flex items-center px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-xs gap-3"
                 >
-                  <div className="flex items-center gap-2 flex-1 min-w-0 text-xs">
-                    <span className="font-medium truncate">{item.name}</span>
-                    <span className="text-gray-500 dark:text-gray-400 truncate hidden sm:inline">{item.clientName || '-'}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{formatDateDisplay(item.expiryDate)}</span>
+                  <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
+                  <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
+                  <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
+                  <div className="w-24 shrink-0">
                     <ExpiryBadge daysUntilExpiry={item.daysUntilExpiry} size="sm" />
                   </div>
                 </div>
@@ -197,17 +195,13 @@ export default function DashboardPage() {
                 <div
                   key={`expired-${item.type}-${item.id}`}
                   onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
-                  className="flex items-center justify-between px-3 py-2 bg-red-50/30 dark:bg-red-900/10 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/20 transition-colors"
+                  className="flex items-center px-3 py-2 bg-red-50/30 dark:bg-red-900/10 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/20 transition-colors text-xs gap-3"
                 >
-                  <div className="flex items-center gap-2 flex-1 min-w-0 text-xs">
-                    <span className="font-medium truncate">{item.name}</span>
-                    <span className="text-gray-500 dark:text-gray-400 truncate hidden sm:inline">{item.clientName || '-'}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{formatDateDisplay(item.expiryDate)}</span>
-                    <span className="px-1.5 py-0.5 text-[10px] rounded bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 whitespace-nowrap">
-                      {Math.abs(item.daysUntilExpiry)}d
-                    </span>
+                  <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
+                  <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
+                  <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
+                  <div className="w-24 shrink-0">
+                    <ExpiryBadge daysUntilExpiry={item.daysUntilExpiry} size="sm" />
                   </div>
                 </div>
               ))}
@@ -236,17 +230,13 @@ export default function DashboardPage() {
                 <div
                   key={`fordel-${item.type}-${item.id}`}
                   onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
-                  className="flex items-center justify-between px-3 py-2 bg-purple-50/30 dark:bg-purple-900/10 cursor-pointer hover:bg-purple-100/50 dark:hover:bg-purple-900/20 transition-colors"
+                  className="flex items-center px-3 py-2 bg-purple-50/30 dark:bg-purple-900/10 cursor-pointer hover:bg-purple-100/50 dark:hover:bg-purple-900/20 transition-colors text-xs gap-3"
                 >
-                  <div className="flex items-center gap-2 flex-1 min-w-0 text-xs">
-                    <span className="font-medium truncate">{item.name}</span>
-                    <span className="text-gray-500 dark:text-gray-400 truncate hidden sm:inline">{item.clientName || '-'}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{formatDateDisplay(item.expiryDate)}</span>
-                    <span className="px-1.5 py-0.5 text-[10px] rounded bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 whitespace-nowrap">
-                      {Math.abs(item.daysUntilExpiry)}d
-                    </span>
+                  <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
+                  <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
+                  <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
+                  <div className="w-24 shrink-0">
+                    <ExpiryBadge daysUntilExpiry={item.daysUntilExpiry} size="sm" />
                   </div>
                 </div>
               ))}
@@ -275,17 +265,13 @@ export default function DashboardPage() {
                 <div
                   key={`delete-${item.type}-${item.id}`}
                   onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
-                  className="flex items-center justify-between px-3 py-2 bg-gray-50/50 dark:bg-gray-800/50 cursor-pointer hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors"
+                  className="flex items-center px-3 py-2 bg-gray-50/50 dark:bg-gray-800/50 cursor-pointer hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors text-xs gap-3"
                 >
-                  <div className="flex items-center gap-2 flex-1 min-w-0 text-xs">
-                    <span className="font-medium truncate">{item.name}</span>
-                    <span className="text-gray-500 dark:text-gray-400 truncate hidden sm:inline">{item.clientName || '-'}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{formatDateDisplay(item.expiryDate)}</span>
-                    <span className="px-1.5 py-0.5 text-[10px] rounded bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                      {Math.abs(item.daysUntilExpiry)}d
-                    </span>
+                  <span className="font-medium truncate w-40 shrink-0">{item.name}</span>
+                  <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{item.clientName || '-'}</span>
+                  <span className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
+                  <div className="w-24 shrink-0">
+                    <ExpiryBadge daysUntilExpiry={item.daysUntilExpiry} size="sm" />
                   </div>
                 </div>
               ))}

@@ -493,6 +493,7 @@ async function runScheduledBackup() {
 
     const config = setting.value as {
       schedule: { enabled: boolean; frequency: string; time: string; dayOfWeek?: number; dayOfMonth?: number };
+      password?: string;
       notifications: { enabled: boolean; email: string };
       retention: { enabled: boolean; days: number };
       _lastRun?: string;
@@ -516,7 +517,8 @@ async function runScheduledBackup() {
     // Dynamic import to avoid circular dependency
     const { createServerBackup, cleanupOldBackups } = await import('./backupService.js');
 
-    const result = await createServerBackup();
+    const backupPassword = config.password || undefined;
+    const result = await createServerBackup(backupPassword);
     console.log(`[Scheduler] Backup created: ${result.filename} (${result.size} bytes)`);
 
     // Run retention cleanup if enabled

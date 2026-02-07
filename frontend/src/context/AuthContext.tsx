@@ -8,6 +8,7 @@ export type UserRole = 'superadmin' | 'admin' | 'salesadmin' | 'sales';
 interface TwoFactorPending {
   sessionToken: string;
   method: 'email' | 'totp';
+  hasEmailFallback: boolean;
 }
 
 interface TwoFactorSetupPending {
@@ -26,10 +27,11 @@ interface AuthContextType {
   isLoading: boolean;
   needsSetup: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
-  verify2FA: (sessionToken: string, code: string, useBackupCode?: boolean) => Promise<void>;
+  verify2FA: (sessionToken: string, code: string, useBackupCode?: boolean, method?: 'email' | 'totp') => Promise<void>;
   setup2FA: (setupToken: string, method: 'email' | 'totp') => Promise<{ secret?: string; qrCode?: string }>;
   verify2FASetup: (setupToken: string, code: string, method: 'email' | 'totp') => Promise<{ backupCodes?: string[] }>;
   resend2FACode: (sessionToken: string) => Promise<void>;
+  sendEmailFallback: (sessionToken: string) => Promise<void>;
   completeSetup: (token: string, user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
@@ -103,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requires2FA?: boolean;
       requires2FASetup?: boolean;
       method?: 'email' | 'totp';
+      hasEmailFallback?: boolean;
       sessionToken?: string;
       setupToken?: string;
       availableMethods?: ('email' | 'totp')[];
@@ -115,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         requires2FA: {
           sessionToken: response.sessionToken,
           method: response.method,
+          hasEmailFallback: response.hasEmailFallback || false,
         },
       };
     }
@@ -137,11 +141,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: true };
   };
 
-  const verify2FA = async (sessionToken: string, code: string, useBackupCode = false) => {
+  const verify2FA = async (sessionToken: string, code: string, useBackupCode = false, method?: 'email' | 'totp') => {
     const response = await api.post<AuthResponse>('/api/auth/login/verify-2fa', {
       sessionToken,
       code,
       useBackupCode,
+      method,
     });
     localStorage.setItem('token', response.token);
     localStorage.setItem('user', JSON.stringify(response.user));
@@ -170,6 +175,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resend2FACode = async (sessionToken: string) => {
     await api.post('/api/auth/login/resend-2fa', { sessionToken });
+  };
+
+  const sendEmailFallback = async (sessionToken: string) => {
+    await api.post('/api/auth/login/send-email-fallback', { sessionToken });
   };
 
   const completeSetup = (token: string, setupUser: User) => {
@@ -203,6 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setup2FA,
         verify2FASetup,
         resend2FACode,
+        sendEmailFallback,
         completeSetup,
         logout,
         isAuthenticated: !!user,

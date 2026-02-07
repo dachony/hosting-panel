@@ -78,8 +78,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const [verificationCode, setVerificationCode] = useState('');
   const [disablePassword, setDisablePassword] = useState('');
   const [setup2FAMethod, setSetup2FAMethod] = useState<'email' | 'totp'>('email');
-  const [setup2FAStep, setSetup2FAStep] = useState<'choose' | 'verify'>('choose');
   const [backupCodesToShow, setBackupCodesToShow] = useState<string[]>([]);
+  const [disableMethod, setDisableMethod] = useState<'email' | 'totp' | undefined>(undefined);
 
   const { data: companyData } = useQuery({
     queryKey: ['company-info'],
@@ -95,7 +95,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   // 2FA status query
   const { data: my2FAStatus, isLoading: my2FALoading, refetch: refetchMy2FA } = useQuery({
     queryKey: ['my-2fa-status'],
-    queryFn: () => api.get<{ enabled: boolean; method: 'email' | 'totp' | null }>('/api/security/2fa/status'),
+    queryFn: () => api.get<{ enabled: boolean; method: 'email' | 'totp' | null; emailEnabled: boolean; totpEnabled: boolean }>('/api/security/2fa/status'),
     enabled: accountModalOpen && accountTab === '2fa',
   });
 
@@ -125,7 +125,6 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const setupEmail2FAMutation = useMutation({
     mutationFn: () => api.post('/api/security/2fa/setup/email'),
     onSuccess: () => {
-      setSetup2FAStep('verify');
       toast.success(t('settings.verificationCodeSent'));
     },
     onError: () => toast.error(t('settings.failedSendVerificationCode')),
@@ -146,7 +145,6 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     mutationFn: () => api.post<{ secret: string; qrCode: string }>('/api/security/2fa/setup/totp'),
     onSuccess: (data) => {
       setTotpSetupData(data);
-      setSetup2FAStep('verify');
     },
     onError: () => toast.error(t('settings.failedSetupTotp')),
   });
@@ -167,11 +165,13 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   });
 
   const disable2FAMutation = useMutation({
-    mutationFn: (password: string) => api.post('/api/security/2fa/disable', { password }),
+    mutationFn: ({ password, method }: { password: string; method?: 'email' | 'totp' }) =>
+      api.post('/api/security/2fa/disable', { password, method }),
     onSuccess: () => {
       refetchMy2FA();
       setDisable2FAModalOpen(false);
       setDisablePassword('');
+      setDisableMethod(undefined);
       toast.success(t('settings.twoFaDisabledSuccess'));
     },
     onError: () => toast.error(t('settings.invalidPassword')),
@@ -187,7 +187,6 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   });
 
   const resetSetup2FAState = () => {
-    setSetup2FAStep('choose');
     setSetup2FAMethod('email');
     setTotpSetupData(null);
     setVerificationCode('');
@@ -322,8 +321,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                 aria-label="Toggle language"
               >
                 <span
-                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                    isSr ? 'translate-x-4' : 'translate-x-0.5'
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                    isSr ? 'translate-x-4' : 'translate-x-0'
                   }`}
                 />
               </button>
@@ -339,8 +338,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                 aria-label="Toggle theme"
               >
                 <span
-                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                    isDark ? 'translate-x-4' : 'translate-x-0.5'
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                    isDark ? 'translate-x-4' : 'translate-x-0'
                   }`}
                 />
               </button>
@@ -573,7 +572,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </div>
         )}
 
-        {/* 2FA tab */}
+        {/* 2FA tab — dual cards */}
         {accountTab === '2fa' && (
           <div className="space-y-4">
             {my2FALoading ? (
@@ -581,59 +580,104 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                 <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100">
-                      Status: {my2FAStatus?.enabled ? (
-                        <span className="text-green-600 dark:text-green-400">{t('settings.twoFaEnabled')}</span>
-                      ) : (
-                        <span className="text-gray-500 dark:text-gray-400">{t('settings.twoFaDisabled')}</span>
-                      )}
-                    </div>
-                    {my2FAStatus?.enabled && my2FAStatus.method && (
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        {my2FAStatus.method === 'email' ? t('settings.twoFaEmailCode') : t('settings.twoFaAuthenticatorApp')}
+              <div className="space-y-3">
+                {/* Email 2FA card */}
+                <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <MailIcon className="w-6 h-6 text-primary-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">{t('settings.emailMethodTitle')}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{t('settings.emailMethodDesc')}</div>
                       </div>
-                    )}
-                  </div>
-
-                  {my2FAStatus?.enabled ? (
-                    <div className="flex gap-2">
-                      {my2FAStatus.method === 'totp' && (
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                      {my2FAStatus?.emailEnabled ? (
+                        <>
+                          <span className="text-xs font-medium text-green-600 dark:text-green-400">{t('settings.enabled')}</span>
+                          <button
+                            onClick={() => {
+                              setDisableMethod('email');
+                              setDisablePassword('');
+                              setDisable2FAModalOpen(true);
+                            }}
+                            className="btn btn-xs bg-red-600 hover:bg-red-700 text-white"
+                          >
+                            {t('settings.disable2fa')}
+                          </button>
+                        </>
+                      ) : (
                         <button
-                          onClick={() => regenerateBackupCodesMutation.mutate()}
-                          disabled={regenerateBackupCodesMutation.isPending}
-                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            setSetup2FAMethod('email');
+
+                            setupEmail2FAMutation.mutate();
+                            setSetup2FAModalOpen(true);
+                          }}
+                          disabled={setupEmail2FAMutation.isPending}
+                          className="btn btn-primary btn-xs"
                         >
-                          {regenerateBackupCodesMutation.isPending ? t('settings.generating') : t('settings.regenerateBackupCodes')}
+                          {t('settings.enable2fa')}
                         </button>
                       )}
-                      <button
-                        onClick={() => setDisable2FAModalOpen(true)}
-                        className="btn btn-sm bg-red-600 hover:bg-red-700 text-white"
-                      >
-                        {t('settings.disable2fa')}
-                      </button>
                     </div>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        resetSetup2FAState();
-                        setSetup2FAModalOpen(true);
-                      }}
-                      className="btn btn-primary btn-sm"
-                    >
-                      {t('settings.enable2fa')}
-                    </button>
-                  )}
+                  </div>
                 </div>
 
-                {!my2FAStatus?.enabled && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t('settings.twoFaDescription')}
-                  </p>
-                )}
+                {/* TOTP 2FA card */}
+                <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <Shield className="w-6 h-6 text-primary-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">{t('settings.totpMethodTitle')}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{t('settings.totpMethodDesc')}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                      {my2FAStatus?.totpEnabled ? (
+                        <>
+                          <span className="text-xs font-medium text-green-600 dark:text-green-400">{t('settings.enabled')}</span>
+                          <button
+                            onClick={() => {
+                              setDisableMethod('totp');
+                              setDisablePassword('');
+                              setDisable2FAModalOpen(true);
+                            }}
+                            className="btn btn-xs bg-red-600 hover:bg-red-700 text-white"
+                          >
+                            {t('settings.disable2fa')}
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSetup2FAMethod('totp');
+
+                            setupTOTP2FAMutation.mutate();
+                            setSetup2FAModalOpen(true);
+                          }}
+                          disabled={setupTOTP2FAMutation.isPending}
+                          className="btn btn-primary btn-xs"
+                        >
+                          {t('settings.enable2fa')}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {/* Backup codes — only with TOTP */}
+                  {my2FAStatus?.totpEnabled && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                      <button
+                        onClick={() => regenerateBackupCodesMutation.mutate()}
+                        disabled={regenerateBackupCodesMutation.isPending}
+                        className="btn btn-secondary btn-xs"
+                      >
+                        {regenerateBackupCodesMutation.isPending ? t('settings.generating') : t('settings.regenerateBackupCodes')}
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 {/* Backup Codes Display (after regeneration) */}
                 {backupCodesToShow.length > 0 && !setup2FAModalOpen && (
@@ -734,7 +778,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         )}
       </Modal>
 
-      {/* Setup 2FA Modal */}
+      {/* Setup 2FA Modal — skips choose step, goes directly to verify */}
       <Modal
         isOpen={setup2FAModalOpen}
         onClose={() => {
@@ -743,108 +787,14 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         }}
         title={t('settings.enable2faTitle')}
       >
-        {setup2FAStep === 'choose' ? (
+        {backupCodesToShow.length > 0 ? (
+          /* Show backup codes after TOTP setup */
           <div className="space-y-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {t('settings.choose2faMethod')}
-            </p>
-
-            <button
-              onClick={() => {
-                setSetup2FAMethod('email');
-                setupEmail2FAMutation.mutate();
-              }}
-              disabled={setupEmail2FAMutation.isPending}
-              className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors flex items-center gap-4 text-left"
-            >
-              <MailIcon className="w-8 h-8 text-primary-600" />
-              <div>
-                <div className="font-medium text-gray-900 dark:text-gray-100">{t('settings.twoFaEmailCode')}</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">{t('settings.emailCodeDesc')}</div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                setSetup2FAMethod('totp');
-                setupTOTP2FAMutation.mutate();
-              }}
-              disabled={setupTOTP2FAMutation.isPending}
-              className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors flex items-center gap-4 text-left"
-            >
-              <Shield className="w-8 h-8 text-primary-600" />
-              <div>
-                <div className="font-medium text-gray-900 dark:text-gray-100">{t('settings.twoFaAuthenticatorApp')}</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">{t('settings.authenticatorAppDesc')}</div>
-              </div>
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {setup2FAMethod === 'totp' && totpSetupData && (
-              <>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {t('settings.scanQrCode')}
-                </p>
-                <div className="flex justify-center">
-                  <img src={totpSetupData.qrCode} alt="QR Code" />
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                  {t('settings.orEnterManually')} <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{totpSetupData.secret}</code>
-                </p>
-              </>
-            )}
-
-            {setup2FAMethod === 'email' && (
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {t('settings.enterVerificationCodeEmail')}
-              </p>
-            )}
-
-            <div>
-              <label className="label">{t('settings.verificationCode')}</label>
-              <input
-                type="text"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
-                className="input text-center tracking-widest text-lg"
-                placeholder="000000"
-                maxLength={6}
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => setSetup2FAStep('choose')}
-                className="btn btn-secondary flex-1"
-              >
-                {t('common.back')}
-              </button>
-              <button
-                onClick={() => {
-                  if (setup2FAMethod === 'email') {
-                    verifyEmail2FAMutation.mutate(verificationCode);
-                  } else {
-                    verifyTOTP2FAMutation.mutate(verificationCode);
-                  }
-                }}
-                disabled={verifyEmail2FAMutation.isPending || verifyTOTP2FAMutation.isPending || !verificationCode}
-                className="btn btn-primary flex-1"
-              >
-                {verifyEmail2FAMutation.isPending || verifyTOTP2FAMutation.isPending ? t('settings.verifying') : t('settings.verifyAndEnable')}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Show backup codes after TOTP setup */}
-        {backupCodesToShow.length > 0 && setup2FAModalOpen && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">{t('settings.save2faBackupCodes')}</h4>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <h4 className="font-medium text-gray-900 dark:text-gray-100">{t('settings.save2faBackupCodes')}</h4>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {t('settings.backupCodesAccessNote')}
             </p>
-            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4">
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
               <div className="grid grid-cols-2 gap-2 font-mono text-sm">
                 {backupCodesToShow.map((code, index) => (
                   <div key={index} className="text-center py-1 text-gray-700 dark:text-gray-300">
@@ -879,6 +829,71 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               </button>
             </div>
           </div>
+        ) : (
+          <div className="space-y-4">
+            {setup2FAMethod === 'totp' && totpSetupData && (
+              <>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {t('settings.scanQrCode')}
+                </p>
+                <div className="flex justify-center">
+                  <img src={totpSetupData.qrCode} alt="QR Code" />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                  {t('settings.orEnterManually')} <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{totpSetupData.secret}</code>
+                </p>
+              </>
+            )}
+
+            {setup2FAMethod === 'totp' && !totpSetupData && (
+              <div className="flex justify-center py-6">
+                <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
+              </div>
+            )}
+
+            {setup2FAMethod === 'email' && (
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {t('settings.enterVerificationCodeEmail')}
+              </p>
+            )}
+
+            <div>
+              <label className="label">{t('settings.verificationCode')}</label>
+              <input
+                type="text"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
+                className="input text-center tracking-widest text-lg"
+                placeholder="000000"
+                maxLength={6}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setSetup2FAModalOpen(false);
+                  resetSetup2FAState();
+                }}
+                className="btn btn-secondary flex-1"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={() => {
+                  if (setup2FAMethod === 'email') {
+                    verifyEmail2FAMutation.mutate(verificationCode);
+                  } else {
+                    verifyTOTP2FAMutation.mutate(verificationCode);
+                  }
+                }}
+                disabled={verifyEmail2FAMutation.isPending || verifyTOTP2FAMutation.isPending || !verificationCode}
+                className="btn btn-primary flex-1"
+              >
+                {verifyEmail2FAMutation.isPending || verifyTOTP2FAMutation.isPending ? t('settings.verifying') : t('settings.verifyAndEnable')}
+              </button>
+            </div>
+          </div>
         )}
       </Modal>
 
@@ -888,12 +903,16 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         onClose={() => {
           setDisable2FAModalOpen(false);
           setDisablePassword('');
+          setDisableMethod(undefined);
         }}
         title={t('settings.disable2faTitle')}
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            {t('settings.disable2faWarning')}
+            {disableMethod
+              ? t('settings.disable2faMethodWarning', { method: disableMethod === 'email' ? t('settings.emailMethodTitle') : t('settings.totpMethodTitle') })
+              : t('settings.disable2faWarning')
+            }
           </p>
 
           <div>
@@ -912,13 +931,14 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               onClick={() => {
                 setDisable2FAModalOpen(false);
                 setDisablePassword('');
+                setDisableMethod(undefined);
               }}
               className="btn btn-secondary flex-1"
             >
               {t('common.cancel')}
             </button>
             <button
-              onClick={() => disable2FAMutation.mutate(disablePassword)}
+              onClick={() => disable2FAMutation.mutate({ password: disablePassword, method: disableMethod })}
               disabled={disable2FAMutation.isPending || !disablePassword}
               className="btn flex-1 bg-red-600 hover:bg-red-700 text-white"
             >

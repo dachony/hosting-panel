@@ -16,6 +16,7 @@ import {
   verifyEmailCode,
   generateBackupCodes,
   verifyBackupCode,
+  getEffective2FAState,
 } from '../services/security.js';
 import { sendEmail } from '../services/email.js';
 import { parseId, safeParseInt } from '../utils/validation.js';
@@ -132,11 +133,20 @@ security.get('/2fa/status', async (c) => {
   const dbUser = await db.select({
     twoFactorEnabled: schema.users.twoFactorEnabled,
     twoFactorMethod: schema.users.twoFactorMethod,
+    twoFactorEmailEnabled: schema.users.twoFactorEmailEnabled,
+    twoFactorTotpEnabled: schema.users.twoFactorTotpEnabled,
   }).from(schema.users).where(eq(schema.users.id, user.id)).get();
 
+  if (!dbUser) {
+    return c.json({ enabled: false, method: null, emailEnabled: false, totpEnabled: false });
+  }
+
+  const state = getEffective2FAState(dbUser);
   return c.json({
-    enabled: dbUser?.twoFactorEnabled || false,
-    method: dbUser?.twoFactorMethod || null,
+    enabled: state.anyEnabled,
+    method: dbUser.twoFactorMethod || null,
+    emailEnabled: state.emailEnabled,
+    totpEnabled: state.totpEnabled,
   });
 });
 
@@ -171,11 +181,20 @@ security.post('/2fa/verify/email', async (c) => {
     return c.json({ error: 'Invalid or expired code' }, 400);
   }
 
-  // Enable 2FA
+  // Check if TOTP is already enabled — keep twoFactorMethod as 'totp' if so
+  const dbUser = await db.select({
+    twoFactorTotpEnabled: schema.users.twoFactorTotpEnabled,
+    twoFactorMethod: schema.users.twoFactorMethod,
+  }).from(schema.users).where(eq(schema.users.id, user.id)).get();
+
+  const keepMethod = dbUser?.twoFactorTotpEnabled ? (dbUser.twoFactorMethod || 'totp') : 'email';
+
+  // Enable email 2FA without overwriting TOTP
   await db.update(schema.users)
     .set({
       twoFactorEnabled: true,
-      twoFactorMethod: 'email',
+      twoFactorEmailEnabled: true,
+      twoFactorMethod: keepMethod,
       updatedAt: getCurrentTimestamp()
     })
     .where(eq(schema.users.id, user.id));
@@ -231,10 +250,11 @@ security.post('/2fa/verify/totp', async (c) => {
     return c.json({ error: 'Invalid code' }, 400);
   }
 
-  // Enable 2FA and generate backup codes
+  // Enable TOTP 2FA — TOTP is always primary method when enabled
   await db.update(schema.users)
     .set({
       twoFactorEnabled: true,
+      twoFactorTotpEnabled: true,
       twoFactorMethod: 'totp',
       updatedAt: getCurrentTimestamp()
     })
@@ -249,16 +269,18 @@ security.post('/2fa/verify/totp', async (c) => {
   });
 });
 
-// Disable 2FA
+// Disable 2FA (per-method or all)
 security.post('/2fa/disable', async (c) => {
   const user = c.get('user') as { id: number };
-  const { password } = await c.req.json();
+  const body = await c.req.json();
+  const { password, method } = body as { password: string; method?: 'email' | 'totp' };
 
   // Verify password
-  const dbUser = await db.select({ passwordHash: schema.users.passwordHash })
-    .from(schema.users)
-    .where(eq(schema.users.id, user.id))
-    .get();
+  const dbUser = await db.select({
+    passwordHash: schema.users.passwordHash,
+    twoFactorEmailEnabled: schema.users.twoFactorEmailEnabled,
+    twoFactorTotpEnabled: schema.users.twoFactorTotpEnabled,
+  }).from(schema.users).where(eq(schema.users.id, user.id)).get();
 
   if (!dbUser) {
     return c.json({ error: 'User not found' }, 404);
@@ -270,18 +292,45 @@ security.post('/2fa/disable', async (c) => {
     return c.json({ error: 'Invalid password' }, 401);
   }
 
-  // Disable 2FA
-  await db.update(schema.users)
-    .set({
-      twoFactorEnabled: false,
-      twoFactorMethod: null,
-      twoFactorSecret: null,
-      updatedAt: getCurrentTimestamp()
-    })
-    .where(eq(schema.users.id, user.id));
-
-  // Delete backup codes
-  await db.delete(schema.backupCodes).where(eq(schema.backupCodes.userId, user.id));
+  if (method === 'email') {
+    // Disable only email 2FA
+    const totpStillEnabled = !!dbUser.twoFactorTotpEnabled;
+    await db.update(schema.users)
+      .set({
+        twoFactorEmailEnabled: false,
+        twoFactorEnabled: totpStillEnabled,
+        twoFactorMethod: totpStillEnabled ? 'totp' : null,
+        updatedAt: getCurrentTimestamp()
+      })
+      .where(eq(schema.users.id, user.id));
+  } else if (method === 'totp') {
+    // Disable only TOTP 2FA
+    const emailStillEnabled = !!dbUser.twoFactorEmailEnabled;
+    await db.update(schema.users)
+      .set({
+        twoFactorTotpEnabled: false,
+        twoFactorSecret: null,
+        twoFactorEnabled: emailStillEnabled,
+        twoFactorMethod: emailStillEnabled ? 'email' : null,
+        updatedAt: getCurrentTimestamp()
+      })
+      .where(eq(schema.users.id, user.id));
+    // Delete backup codes (they belong to TOTP)
+    await db.delete(schema.backupCodes).where(eq(schema.backupCodes.userId, user.id));
+  } else {
+    // Legacy: disable all 2FA
+    await db.update(schema.users)
+      .set({
+        twoFactorEnabled: false,
+        twoFactorEmailEnabled: false,
+        twoFactorTotpEnabled: false,
+        twoFactorMethod: null,
+        twoFactorSecret: null,
+        updatedAt: getCurrentTimestamp()
+      })
+      .where(eq(schema.users.id, user.id));
+    await db.delete(schema.backupCodes).where(eq(schema.backupCodes.userId, user.id));
+  }
 
   return c.json({ message: '2FA disabled' });
 });
@@ -290,16 +339,18 @@ security.post('/2fa/disable', async (c) => {
 security.post('/2fa/backup-codes/regenerate', async (c) => {
   const user = c.get('user') as { id: number };
 
-  // Check if 2FA is enabled with TOTP
+  // Check if TOTP 2FA is enabled
   const dbUser = await db.select({
+    twoFactorTotpEnabled: schema.users.twoFactorTotpEnabled,
     twoFactorEnabled: schema.users.twoFactorEnabled,
-    twoFactorMethod: schema.users.twoFactorMethod
+    twoFactorMethod: schema.users.twoFactorMethod,
   })
     .from(schema.users)
     .where(eq(schema.users.id, user.id))
     .get();
 
-  if (!dbUser?.twoFactorEnabled || dbUser.twoFactorMethod !== 'totp') {
+  const state = getEffective2FAState(dbUser || {});
+  if (!state.totpEnabled) {
     return c.json({ error: 'TOTP 2FA must be enabled' }, 400);
   }
 

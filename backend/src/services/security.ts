@@ -238,6 +238,29 @@ export async function cleanupOldAttempts(daysToKeep = 7) {
   await db.delete(schema.loginAttempts).where(sql`${schema.loginAttempts.createdAt} < ${cutoff}`);
 }
 
+// Dual 2FA helper — backward compat with legacy single-method users
+export function getEffective2FAState(user: {
+  twoFactorEnabled?: boolean | null;
+  twoFactorMethod?: string | null;
+  twoFactorEmailEnabled?: boolean | null;
+  twoFactorTotpEnabled?: boolean | null;
+}) {
+  // New dual-2FA columns take precedence when set
+  if (user.twoFactorEmailEnabled || user.twoFactorTotpEnabled) {
+    return {
+      emailEnabled: !!user.twoFactorEmailEnabled,
+      totpEnabled: !!user.twoFactorTotpEnabled,
+      anyEnabled: true,
+    };
+  }
+  // Legacy fallback: derive from old single-method fields
+  return {
+    emailEnabled: !!(user.twoFactorEnabled && user.twoFactorMethod === 'email'),
+    totpEnabled: !!(user.twoFactorEnabled && user.twoFactorMethod === 'totp'),
+    anyEnabled: !!user.twoFactorEnabled,
+  };
+}
+
 // 2FA Functions
 
 // Generate a random 6-digit code

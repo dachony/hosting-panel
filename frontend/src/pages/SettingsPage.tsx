@@ -180,7 +180,6 @@ export default function SettingsPage() {
   const [templateTypeFilter, setTemplateTypeFilter] = useState<string>('all');
 
   // Import/Export state
-  const [exportTypes, setExportTypes] = useState<string[]>(['all']);
   const [importType] = useState<string>('all');
   const [importValidation, setImportValidation] = useState<{
     valid: boolean;
@@ -206,7 +205,6 @@ export default function SettingsPage() {
   const [exportPreviewData, setExportPreviewData] = useState<Record<string, unknown[]> | null>(null);
   const [exportSelections, setExportSelections] = useState<Record<string, boolean[]>>({});
   const [exportExpandedSections, setExportExpandedSections] = useState<Set<string>>(new Set());
-  const [exportLoading, setExportLoading] = useState(false);
   const [exportPassword, setExportPassword] = useState('');
 
   // Import ZIP/encryption state
@@ -218,11 +216,14 @@ export default function SettingsPage() {
   // Backup state
   const [backupSettings, setBackupSettings] = useState({
     schedule: { enabled: false, frequency: 'daily' as 'daily' | 'weekly' | 'monthly', time: '02:00', dayOfWeek: 1, dayOfMonth: 1 },
+    password: '',
     notifications: { enabled: false, email: '' },
     retention: { enabled: false, days: 30 },
   });
   const [confirmDeleteBackup, setConfirmDeleteBackup] = useState<string | null>(null);
   const [confirmCleanup, setConfirmCleanup] = useState<number | null>(null);
+  const [backupNowModal, setBackupNowModal] = useState(false);
+  const [backupNowPassword, setBackupNowPassword] = useState('');
 
   // User modal state
   const [userModalOpen, setUserModalOpen] = useState(false);
@@ -975,6 +976,7 @@ export default function SettingsPage() {
     if (backupSettingsData?.settings) {
       setBackupSettings(prev => ({
         schedule: { ...prev.schedule, ...backupSettingsData.settings.schedule },
+        password: backupSettingsData.settings.password || '',
         notifications: { ...prev.notifications, ...backupSettingsData.settings.notifications },
         retention: { ...prev.retention, ...backupSettingsData.settings.retention },
       }));
@@ -983,10 +985,12 @@ export default function SettingsPage() {
 
   // Backup mutations
   const createBackupMutation = useMutation({
-    mutationFn: () => api.post('/api/backup/create', {}),
+    mutationFn: (password?: string) => api.post('/api/backup/create', { password: password || '' }),
     onSuccess: () => {
       toast.success(t('settings.backupCreated'));
       queryClient.invalidateQueries({ queryKey: ['backup-files'] });
+      setBackupNowModal(false);
+      setBackupNowPassword('');
     },
     onError: (error: Error) => { toast.error(error.message || t('settings.backupFailed')); },
   });
@@ -1684,37 +1688,6 @@ export default function SettingsPage() {
       setExportPassword('');
     } catch {
       toast.error(t('settings.errorExporting'));
-    }
-  };
-
-  const handleExport = async (format: 'json' | 'csv' = 'json') => {
-    if (format === 'json') {
-      // For JSON: fetch data into memory and open preview modal
-      try {
-        setExportLoading(true);
-        const types = exportTypes.join(',');
-        const data = await api.get<{ version: string; exportedAt: string; data: Record<string, unknown[]> }>(`/api/backup/export?types=${types}&format=json`);
-        if (data?.data) {
-          setExportPreviewData(data.data);
-          setExportSelections(initializeSelections(data.data));
-          setExportExpandedSections(new Set());
-          setExportPreviewOpen(true);
-        }
-      } catch {
-        toast.error(t('settings.errorLoadingExport'));
-      } finally {
-        setExportLoading(false);
-      }
-    } else {
-      // For CSV: direct download (no preview)
-      try {
-        const types = exportTypes.join(',');
-        const filename = `${exportTypes[0]}-export-${new Date().toISOString().split('T')[0]}.csv`;
-        await api.download(`/api/backup/export?types=${types}&format=csv`, filename);
-        toast.success(t('settings.dataExported'));
-      } catch {
-        toast.error(t('settings.errorExporting'));
-      }
     }
   };
 
@@ -3856,15 +3829,10 @@ export default function SettingsPage() {
                 {t('settings.allCompleteBackup')}
               </p>
               <button
-                onClick={() => createBackupMutation.mutate()}
-                disabled={createBackupMutation.isPending}
+                onClick={() => setBackupNowModal(true)}
                 className="btn btn-primary w-full flex items-center justify-center"
               >
-                {createBackupMutation.isPending ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t('settings.backupCreating')}</>
-                ) : (
-                  <><Download className="w-4 h-4 mr-2" />{t('settings.backupNow')}</>
-                )}
+                <Download className="w-4 h-4 mr-2" />{t('settings.backupNow')}
               </button>
             </div>
 
@@ -3945,6 +3913,24 @@ export default function SettingsPage() {
                         </select>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* ZIP Password */}
+                {backupSettings.schedule.enabled && (
+                  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block flex items-center gap-1">
+                      <Lock className="w-3 h-3" />
+                      {t('settings.backupPassword')}
+                    </label>
+                    <input
+                      type="password"
+                      value={backupSettings.password}
+                      onChange={(e) => setBackupSettings(s => ({ ...s, password: e.target.value }))}
+                      placeholder={t('settings.backupPasswordPlaceholder')}
+                      className="input input-sm w-full"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">{t('settings.backupPasswordHint')}</p>
                   </div>
                 )}
 
@@ -4186,81 +4172,47 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Export Section */}
-            <div className="card">
-              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                <Download className="w-4 h-4 text-primary-600" />
-                {t('settings.exportData')}
-              </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[11px] text-gray-500 dark:text-gray-400 mb-2 block">{t('settings.whatToExport')}</label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer text-sm">
-                      <input
-                        type="checkbox"
-                        checked={exportTypes.includes('all')}
-                        onChange={(e) => setExportTypes(e.target.checked ? ['all'] : [])}
-                        className="checkbox"
-                      />
-                      <span className="text-gray-700 dark:text-gray-300 font-medium">{t('settings.allCompleteBackup')}</span>
-                    </label>
-
-                    {!exportTypes.includes('all') && (
-                      <div className="ml-4 space-y-1.5 border-l-2 border-gray-200 dark:border-gray-700 pl-3">
-                        {[
-                          { id: 'clients', label: t('settings.clients') },
-                          { id: 'domains', label: t('settings.domains') },
-                          { id: 'hosting', label: t('settings.hosting') },
-                          { id: 'packages', label: t('settings.packages') },
-                          { id: 'templates', label: t('settings.emailTemplates') },
-                          { id: 'scheduler', label: t('settings.scheduler') },
-                          { id: 'settings', label: t('settings.title') },
-                          { id: 'users', label: t('settings.users') },
-                        ].map((item) => (
-                          <label key={item.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                            <input
-                              type="checkbox"
-                              checked={exportTypes.includes(item.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setExportTypes([...exportTypes, item.id]);
-                                } else {
-                                  setExportTypes(exportTypes.filter(t => t !== item.id));
-                                }
-                              }}
-                              className="checkbox"
-                            />
-                            <span className="text-gray-600 dark:text-gray-400">{item.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
+            {/* Backup Now Password Modal */}
+            {backupNowModal && (
+              <div className="card border-2 border-primary-200 dark:border-primary-700">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-primary-600" />
+                  {t('settings.backupNowPassword')}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  {t('settings.backupNowPasswordDesc')}
+                </p>
+                <input
+                  type="password"
+                  value={backupNowPassword}
+                  onChange={(e) => setBackupNowPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && backupNowPassword && createBackupMutation.mutate(backupNowPassword)}
+                  placeholder={t('settings.backupPasswordPlaceholder')}
+                  className="input input-sm w-full mb-3"
+                  autoFocus
+                />
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleExport('json')}
-                    disabled={exportTypes.length === 0 || exportLoading}
+                    onClick={() => createBackupMutation.mutate(backupNowPassword || undefined)}
+                    disabled={createBackupMutation.isPending}
                     className="btn btn-primary flex-1 flex items-center justify-center"
                   >
-                    {exportLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-                    {exportLoading ? t('common.loading') : t('settings.exportJson')}
+                    {createBackupMutation.isPending ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t('settings.backupCreating')}</>
+                    ) : (
+                      <><Archive className="w-4 h-4 mr-2" />{t('settings.createBackup')}</>
+                    )}
                   </button>
-                  {!exportTypes.includes('all') && exportTypes.length === 1 && (
-                    <button
-                      onClick={() => handleExport('csv')}
-                      className="btn btn-secondary flex-1 flex items-center justify-center"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Export CSV
-                    </button>
-                  )}
+                  <button
+                    onClick={() => { setBackupNowModal(false); setBackupNowPassword(''); }}
+                    className="btn btn-secondary"
+                    disabled={createBackupMutation.isPending}
+                  >
+                    {t('common.cancel')}
+                  </button>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
