@@ -190,6 +190,7 @@ export interface EmailTemplate {
   footerImageSize?: ImageSize;
   templateWidth?: TemplateWidth;
   sendAsPdf?: boolean;
+  requireNoPdf?: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

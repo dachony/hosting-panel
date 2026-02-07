@@ -679,6 +679,7 @@
     "widthWide": "Wide",
     "widthFull": "Full",
     "sendReportAsPdf": "Priloži izveštaj kao PDF",
+    "requireNoPdf": "Šalji samo kad domen nema PDF",
     "toRecipients": "Za",
     "ccRecipients": "Cc",
     "addRecipient": "Dodaj primaoca",

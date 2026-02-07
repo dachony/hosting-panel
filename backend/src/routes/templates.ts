@@ -97,6 +97,7 @@ const templateSchema = z.object({
   footerImageSize: z.enum(['xs', 'small', 'medium', 'large', 'xl']).optional().default('medium'),
   templateWidth: z.enum(['compact', 'standard', 'wide', 'full']).optional().default('standard'),
   sendAsPdf: z.boolean().optional().default(false),
+  requireNoPdf: z.boolean().optional().default(false),
   isActive: z.boolean().default(true),
 });
 

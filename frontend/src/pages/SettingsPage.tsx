@@ -335,6 +335,7 @@ export default function SettingsPage() {
     footerImageSize: 'medium' as ImageSize,
     templateWidth: 'standard' as TemplateWidth,
     sendAsPdf: false,
+    requireNoPdf: false,
     recipients: { to: [], cc: [] } as TemplateRecipients,
     customToEmail: '',
     customCcEmail: '',
@@ -731,6 +732,7 @@ export default function SettingsPage() {
         footerImageSize: template.footerImageSize || parsed.footerImageSize || 'medium',
         templateWidth: template.templateWidth || parsed.templateWidth || 'standard',
         sendAsPdf: template.sendAsPdf || false,
+        requireNoPdf: template.requireNoPdf || false,
         recipients: template.recipients || { to: [], cc: [] },
         customToEmail: '',
         customCcEmail: '',
@@ -768,6 +770,7 @@ export default function SettingsPage() {
         footerImageSize: 'medium',
         templateWidth: 'standard',
         sendAsPdf: false,
+        requireNoPdf: false,
         recipients: { to: [], cc: [] },
         customToEmail: '',
         customCcEmail: '',
@@ -884,6 +887,7 @@ export default function SettingsPage() {
       footerImageSize: templateForm.footerImageSize,
       templateWidth: templateForm.templateWidth,
       sendAsPdf: templateForm.type === 'reports' ? templateForm.sendAsPdf : false,
+      requireNoPdf: templateForm.type === 'client' ? templateForm.requireNoPdf : false,
       recipients: (templateForm.recipients.to.length > 0 || templateForm.recipients.cc.length > 0)
         ? templateForm.recipients
         : null,
@@ -5321,15 +5325,26 @@ export default function SettingsPage() {
           {/* Options row: Attach PDF, Report PDF, Template Width */}
           <div className="flex flex-wrap items-center gap-4">
             {templateForm.type === 'client' && (
-              <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={templateForm.attachDomainPdf}
-                  onChange={(e) => setTemplateForm(prev => ({ ...prev, attachDomainPdf: e.target.checked }))}
-                  className="checkbox"
-                />
-                <span className="text-gray-700 dark:text-gray-300">{t('settings.attachDomainPdf')}</span>
-              </label>
+              <>
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={templateForm.attachDomainPdf}
+                    onChange={(e) => setTemplateForm(prev => ({ ...prev, attachDomainPdf: e.target.checked }))}
+                    className="checkbox"
+                  />
+                  <span className="text-gray-700 dark:text-gray-300">{t('settings.attachDomainPdf')}</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={templateForm.requireNoPdf}
+                    onChange={(e) => setTemplateForm(prev => ({ ...prev, requireNoPdf: e.target.checked }))}
+                    className="checkbox"
+                  />
+                  <span className="text-gray-700 dark:text-gray-300">{t('settings.requireNoPdf')}</span>
+                </label>
+              </>
             )}
             {templateForm.type === 'reports' && (
               <label className="flex items-center gap-2 text-xs cursor-pointer">
@@ -6119,8 +6134,8 @@ Your team"
                   <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Preview</span>
                   <span className="text-[9px] text-gray-400">{templateWidthMap[templateForm.templateWidth]}px</span>
                 </div>
-                <div className="bg-gray-100 dark:bg-gray-950 p-2 overflow-x-auto">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm mx-auto transition-all duration-200" style={{ width: `${Math.round(400 * templateWidthMap[templateForm.templateWidth] / 800)}px` }}>
+                <div className="p-3 overflow-x-auto" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(128,128,128,0.06) 5px, rgba(128,128,128,0.06) 10px)' }}>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md border border-gray-200 dark:border-gray-600 mx-auto transition-all duration-300" style={{ width: `${Math.round(400 * templateWidthMap[templateForm.templateWidth] / 800)}px` }}>
                     {/* Header Preview */}
                     {templateForm.showHeader && (
                       <div
@@ -6184,6 +6199,12 @@ Your team"
                         )}
                       </div>
                     )}
+                  </div>
+                  {/* Width indicator bar */}
+                  <div className="mt-2 mx-auto flex items-center gap-1" style={{ width: `${Math.round(400 * templateWidthMap[templateForm.templateWidth] / 800)}px` }}>
+                    <div className="flex-1 h-0.5 bg-primary-400/40 rounded" />
+                    <span className="text-[8px] text-gray-400 whitespace-nowrap">{templateWidthMap[templateForm.templateWidth]}px</span>
+                    <div className="flex-1 h-0.5 bg-primary-400/40 rounded" />
                   </div>
                 </div>
               </div>

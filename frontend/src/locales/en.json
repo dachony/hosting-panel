@@ -679,6 +679,7 @@
     "widthWide": "Wide",
     "widthFull": "Full",
     "sendReportAsPdf": "Attach report as PDF",
+    "requireNoPdf": "Send only when domain has no PDF",
     "toRecipients": "To",
     "ccRecipients": "Cc",
     "addRecipient": "Add recipient",

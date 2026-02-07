@@ -128,6 +128,11 @@ async function checkExpiringMailHosting(targetDate: string, daysRemaining: numbe
 
     const templateRecipients = template?.recipients as { to: Array<{type: 'variable'|'custom'; value: string}>; cc: Array<{type: 'variable'|'custom'; value: string}> } | null;
 
+    // Skip items with PDF when template requires no PDF
+    if (template?.requireNoPdf && item.domainPdfFilename) {
+      continue;
+    }
+
     if (templateRecipients && templateRecipients.to.length > 0) {
       // Resolve To from template recipients (use first resolved)
       for (const entry of templateRecipients.to) {
@@ -719,6 +724,11 @@ async function triggerClientNotification(setting: typeof schema.notificationSett
   const templateRecipients = template.recipients as { to: Array<{type: 'variable'|'custom'; value: string}>; cc: Array<{type: 'variable'|'custom'; value: string}> } | null;
 
   for (const item of mailHosting) {
+    // Skip items with PDF when template requires no PDF
+    if (template.requireNoPdf && item.domainPdfFilename) {
+      continue;
+    }
+
     const recipientContext = {
       clientEmail: item.clientEmail,
       clientTechEmail: item.clientTechEmail,

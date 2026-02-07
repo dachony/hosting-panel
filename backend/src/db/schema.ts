@@ -198,6 +198,7 @@ export const emailTemplates = sqliteTable('email_templates', {
   footerImageSize: text('footer_image_size').$type<'xs'|'small'|'medium'|'large'|'xl'>().default('medium'),
   templateWidth: text('template_width').$type<'compact'|'standard'|'wide'|'full'>().default('standard'),
   sendAsPdf: integer('send_as_pdf', { mode: 'boolean' }).default(false),
+  requireNoPdf: integer('require_no_pdf', { mode: 'boolean' }).default(false),
   isActive: integer('is_active', { mode: 'boolean' }).default(true),
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
