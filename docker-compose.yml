@@ -24,6 +24,8 @@ services:
         limits:
           memory: 256M
           cpus: '0.5'
+    networks:
+      - hosting-net
 
   backend:
     build:
@@ -55,6 +57,12 @@ services:
         limits:
           memory: 512M
           cpus: '1.0'
+    networks:
+      - hosting-net
 
 volumes:
   data:
+
+networks:
+  hosting-net:
+    driver: bridge

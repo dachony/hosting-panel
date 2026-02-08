@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import { api } from '../api/client';
+import { formatDateTimeFull } from '../utils/dateFormat';
 import { Search, Loader2, Trash2, RefreshCw, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertTriangle, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -28,7 +29,7 @@ interface EmailResponse {
 }
 
 export default function EmailLogPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,17 +61,6 @@ export default function EmailLogPage() {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleSearch();
-  };
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   const emails = data?.emails || [];
@@ -192,7 +182,7 @@ export default function EmailLogPage() {
                       <span className="hidden sm:inline text-gray-400">|</span>
                       <span className="hidden sm:inline truncate">{t('emailLog.from')} {email.fromName ? `${email.fromName} <${email.fromEmail}>` : email.fromEmail}</span>
                       <span className="text-gray-400">|</span>
-                      <span>{formatDate(email.createdAt)}</span>
+                      <span>{formatDateTimeFull(email.createdAt, i18n.language)}</span>
                     </div>
 
                     {/* Error message for failed emails */}
@@ -235,6 +225,7 @@ export default function EmailLogPage() {
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="btn btn-secondary btn-sm disabled:opacity-50"
+                aria-label={t('common.previousPage')}
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -245,6 +236,7 @@ export default function EmailLogPage() {
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
                 className="btn btn-secondary btn-sm disabled:opacity-50"
+                aria-label={t('common.nextPage')}
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

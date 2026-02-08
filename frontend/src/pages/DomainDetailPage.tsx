@@ -9,6 +9,7 @@ import Modal from '../components/common/Modal';
 import { ArrowLeft, Globe, Package as PackageIcon, ChevronDown, ChevronRight, Pencil, Lock, Unlock, Server, Shield, FileText, Upload, Download, Trash2, AlertTriangle, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { formatDate } from '../utils/dateFormat';
 
 interface DomainWithDetails extends Domain {
   clientName?: string | null;
@@ -26,14 +27,6 @@ const periodButtons = [
   { years: 3, label: '+3' },
   { years: 100, labelKey: 'common.periodShortUnlimited' },
 ];
-
-// Format date for display: YYYY-MM-DD -> DD.MM.YYYY
-function formatDateDisplay(dateStr: string): string {
-  if (!dateStr) return '-';
-  const [year, month, day] = dateStr.split('-');
-  if (!year || !month || !day) return dateStr;
-  return `${day}.${month}.${year}`;
-}
 
 function getTodayDate(): string {
   const today = new Date();
@@ -742,11 +735,11 @@ export default function DomainDetailPage() {
                   <div className="flex items-center gap-3 mt-1.5 pt-1.5 border-t dark:border-gray-700 text-xs flex-wrap">
                     <div className="flex items-center gap-1">
                       <span className="text-gray-500">{t('common.added')}</span>
-                      <span className="font-medium">{formatDateDisplay(hosting?.startDate || getTodayDate())}</span>
+                      <span className="font-medium">{formatDate(hosting?.startDate || getTodayDate())}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="text-gray-500">{t('common.expiry')}</span>
-                      <span className="font-medium">{formatDateDisplay(originalExpiryDate || hosting?.expiryDate || '')}</span>
+                      <span className="font-medium">{formatDate(originalExpiryDate || hosting?.expiryDate || '')}</span>
                     </div>
                     {!isDomainLocked && (
                       <div className="flex items-center gap-1.5 ml-auto bg-primary-50 dark:bg-gray-700/50 rounded px-2 py-1">
@@ -801,6 +794,7 @@ export default function DomainDetailPage() {
                           onClick={() => api.download(`/api/domains/${id}/pdf`, domain.pdfFilename!)}
                           className="p-1 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors"
                           title={t('common.download')}
+                          aria-label={t('common.download')}
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
@@ -809,6 +803,7 @@ export default function DomainDetailPage() {
                             onClick={() => deletePdfMutation.mutate()}
                             className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                             title={t('common.delete')}
+                            aria-label={t('common.delete')}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>

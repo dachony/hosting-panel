@@ -4,14 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { DashboardStats, ExpiringItem, ExpiryStatus } from '../types';
 import { Users, Globe, Loader2, Plus, UserPlus, FileWarning } from 'lucide-react';
-
-// Format date for display: YYYY-MM-DD -> DD.MM.YYYY
-function formatDateDisplay(dateStr: string): string {
-  if (!dateStr) return '-';
-  const [year, month, day] = dateStr.split('-');
-  if (!year || !month || !day) return dateStr;
-  return `${day}.${month}.${year}`;
-}
+import { formatDate } from '../utils/dateFormat';
 
 function getExpiryStatus(days: number): ExpiryStatus {
   if (days <= -60) return 'deleted';
@@ -194,7 +187,7 @@ export default function DashboardPage() {
                 >
                   <span className="font-medium truncate w-28 sm:w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0 hidden sm:inline">{item.clientName || '-'}</span>
-                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
+                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDate(item.expiryDate)}</span>
                   <div className="w-24 sm:w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>
@@ -208,7 +201,7 @@ export default function DashboardPage() {
       {/* 2x2 Grid: Expiring | Expired / For Deletion | For Deleted */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Expiring items list */}
-        <div className="card card-flush overflow-hidden">
+        <div className="card card-flush overflow-hidden" aria-busy={expiringLoading}>
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-yellow-50 dark:bg-yellow-900/20">
             <h2 className="font-semibold text-sm text-yellow-700 dark:text-yellow-400">
               {t('dashboard.expiringItemsNext30Days')}
@@ -219,11 +212,11 @@ export default function DashboardPage() {
               <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
             </div>
           ) : expiringItems.length === 0 ? (
-            <div className="text-center py-6 text-sm text-gray-500">
+            <div className="text-center py-6 text-sm text-gray-500" role="status">
               {t('dashboard.noExpiringItems')}
             </div>
           ) : (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-72 overflow-y-auto">
+            <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-72 overflow-y-auto" aria-live="polite">
               {expiringItems.map((item) => (
                 <div
                   key={`exp-${item.type}-${item.id}`}
@@ -232,7 +225,7 @@ export default function DashboardPage() {
                 >
                   <span className="font-medium truncate w-28 sm:w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0 hidden sm:inline">{item.clientName || '-'}</span>
-                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
+                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDate(item.expiryDate)}</span>
                   <div className="w-24 sm:w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>
@@ -243,7 +236,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Expired items (0-7 days) */}
-        <div className="card card-flush overflow-hidden">
+        <div className="card card-flush overflow-hidden" aria-busy={expiredLoading}>
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-900/20">
             <h2 className="font-semibold text-sm text-red-700 dark:text-red-400">
               {t('dashboard.expiredItems')}
@@ -254,11 +247,11 @@ export default function DashboardPage() {
               <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
             </div>
           ) : expiredItems.length === 0 ? (
-            <div className="text-center py-6 text-sm text-gray-500">
+            <div className="text-center py-6 text-sm text-gray-500" role="status">
               {t('dashboard.noExpiredItems')}
             </div>
           ) : (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-72 overflow-y-auto">
+            <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-72 overflow-y-auto" aria-live="polite">
               {expiredItems.map((item) => (
                 <div
                   key={`expired-${item.type}-${item.id}`}
@@ -267,7 +260,7 @@ export default function DashboardPage() {
                 >
                   <span className="font-medium truncate w-28 sm:w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0 hidden sm:inline">{item.clientName || '-'}</span>
-                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
+                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDate(item.expiryDate)}</span>
                   <div className="w-24 sm:w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>
@@ -278,7 +271,7 @@ export default function DashboardPage() {
         </div>
 
         {/* For Deletion (7-60 days) */}
-        <div className="card card-flush overflow-hidden">
+        <div className="card card-flush overflow-hidden" aria-busy={forDeletionLoading}>
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-purple-50 dark:bg-purple-900/20">
             <h2 className="font-semibold text-sm text-purple-700 dark:text-purple-400">
               {t('dashboard.forDeletionItems')}
@@ -289,11 +282,11 @@ export default function DashboardPage() {
               <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
             </div>
           ) : forDeletionItems.length === 0 ? (
-            <div className="text-center py-6 text-sm text-gray-500">
+            <div className="text-center py-6 text-sm text-gray-500" role="status">
               {t('dashboard.noForDeletionItems')}
             </div>
           ) : (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-72 overflow-y-auto">
+            <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-72 overflow-y-auto" aria-live="polite">
               {forDeletionItems.map((item) => (
                 <div
                   key={`fordel-${item.type}-${item.id}`}
@@ -302,7 +295,7 @@ export default function DashboardPage() {
                 >
                   <span className="font-medium truncate w-28 sm:w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0 hidden sm:inline">{item.clientName || '-'}</span>
-                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
+                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDate(item.expiryDate)}</span>
                   <div className="w-24 sm:w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>
@@ -313,7 +306,7 @@ export default function DashboardPage() {
         </div>
 
         {/* For Deleted (60+ days) */}
-        <div className="card card-flush overflow-hidden">
+        <div className="card card-flush overflow-hidden" aria-busy={willBeDeletedLoading}>
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700/50">
             <h2 className="font-semibold text-sm text-gray-700 dark:text-gray-400">
               {t('dashboard.willBeDeletedExpired60')}
@@ -324,11 +317,11 @@ export default function DashboardPage() {
               <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
             </div>
           ) : willBeDeletedItems.length === 0 ? (
-            <div className="text-center py-6 text-sm text-gray-500">
+            <div className="text-center py-6 text-sm text-gray-500" role="status">
               {t('dashboard.noItemsPendingDeletion')}
             </div>
           ) : (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-72 overflow-y-auto">
+            <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-72 overflow-y-auto" aria-live="polite">
               {willBeDeletedItems.map((item) => (
                 <div
                   key={`delete-${item.type}-${item.id}`}
@@ -337,7 +330,7 @@ export default function DashboardPage() {
                 >
                   <span className="font-medium truncate w-28 sm:w-40 shrink-0">{item.name}</span>
                   <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0 hidden sm:inline">{item.clientName || '-'}</span>
-                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDateDisplay(item.expiryDate)}</span>
+                  <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDate(item.expiryDate)}</span>
                   <div className="w-24 sm:w-32 shrink-0">
                     <StatusBadge days={item.daysUntilExpiry} />
                   </div>

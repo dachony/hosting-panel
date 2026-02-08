@@ -8,7 +8,7 @@ import { rateLimit } from '../middleware/rateLimit.js';
 import { z } from 'zod';
 import { sendEmail } from '../services/email.js';
 import { getCurrentTimestamp } from '../utils/dates.js';
-import { logAudit } from '../services/audit.js';
+import { logAudit, audit } from '../services/audit.js';
 import {
   isIpBlocked,
   recordLoginAttempt,
@@ -507,7 +507,8 @@ auth.post('/login/verify-2fa-setup', rateLimit('verify-2fa-setup', 5, 60 * 1000)
   }
 });
 
-auth.post('/logout', (c) => {
+auth.post('/logout', authMiddleware, async (c) => {
+  await audit.logout(c);
   return c.json({ message: 'Logged out successfully' });
 });
 
@@ -669,6 +670,21 @@ auth.post('/forgot-password', rateLimit('forgot-password', 3, 15 * 60 * 1000), a
       text: `Password Reset\n\nClick the link to reset your password: ${resetUrl}\n\nThis link is valid for 1 hour.\n\n${systemName}`,
     });
 
+    // Audit log (public route, no auth context)
+    try {
+      const ipAddr = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown';
+      await db.insert(schema.auditLogs).values({
+        userId: null,
+        userName: email,
+        userEmail: email,
+        action: 'password_reset_request',
+        entityType: 'auth',
+        entityName: email,
+        ipAddress: ipAddr,
+        userAgent: c.req.header('user-agent') || 'unknown',
+      });
+    } catch { /* audit should not fail the request */ }
+
     return c.json({ message: 'If the email exists, a reset link has been sent' });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -724,6 +740,21 @@ auth.post('/reset-password', rateLimit('reset-password', 5, 15 * 60 * 1000), asy
     await db.update(schema.passwordResetTokens)
       .set({ usedAt: getCurrentTimestamp() })
       .where(eq(schema.passwordResetTokens.id, resetToken.id));
+
+    // Audit log (public route, no auth context)
+    try {
+      const ipAddr = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown';
+      await db.insert(schema.auditLogs).values({
+        userId: resetToken.userId,
+        userName: 'password_reset',
+        userEmail: '',
+        action: 'password_reset',
+        entityType: 'auth',
+        entityId: resetToken.userId,
+        ipAddress: ipAddr,
+        userAgent: c.req.header('user-agent') || 'unknown',
+      });
+    } catch { /* audit should not fail the request */ }
 
     return c.json({ message: 'Password reset successfully' });
   } catch (error) {

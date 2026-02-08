@@ -91,7 +91,10 @@
     "statusDeleted": "Obrisano",
     "statusOkShort": "OK (>31d)",
     "statusExpiring": "Ističe",
-    "statusNoPackage": "Bez paketa"
+    "statusNoPackage": "Bez paketa",
+    "previousPage": "Prethodna strana",
+    "nextPage": "Sledeća strana",
+    "close": "Zatvori"
   },
   "auth": {
     "login": "Prijava",

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { formatDateTime, formatDateTimeFull } from '../utils/dateFormat';
 import { Search, Loader2, Filter, ChevronLeft, ChevronRight, X, User, Globe, Clock, MapPin, Monitor } from 'lucide-react';
 
 // Default column widths
@@ -101,7 +102,7 @@ function extractClientDomain(log: AuditLog): { client: string | null; domain: st
 }
 
 export default function AuditLogPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const getActionLabel = (action: string) => actionLabelKeys[action] ? t(actionLabelKeys[action]) : action;
   const getEntityLabel = (entityType: string) => entityLabelKeys[entityType] ? t(entityLabelKeys[entityType]) : entityType;
@@ -235,29 +236,6 @@ export default function AuditLogPage() {
     queryFn: () => api.get<{ actions: string[] }>('/api/audit/actions'),
   });
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const formatFullDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  };
-
   // ESC key handler for modal
   useEffect(() => {
     if (!selectedLog) return;
@@ -360,7 +338,7 @@ export default function AuditLogPage() {
                       <span className={`inline-block px-1.5 py-0.5 text-[10px] rounded font-medium ${actionColors[log.action] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
                         {getActionLabel(log.action)}
                       </span>
-                      <span className="text-[10px] text-gray-400">{formatDate(log.createdAt)}</span>
+                      <span className="text-[10px] text-gray-400">{formatDateTime(log.createdAt, i18n.language)}</span>
                     </div>
                     <div className="text-xs text-gray-700 dark:text-gray-300 mt-1">{generateDescription(log)}</div>
                     <div className="flex items-center gap-2 mt-0.5 text-[10px] text-gray-500">
@@ -447,7 +425,7 @@ export default function AuditLogPage() {
                         className="hover:bg-primary-50/50 dark:hover:bg-primary-900/20 cursor-pointer transition-colors"
                       >
                         <td className="px-2 py-1.5 whitespace-nowrap text-gray-500 dark:text-gray-400 overflow-hidden text-ellipsis" style={{ width: columnWidths.time }}>
-                          {formatDate(log.createdAt)}
+                          {formatDateTime(log.createdAt, i18n.language)}
                         </td>
                         <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300 overflow-hidden text-ellipsis" style={{ width: columnWidths.user }} title={log.userName}>
                           {log.userName}
@@ -487,6 +465,7 @@ export default function AuditLogPage() {
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
                     className="btn btn-secondary btn-xs disabled:opacity-50"
+                    aria-label={t('common.previousPage')}
                   >
                     <ChevronLeft className="w-3 h-3" />
                   </button>
@@ -497,6 +476,7 @@ export default function AuditLogPage() {
                     onClick={() => setPage(p => Math.min(data.pagination.totalPages, p + 1))}
                     disabled={page === data.pagination.totalPages}
                     className="btn btn-secondary btn-xs disabled:opacity-50"
+                    aria-label={t('common.nextPage')}
                   >
                     <ChevronRight className="w-3 h-3" />
                   </button>
@@ -519,6 +499,7 @@ export default function AuditLogPage() {
               <button
                 onClick={() => setSelectedLog(null)}
                 className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                aria-label={t('common.close')}
               >
                 <X className="w-4 h-4 text-gray-500" />
               </button>
@@ -558,7 +539,7 @@ export default function AuditLogPage() {
                   <Clock className="w-4 h-4 text-gray-400 mt-0.5" />
                   <div>
                     <div className="text-gray-500 text-xs">{t('auditLog.time')}</div>
-                    <div className="text-gray-900 dark:text-gray-100">{formatFullDate(selectedLog.createdAt)}</div>
+                    <div className="text-gray-900 dark:text-gray-100">{formatDateTimeFull(selectedLog.createdAt, i18n.language)}</div>
                   </div>
                 </div>
 

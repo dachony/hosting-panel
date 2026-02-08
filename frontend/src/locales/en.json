@@ -91,7 +91,10 @@
     "statusDeleted": "Deleted",
     "statusOkShort": "OK (>31d)",
     "statusExpiring": "Expiring",
-    "statusNoPackage": "No package"
+    "statusNoPackage": "No package",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "close": "Close"
   },
   "auth": {
     "login": "Login",

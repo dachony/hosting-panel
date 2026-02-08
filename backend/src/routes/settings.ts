@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { authMiddleware, superAdminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
+import { audit } from '../services/audit.js';
 
 const settings = new Hono();
 
@@ -78,6 +79,7 @@ settings.put('/system', superAdminMiddleware, async (c) => {
       await db.insert(schema.appSettings).values({ key: 'system', value: data });
     }
 
+    await audit.update(c, 'settings', 0, 'system', data as Record<string, unknown>);
     return c.json({ settings: data });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -182,6 +184,7 @@ settings.put('/system-notifications', superAdminMiddleware, async (c) => {
       await db.insert(schema.appSettings).values({ key: 'system-notifications', value: data });
     }
 
+    await audit.update(c, 'settings', 0, 'system-notifications');
     return c.json({ settings: data });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -236,6 +239,7 @@ settings.put('/:key', superAdminMiddleware, async (c) => {
       await db.insert(schema.appSettings).values({ key, value });
     }
 
+    await audit.update(c, 'settings', 0, key, { value: maskSensitiveValues(value) } as Record<string, unknown>);
     return c.json({ key, value });
   } catch (error) {
     return c.json({ error: 'Invalid input' }, 400);
@@ -257,6 +261,7 @@ settings.delete('/:key', superAdminMiddleware, async (c) => {
 
   await db.delete(schema.appSettings).where(eq(schema.appSettings.key, key));
 
+  await audit.delete(c, 'settings', 0, key);
   return c.json({ message: 'Setting deleted' });
 });
 

@@ -9,6 +9,7 @@ import DateInput from '../components/common/DateInput';
 import { ArrowLeft, Globe, Server, Calendar, ChevronDown, ChevronRight, Lock, Unlock, Plus, Search, Pencil, Users, Shield, AlertTriangle, FileText, Upload, Download, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { formatDate } from '../utils/dateFormat';
 
 interface HostingWithPackage extends Hosting {
   expiryStatus: ExpiryStatus;
@@ -55,13 +56,6 @@ function getTodayDate(): string {
   return new Date().toISOString().split('T')[0];
 }
 
-// Format date for display: YYYY-MM-DD -> DD.MM.YYYY
-function formatDateDisplay(dateStr: string): string {
-  if (!dateStr) return '-';
-  const [year, month, day] = dateStr.split('-');
-  if (!year || !month || !day) return dateStr;
-  return `${day}.${month}.${year}`;
-}
 
 function calculateExpiryDate(startDate: string, years: number): string {
   const date = new Date(startDate);
@@ -208,7 +202,7 @@ export default function ClientDetailPage() {
       toast.success(t('clients.clientUpdated'));
       setIsClientLocked(true);
     },
-    onError: () => toast.error(t('common.errorSaving')),
+    onError: (error: Error) => toast.error(error.message || t('common.errorSaving')),
   });
 
   const extendMutation = useMutation({
@@ -223,7 +217,7 @@ export default function ClientDetailPage() {
       setSelectedExtendPeriod('');
       setExtendModalFromToday(false);
     },
-    onError: () => toast.error(t('domains.errorUpdatingHosting')),
+    onError: (error: Error) => toast.error(error.message || t('domains.errorUpdatingHosting')),
   });
 
   const expireNowMutation = useMutation({
@@ -261,7 +255,7 @@ export default function ClientDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['domains'] });
       toast.success(t('domains.pdfDeleted'));
     },
-    onError: () => toast.error(t('domains.errorDeletingPdf')),
+    onError: (error: Error) => toast.error(error.message || t('domains.errorDeletingPdf')),
   });
 
   const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -305,7 +299,7 @@ export default function ClientDetailPage() {
       toast.success(t('domains.domainCreated'));
       setAddDomainModalOpen(false);
     },
-    onError: () => toast.error(t('domains.errorCreatingDomain')),
+    onError: (error: Error) => toast.error(error.message || t('domains.errorCreatingDomain')),
   });
 
   const editDomainMutation = useMutation({
@@ -350,7 +344,7 @@ export default function ClientDetailPage() {
       setEditDomainModalOpen(false);
       setEditingDomain(null);
     },
-    onError: () => toast.error(t('domains.errorUpdatingDomain')),
+    onError: (error: Error) => toast.error(error.message || t('domains.errorUpdatingDomain')),
   });
 
   const editHostingMutation = useMutation({
@@ -367,7 +361,7 @@ export default function ClientDetailPage() {
       setEditHostingModalOpen(false);
       setEditingHosting(null);
     },
-    onError: () => toast.error(t('domains.errorUpdatingHosting')),
+    onError: (error: Error) => toast.error(error.message || t('domains.errorUpdatingHosting')),
   });
 
   const toggleDomainExpand = (domainId: number) => {
@@ -1110,7 +1104,7 @@ export default function ClientDetailPage() {
                             <div className="mt-2 pt-2 border-t dark:border-gray-700 flex items-center justify-between text-xs">
                               <div className="flex items-center gap-1">
                                 <span className="text-gray-500">{t('common.expiry')}</span>
-                                <span className="font-medium">{formatDateDisplay(domainHosting.expiryDate!)}</span>
+                                <span className="font-medium">{formatDate(domainHosting.expiryDate!)}</span>
                               </div>
                               <div className="flex items-center gap-3">
                                 <StatusBadge status={domainHosting.expiryStatus} days={domainHosting.daysUntilExpiry || 0} />
@@ -1794,13 +1788,13 @@ export default function ClientDetailPage() {
                 <div>
                   <span className="text-xs font-medium text-gray-500 uppercase">{t('common.added')}</span>
                   <div className="mt-1 py-2 px-3 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
-                    {formatDateDisplay(editDomainForm.startDate) || '-'}
+                    {formatDate(editDomainForm.startDate) || '-'}
                   </div>
                 </div>
                 <div>
                   <span className="text-xs font-medium text-gray-500 uppercase">{t('common.expiry')}</span>
                   <div className="mt-1 py-2 px-3 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
-                    {formatDateDisplay(originalExpiryDate) || '-'}
+                    {formatDate(originalExpiryDate) || '-'}
                   </div>
                 </div>
               </div>
@@ -1966,13 +1960,13 @@ export default function ClientDetailPage() {
                 <div>
                   <span className="text-xs font-medium text-gray-500 uppercase">{t('common.added')}</span>
                   <div className="mt-1 py-2 px-3 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
-                    {formatDateDisplay(editHostingForm.startDate) || '-'}
+                    {formatDate(editHostingForm.startDate) || '-'}
                   </div>
                 </div>
                 <div>
                   <span className="text-xs font-medium text-gray-500 uppercase">{t('common.expiry')}</span>
                   <div className="mt-1 py-2 px-3 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
-                    {formatDateDisplay(originalHostingExpiryDate) || '-'}
+                    {formatDate(originalHostingExpiryDate) || '-'}
                   </div>
                 </div>
               </div>

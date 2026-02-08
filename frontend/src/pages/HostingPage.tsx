@@ -228,7 +228,7 @@ export default function HostingPage() {
       setAddDomainModalOpen(false);
       resetDomainForm();
     },
-    onError: () => toast.error(t('domains.errorCreatingDomain')),
+    onError: (error: Error) => toast.error(error.message || t('domains.errorCreatingDomain')),
   });
 
   const deleteDomainMutation = useMutation({
@@ -240,7 +240,7 @@ export default function HostingPage() {
       setDeleteDialogOpen(false);
       setDomainToDelete(null);
     },
-    onError: () => toast.error(t('common.errorDeleting')),
+    onError: (error: Error) => toast.error(error.message || t('common.errorDeleting')),
   });
 
   const extendMutation = useMutation({
@@ -580,6 +580,7 @@ export default function HostingPage() {
                         <button
                           onClick={(e) => { e.stopPropagation(); setDomainToDelete({ domainId: hosting.domainId!, domainName: hosting.domainName || '' }); setDeleteDialogOpen(true); }}
                           className="btn btn-sm flex items-center gap-1 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                          aria-label={t('common.delete')}
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
