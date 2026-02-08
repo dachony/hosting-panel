@@ -2323,7 +2323,7 @@ export default function SettingsPage() {
       </h1>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+      <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto sm:overflow-x-visible">
         <nav className="-mb-px flex sm:flex-wrap gap-1">
           {tabs.map((tab) => (
             <button
