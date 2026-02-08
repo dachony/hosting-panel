@@ -369,53 +369,74 @@ backup.post('/import', superAdminMiddleware, async (c) => {
       results[type] = await importItems(type, items, undefined, overwrite);
     } else if (importData.data && typeof importData.data === 'object') {
       // Handle full backup import (JSON with multiple types)
+      // Uses clear+insert with original IDs to preserve FK integrity
       const data = importData.data as Record<string, unknown[]>;
 
-      // Users first (backupCodes depend on them)
+      // Step 1: Users (upsert - don't clear to preserve current session)
       if (data.users) {
         results.users = await importItems('users', data.users as Record<string, unknown>[], undefined, overwrite);
       }
       if (data.backupCodes) {
         results.backupCodes = await importItems('backupCodes', data.backupCodes as Record<string, unknown>[], data.users as Record<string, unknown>[] | undefined, overwrite);
       }
-      if (data.clients) {
-        results.clients = await importItems('clients', data.clients as Record<string, unknown>[], undefined, overwrite);
+
+      // Step 2: Clear entity/config tables in reverse dependency order
+      // This allows re-inserting with original IDs to preserve FK references
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tablesToClear: { key: string; table: any }[] = [
+        // Dependents first (reference other tables via FK)
+        { key: 'mailHosting', table: schema.mailHosting },
+        { key: 'webHosting', table: schema.webHosting },
+        { key: 'notificationSettings', table: schema.notificationSettings },
+        { key: 'reportSettings', table: schema.reportSettings },
+        // Then parents
+        { key: 'domains', table: schema.domains },
+        { key: 'packages', table: schema.mailPackages },
+        { key: 'clients', table: schema.clients },
+        { key: 'mailServers', table: schema.mailServers },
+        { key: 'mailSecurity', table: schema.mailSecurity },
+        { key: 'templates', table: schema.emailTemplates },
+        { key: 'companyInfo', table: schema.companyInfo },
+        { key: 'bankAccounts', table: schema.bankAccounts },
+      ];
+
+      for (const { key, table } of tablesToClear) {
+        if (key in data) {
+          await db.delete(table);
+        }
       }
-      if (data.domains) {
-        results.domains = await importItems('domains', data.domains as Record<string, unknown>[], undefined, overwrite);
+
+      // Step 3: Insert with original IDs in correct dependency order
+      // No Zod validation - data comes from our own DB export
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const insertOrder: { key: string; table: any }[] = [
+        // Independent lookup tables first
+        { key: 'mailServers', table: schema.mailServers },
+        { key: 'mailSecurity', table: schema.mailSecurity },
+        { key: 'clients', table: schema.clients },
+        { key: 'packages', table: schema.mailPackages },
+        // Dependent entity tables
+        { key: 'domains', table: schema.domains },
+        { key: 'webHosting', table: schema.webHosting },
+        { key: 'mailHosting', table: schema.mailHosting },
+        // Config tables (templates before notificationSettings - FK dependency)
+        { key: 'templates', table: schema.emailTemplates },
+        { key: 'notificationSettings', table: schema.notificationSettings },
+        { key: 'reportSettings', table: schema.reportSettings },
+        { key: 'companyInfo', table: schema.companyInfo },
+        { key: 'bankAccounts', table: schema.bankAccounts },
+      ];
+
+      for (const { key, table } of insertOrder) {
+        const items = data[key] as Record<string, unknown>[] | undefined;
+        if (items && items.length > 0) {
+          results[key] = await insertWithOriginalIds(key, table, items);
+        }
       }
-      if (data.packages) {
-        results.packages = await importItems('packages', data.packages as Record<string, unknown>[], undefined, overwrite);
-      }
-      if (data.webHosting) {
-        results.webHosting = await importItems('hosting', data.webHosting as Record<string, unknown>[], undefined, overwrite);
-      }
-      if (data.mailHosting) {
-        results.mailHosting = await importItems('mailHosting', data.mailHosting as Record<string, unknown>[], undefined, overwrite);
-      }
-      if (data.templates) {
-        results.templates = await importItems('templates', data.templates as Record<string, unknown>[], undefined, overwrite);
-      }
-      if (data.notificationSettings) {
-        results.notificationSettings = await importItems('notificationSettings', data.notificationSettings as Record<string, unknown>[], undefined, overwrite);
-      }
+
+      // Step 4: App settings (upsert by key - preserves user preferences)
       if (data.appSettings) {
         results.appSettings = await importItems('appSettings', data.appSettings as Record<string, unknown>[], undefined, overwrite);
-      }
-      if (data.mailServers) {
-        results.mailServers = await importItems('mailServers', data.mailServers as Record<string, unknown>[], undefined, overwrite);
-      }
-      if (data.mailSecurity) {
-        results.mailSecurity = await importItems('mailSecurity', data.mailSecurity as Record<string, unknown>[], undefined, overwrite);
-      }
-      if (data.companyInfo) {
-        results.companyInfo = await importItems('companyInfo', data.companyInfo as Record<string, unknown>[], undefined, overwrite);
-      }
-      if (data.bankAccounts) {
-        results.bankAccounts = await importItems('bankAccounts', data.bankAccounts as Record<string, unknown>[], undefined, overwrite);
-      }
-      if (data.reportSettings) {
-        results.reportSettings = await importItems('reportSettings', data.reportSettings as Record<string, unknown>[], undefined, overwrite);
       }
     }
 
@@ -730,6 +751,29 @@ async function importItems(type: string, items: Record<string, unknown>[], extra
     } catch (error) {
       result.errors.push(`Row: ${JSON.stringify(item).substring(0, 100)}... - ${error instanceof Error ? error.message : 'Error'}`);
       result.skipped++;
+    }
+  }
+
+  return result;
+}
+
+// Insert items with original IDs preserved (for full backup restore)
+// No Zod validation - data comes from our own DB export
+async function insertWithOriginalIds(
+  entityName: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  table: any,
+  items: Record<string, unknown>[]
+): Promise<{ imported: number; skipped: number; overwritten: number; errors: string[] }> {
+  const result = { imported: 0, skipped: 0, overwritten: 0, errors: [] as string[] };
+
+  for (const item of items) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await db.insert(table).values(item as any);
+      result.imported++;
+    } catch (e) {
+      result.errors.push(`${entityName}: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
   }
 
