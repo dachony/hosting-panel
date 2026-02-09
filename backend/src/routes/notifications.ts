@@ -433,10 +433,6 @@ notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
 
       const sentCount = await triggerClientNotification(setting, domainId);
 
-      await db.update(schema.notificationSettings)
-        .set({ lastSent: new Date().toISOString(), updatedAt: getCurrentTimestamp() })
-        .where(eq(schema.notificationSettings.id, id));
-
       return c.json({ message: `Sent ${sentCount} notification(s)${domainId ? ' for selected domain' : ' to matching contacts'}` });
     }
 
@@ -543,11 +539,6 @@ notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
     }
 
     await sendEmail({ to: recipient, subject, html, attachments: attachments.length > 0 ? attachments : undefined });
-
-    // Update lastSent
-    await db.update(schema.notificationSettings)
-      .set({ lastSent: new Date().toISOString(), updatedAt: getCurrentTimestamp() })
-      .where(eq(schema.notificationSettings.id, id));
 
     return c.json({ message: `Notification sent to ${recipient}` });
   } catch (error) {
