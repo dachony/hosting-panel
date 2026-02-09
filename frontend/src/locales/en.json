@@ -777,7 +777,9 @@
     "daily": "Daily",
     "weekly": "Weekly",
     "monthly": "Monthly",
-    "daysUnit": "days"
+    "daysUnit": "days",
+    "sessionTimeout": "Session Timeout (minutes)",
+    "sessionTimeoutHelp": "Auto-logout after inactivity (5-480 minutes)"
   },
   "templates": {
     "title": "Email Templates",

@@ -56,6 +56,7 @@ interface SystemSettings {
   systemName: string;
   baseUrl: string;
   timezone: string;
+  sessionTimeout: number;
 }
 
 interface SystemNotifications {
@@ -129,6 +130,7 @@ export default function SettingsPage() {
     systemName: 'Hosting Panel',
     baseUrl: '',
     timezone: 'Europe/Belgrade',
+    sessionTimeout: 30,
   });
 
   // System notifications state
@@ -2401,6 +2403,18 @@ export default function SettingsPage() {
                       <option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option>
                     </select>
                     <p className="text-[10px] text-gray-400 mt-1">Timezone used for scheduled notifications and backups</p>
+                  </div>
+                  <div className="col-span-6 sm:col-span-3">
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">{t('settings.sessionTimeout')}</label>
+                    <input
+                      type="number"
+                      value={systemSettings.sessionTimeout}
+                      onChange={(e) => setSystemSettings({ ...systemSettings, sessionTimeout: Math.max(5, Math.min(480, parseInt(e.target.value) || 30)) })}
+                      className="input input-sm"
+                      min={5}
+                      max={480}
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">{t('settings.sessionTimeoutHelp')}</p>
                   </div>
                   <div className="col-span-6 flex justify-end pt-2">
                     <button

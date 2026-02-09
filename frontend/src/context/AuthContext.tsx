@@ -1,9 +1,9 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { api, setOnUnauthorized } from '../api/client';
 import { User, AuthResponse } from '../types';
 
-const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+const DEFAULT_TIMEOUT_MINUTES = 30;
 const THROTTLE_INTERVAL = 60 * 1000; // 60 seconds
 
 export type UserRole = 'superadmin' | 'admin' | 'salesadmin' | 'sales';
@@ -105,6 +105,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     init();
   }, []);
 
+  // Fetch session timeout from system settings
+  const { data: systemSettingsData } = useQuery({
+    queryKey: ['system-settings-timeout'],
+    queryFn: () => api.get<{ settings: { sessionTimeout?: number } }>('/api/settings/system'),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const timeoutMs = (systemSettingsData?.settings?.sessionTimeout ?? DEFAULT_TIMEOUT_MINUTES) * 60 * 1000;
+
   // Inactivity auto-logout
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastActivityRef = useRef(Date.now());
@@ -117,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       timeoutRef.current = setTimeout(() => {
         api.post('/api/auth/logout', {}).catch(() => {});
         logout();
-      }, INACTIVITY_TIMEOUT);
+      }, timeoutMs);
     };
 
     const handleActivity = () => {
@@ -135,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       events.forEach(e => window.removeEventListener(e, handleActivity));
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [user]);
+  }, [user, timeoutMs]);
 
   const login = async (email: string, password: string): Promise<LoginResult> => {
     const response = await api.post<AuthResponse & {

@@ -777,7 +777,9 @@
     "daily": "Dnevno",
     "weekly": "Nedeljno",
     "monthly": "Mesečno",
-    "daysUnit": "dana"
+    "daysUnit": "dana",
+    "sessionTimeout": "Istek sesije (minuti)",
+    "sessionTimeoutHelp": "Automatska odjava nakon neaktivnosti (5-480 minuta)"
   },
   "templates": {
     "title": "Email šabloni",
