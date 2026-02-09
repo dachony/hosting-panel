@@ -11,6 +11,44 @@ import path from 'path';
 
 const PDF_DIR = '/app/data/pdfs';
 
+/** Read timezone from system settings in DB, fallback to TZ env or Europe/Belgrade */
+async function getSchedulerTimezone(): Promise<string> {
+  try {
+    const setting = await db.select().from(schema.appSettings).where(eq(schema.appSettings.key, 'system')).get();
+    if (setting?.value) {
+      const sys = setting.value as { timezone?: string };
+      if (sys.timezone) return sys.timezone;
+    }
+  } catch {
+    // ignore DB errors, use fallback
+  }
+  return process.env.TZ || 'Europe/Belgrade';
+}
+
+/** Get current date/time components in the given timezone using Intl API */
+function getNowInTimezone(tz: string): { hours: number; minutes: number; day: number; dayOfWeek: number; month: number; year: number; dateStr: string } {
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+  const parts = fmt.formatToParts(now);
+  const get = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0');
+  const hours = get('hour') === 24 ? 0 : get('hour');
+  const minutes = get('minute');
+  const day = get('day');
+  const month = get('month');
+  const year = get('year');
+
+  // dayOfWeek: use a Date constructed from the tz-local date to get correct weekday
+  const localDate = new Date(year, month - 1, day);
+  const dayOfWeek = localDate.getDay();
+  const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+  return { hours, minutes, day, dayOfWeek, month, year, dateStr };
+}
+
 // Keys that contain pre-rendered HTML and should NOT be escaped
 const HTML_VARIABLE_KEYS = new Set(['hostingList', 'systemInfo', 'companyLogo']);
 
@@ -296,14 +334,23 @@ async function sendDailyReport() {
 }
 
 // Check if a scheduled notification should run now based on frequency settings
-function shouldRunNow(setting: { frequency: string | null; dayOfWeek: number | null; dayOfMonth: number | null; runAtTime: string; lastSent: string | null }): boolean {
+function shouldRunNow(setting: { frequency: string | null; dayOfWeek: number | null; dayOfMonth: number | null; runAtTime: string; lastSent: string | null }, tz?: string): boolean {
+  const tzNow = tz ? getNowInTimezone(tz) : null;
   const now = new Date();
   const frequency = setting.frequency || 'daily';
+
+  const currentHours = tzNow ? tzNow.hours : now.getHours();
+  const currentMinutes = tzNow ? tzNow.minutes : now.getMinutes();
+  const currentDay = tzNow ? tzNow.day : now.getDate();
+  const currentDayOfWeek = tzNow ? tzNow.dayOfWeek : now.getDay();
+  const currentDateStr = tzNow ? tzNow.dateStr : now.toISOString().substring(0, 10);
+  const currentYear = tzNow ? tzNow.year : now.getFullYear();
+  const currentMonth = tzNow ? tzNow.month - 1 : now.getMonth();
 
   if (frequency === 'hourly') {
     // For hourly: only check minutes from runAtTime, ignore hours
     const targetMinute = parseInt(setting.runAtTime.split(':')[1] || '0');
-    if (now.getMinutes() !== targetMinute) return false;
+    if (currentMinutes !== targetMinute) return false;
     // Idempotency: check if already sent this hour
     if (setting.lastSent) {
       const lastSent = new Date(setting.lastSent);
@@ -316,14 +363,13 @@ function shouldRunNow(setting: { frequency: string | null; dayOfWeek: number | n
   }
 
   // For daily/weekly/monthly: check full HH:MM match
-  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const currentTime = `${String(currentHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`;
   if (currentTime !== setting.runAtTime) return false;
 
   // Check if already sent today
   if (setting.lastSent) {
     const lastSentDate = setting.lastSent.substring(0, 10); // YYYY-MM-DD
-    const todayStr = now.toISOString().substring(0, 10);
-    if (lastSentDate === todayStr) return false;
+    if (lastSentDate === currentDateStr) return false;
   }
 
   if (frequency === 'daily') {
@@ -333,18 +379,17 @@ function shouldRunNow(setting: { frequency: string | null; dayOfWeek: number | n
   if (frequency === 'weekly') {
     // dayOfWeek: 0=Sunday, 1=Monday, ... 6=Saturday
     const targetDay = setting.dayOfWeek ?? 1; // default Monday
-    return now.getDay() === targetDay;
+    return currentDayOfWeek === targetDay;
   }
 
   if (frequency === 'monthly') {
     const targetDay = setting.dayOfMonth ?? 1;
-    const today = now.getDate();
-    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     // If target day > last day of month, send on the last day
     if (targetDay > lastDayOfMonth) {
-      return today === lastDayOfMonth;
+      return currentDay === lastDayOfMonth;
     }
-    return today === targetDay;
+    return currentDay === targetDay;
   }
 
   return false;
@@ -352,6 +397,7 @@ function shouldRunNow(setting: { frequency: string | null; dayOfWeek: number | n
 
 // Send report notifications using templates with reportConfig
 async function sendReportNotifications() {
+  const tz = await getSchedulerTimezone();
   // Get all enabled notification settings of type 'reports' with a template
   const reportSettings = await db.select()
     .from(schema.notificationSettings)
@@ -362,7 +408,7 @@ async function sendReportNotifications() {
 
   for (const setting of reportSettings) {
     if (!setting.templateId) continue;
-    if (!shouldRunNow(setting)) continue;
+    if (!shouldRunNow(setting, tz)) continue;
 
     // Load the template
     const template = await db.select()
@@ -433,6 +479,7 @@ async function sendReportNotifications() {
 
 // Send system notifications using templates with systemConfig
 async function sendSystemNotifications() {
+  const tz = await getSchedulerTimezone();
   // Get all enabled notification settings of type 'system' with a template
   const systemSettings = await db.select()
     .from(schema.notificationSettings)
@@ -443,7 +490,7 @@ async function sendSystemNotifications() {
 
   for (const setting of systemSettings) {
     if (!setting.templateId) continue;
-    if (!shouldRunNow(setting)) continue;
+    if (!shouldRunNow(setting, tz)) continue;
 
     // Load the template
     const template = await db.select()
@@ -520,6 +567,7 @@ async function sendSystemNotifications() {
 
 // Send service_request/sales_request notifications using templates
 async function sendScheduledNotifications(type: 'service_request' | 'sales_request') {
+  const tz = await getSchedulerTimezone();
   const settings = await db.select()
     .from(schema.notificationSettings)
     .where(and(
@@ -530,7 +578,7 @@ async function sendScheduledNotifications(type: 'service_request' | 'sales_reque
   for (const setting of settings) {
     if (!setting.templateId) continue;
     if (!setting.frequency) continue;
-    if (!shouldRunNow(setting)) continue;
+    if (!shouldRunNow(setting, tz)) continue;
 
     const template = await db.select()
       .from(schema.emailTemplates)
@@ -589,13 +637,14 @@ async function runScheduledBackup() {
     if (!config.schedule.enabled) return;
 
     // Use shouldRunNow to check timing
+    const tz = await getSchedulerTimezone();
     const shouldRun = shouldRunNow({
       frequency: config.schedule.frequency,
       dayOfWeek: config.schedule.dayOfWeek ?? null,
       dayOfMonth: config.schedule.dayOfMonth ?? null,
       runAtTime: config.schedule.time,
       lastSent: config._lastRun || null,
-    });
+    }, tz);
 
     if (!shouldRun) return;
 

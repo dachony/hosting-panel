@@ -52,6 +52,7 @@ settings.get('/system', async (c) => {
   const defaults = {
     systemName: 'Hosting Panel',
     baseUrl: '',
+    timezone: 'Europe/Belgrade',
   };
 
   if (setting?.value) {
@@ -67,6 +68,7 @@ settings.put('/system', superAdminMiddleware, async (c) => {
     const data = z.object({
       systemName: z.string().min(1),
       baseUrl: z.string().optional().default(''),
+      timezone: z.string().optional().default('Europe/Belgrade'),
     }).parse(body);
 
     const existing = await db.select().from(schema.appSettings).where(eq(schema.appSettings.key, 'system')).get();

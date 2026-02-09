@@ -55,6 +55,7 @@ type TabType = 'system' | 'security' | 'owner' | 'smtp' | 'mail-servers' | 'mail
 interface SystemSettings {
   systemName: string;
   baseUrl: string;
+  timezone: string;
 }
 
 interface SystemNotifications {
@@ -127,6 +128,7 @@ export default function SettingsPage() {
   const [systemSettings, setSystemSettings] = useState<SystemSettings>({
     systemName: 'Hosting Panel',
     baseUrl: '',
+    timezone: 'Europe/Belgrade',
   });
 
   // System notifications state
@@ -2371,6 +2373,34 @@ export default function SettingsPage() {
                       placeholder="https://dashboard.example.com"
                     />
                     <p className="text-[10px] text-gray-400 mt-1">Public application URL for links in email invitations</p>
+                  </div>
+                  <div className="col-span-6">
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Timezone</label>
+                    <select
+                      value={systemSettings.timezone}
+                      onChange={(e) => setSystemSettings({ ...systemSettings, timezone: e.target.value })}
+                      className="select input-sm"
+                    >
+                      <option value="Europe/Belgrade">Europe/Belgrade (CET/CEST)</option>
+                      <option value="Europe/London">Europe/London (GMT/BST)</option>
+                      <option value="Europe/Berlin">Europe/Berlin (CET/CEST)</option>
+                      <option value="Europe/Paris">Europe/Paris (CET/CEST)</option>
+                      <option value="Europe/Moscow">Europe/Moscow (MSK)</option>
+                      <option value="Europe/Istanbul">Europe/Istanbul (TRT)</option>
+                      <option value="Europe/Athens">Europe/Athens (EET/EEST)</option>
+                      <option value="Europe/Bucharest">Europe/Bucharest (EET/EEST)</option>
+                      <option value="Europe/Helsinki">Europe/Helsinki (EET/EEST)</option>
+                      <option value="UTC">UTC</option>
+                      <option value="US/Eastern">US/Eastern (EST/EDT)</option>
+                      <option value="US/Central">US/Central (CST/CDT)</option>
+                      <option value="US/Mountain">US/Mountain (MST/MDT)</option>
+                      <option value="US/Pacific">US/Pacific (PST/PDT)</option>
+                      <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+                      <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+                      <option value="Asia/Shanghai">Asia/Shanghai (CST)</option>
+                      <option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option>
+                    </select>
+                    <p className="text-[10px] text-gray-400 mt-1">Timezone used for scheduled notifications and backups</p>
                   </div>
                   <div className="col-span-6 flex justify-end pt-2">
                     <button
