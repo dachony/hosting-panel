@@ -1,7 +1,10 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, setOnUnauthorized } from '../api/client';
 import { User, AuthResponse } from '../types';
+
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+const THROTTLE_INTERVAL = 60 * 1000; // 60 seconds
 
 export type UserRole = 'superadmin' | 'admin' | 'salesadmin' | 'sales';
 
@@ -101,6 +104,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     init();
   }, []);
+
+  // Inactivity auto-logout
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastActivityRef = useRef(Date.now());
+
+  useEffect(() => {
+    if (!user) return;
+
+    const resetTimer = () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        api.post('/api/auth/logout', {}).catch(() => {});
+        logout();
+      }, INACTIVITY_TIMEOUT);
+    };
+
+    const handleActivity = () => {
+      const now = Date.now();
+      if (now - lastActivityRef.current < THROTTLE_INTERVAL) return;
+      lastActivityRef.current = now;
+      resetTimer();
+    };
+
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'] as const;
+    events.forEach(e => window.addEventListener(e, handleActivity));
+    resetTimer();
+
+    return () => {
+      events.forEach(e => window.removeEventListener(e, handleActivity));
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [user]);
 
   const login = async (email: string, password: string): Promise<LoginResult> => {
     const response = await api.post<AuthResponse & {
