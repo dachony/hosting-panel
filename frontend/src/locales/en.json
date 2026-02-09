@@ -202,7 +202,9 @@
     "noExpiredItems": "No expired items",
     "forDeletion": "For Deletion",
     "forDeletionItems": "For Deletion (7-60 days)",
-    "noForDeletionItems": "No items for deletion"
+    "noForDeletionItems": "No items for deletion",
+    "longExpiry": "Long Expiry (345+ days)",
+    "noLongExpiry": "No items with long expiry"
   },
   "clients": {
     "title": "Clients",

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { DashboardStats, ExpiringItem, ExpiryStatus } from '../types';
-import { Users, Globe, Loader2, Plus, UserPlus, FileWarning } from 'lucide-react';
+import { Users, Globe, Loader2, Plus, UserPlus, FileWarning, Clock } from 'lucide-react';
 import { formatDate } from '../utils/dateFormat';
 
 function getExpiryStatus(days: number): ExpiryStatus {
@@ -83,6 +83,12 @@ export default function DashboardPage() {
   const expiredItems = expiredData?.items || [];
   const forDeletionItems = forDeletionData?.items || [];
   const willBeDeletedItems = willBeDeletedData?.items || [];
+
+  const { data: longExpiryData, isLoading: longExpiryLoading } = useQuery({
+    queryKey: ['dashboard-long-expiry'],
+    queryFn: () => api.get<{ items: ExpiringItem[] }>('/api/dashboard/long-expiry'),
+  });
+  const longExpiryItems = longExpiryData?.items || [];
 
   const { data: missingOffersData, isLoading: missingOffersLoading } = useQuery({
     queryKey: ['dashboard-missing-offers'],
@@ -339,6 +345,42 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Long Expiry (345+ days) — full width */}
+      <div className="card card-flush overflow-hidden" aria-busy={longExpiryLoading}>
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-teal-50 dark:bg-teal-900/20">
+          <h2 className="font-semibold text-sm text-teal-700 dark:text-teal-400 flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            {t('dashboard.longExpiry')}
+          </h2>
+        </div>
+        {longExpiryLoading ? (
+          <div className="flex justify-center py-6">
+            <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
+          </div>
+        ) : longExpiryItems.length === 0 ? (
+          <div className="text-center py-6 text-sm text-gray-500" role="status">
+            {t('dashboard.noLongExpiry')}
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-72 overflow-y-auto" aria-live="polite">
+            {longExpiryItems.map((item) => (
+              <div
+                key={`long-${item.type}-${item.id}`}
+                onClick={() => item.domainId && navigate(`/domains/${item.domainId}`)}
+                className="flex items-center px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-xs gap-3"
+              >
+                <span className="font-medium truncate w-28 sm:w-40 shrink-0">{item.name}</span>
+                <span className="text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0 hidden sm:inline">{item.clientName || '-'}</span>
+                <span className="text-gray-500 dark:text-gray-400 w-20 sm:w-24 shrink-0">{formatDate(item.expiryDate)}</span>
+                <div className="w-24 sm:w-32 shrink-0">
+                  <StatusBadge days={item.daysUntilExpiry} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

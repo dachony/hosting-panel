@@ -202,7 +202,9 @@
     "noExpiredItems": "Nema isteklih stavki",
     "forDeletion": "Za brisanje",
     "forDeletionItems": "Za brisanje (7-60 dana)",
-    "noForDeletionItems": "Nema stavki za brisanje"
+    "noForDeletionItems": "Nema stavki za brisanje",
+    "longExpiry": "Daleki istek (345+ dana)",
+    "noLongExpiry": "Nema stavki sa dalekom ekspiracijom"
   },
   "clients": {
     "title": "Klijenti",

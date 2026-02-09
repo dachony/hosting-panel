@@ -264,6 +264,39 @@ export async function getMissingOffers(): Promise<ExpiringItem[]> {
   })).sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
 }
 
+export async function getLongExpiryItems(): Promise<ExpiringItem[]> {
+  const longExpiryDate = addDaysToDate(new Date(), 345);
+
+  const mail = await db.select({
+    id: schema.mailHosting.id,
+    domainId: schema.mailHosting.domainId,
+    expiryDate: schema.mailHosting.expiryDate,
+    clientName: schema.clients.name,
+    domainName: schema.domains.domainName,
+    packageName: schema.mailPackages.name,
+  })
+  .from(schema.mailHosting)
+  .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
+  .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
+  .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
+  .where(and(
+    isNotNull(schema.mailHosting.domainId),
+    gt(schema.mailHosting.expiryDate, longExpiryDate)
+  ));
+
+  const items: ExpiringItem[] = mail.map(m => ({
+    id: m.id,
+    domainId: m.domainId,
+    type: 'mail' as const,
+    name: m.domainName || m.packageName || 'Hosting',
+    clientName: m.clientName,
+    expiryDate: m.expiryDate,
+    daysUntilExpiry: daysUntilExpiry(m.expiryDate),
+  }));
+
+  return items.sort((a, b) => b.daysUntilExpiry - a.daysUntilExpiry);
+}
+
 export async function getRecentActivity(limit: number = 10) {
   const notifications = await db.select()
     .from(schema.notificationLog)
