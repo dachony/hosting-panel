@@ -126,8 +126,9 @@ npm run dev           # Starts dev server on port 3000
 - **Clients** - Companies/individuals with contact details, tax IDs (PIB/MIB), technical contacts
 - **Domains** - Registered domains with expiry tracking, registrar info, auto-renew flags, and per-domain contacts. Domains without hosting packages are visible in the listing with a "No Package" badge
 - **Web Hosting** - Web hosting services linked to clients, domains, and mail servers with expiry dates
-- **Mail Packages** - Configurable mail hosting package types (mailbox limits, storage, pricing, features)
+- **Mail Packages** - Configurable mail hosting package types (mailbox limits, storage, pricing, features). Each package can be assigned a web server, a mail server and a mail security service. The package list supports sorting by name, mailboxes, storage or price, and filtering by any of the three server types
 - **Mail Hosting** - Mail hosting service instances linked to clients, domains, and packages
+- **Web Servers** - Web server definitions with hostname and default selection
 - **Mail Servers** - Mail server definitions with hostname and default selection
 - **Mail Security** - Mail security service definitions (e.g., spam filters)
 
@@ -176,7 +177,7 @@ npm run dev           # Starts dev server on port 3000
 - Password reset via email with time-limited tokens
 - Password policy enforcement (configurable)
 - Forced password change on next login
-- Audit logging for all actions (create, update, delete, login, logout)
+- Audit logging on every write endpoint - clients, domains, hosting, packages, web/mail servers, mail security, users, templates, notifications, company, security settings, backup and system cleanups. Covers create, update and delete plus action-specific entries such as `extend`, `expire_now`, `set_default`, `lock`/`unlock`, `pdf_upload` and `2fa_enable`
 
 ### Company & Branding
 - Company information management (name, address, contacts, tax IDs)
