@@ -18,6 +18,7 @@ const packageSchema = z.object({
   storageGb: z.number().min(0).default(5),
   price: z.number().min(0).default(0),
   features: z.array(z.string()).optional().nullable(),
+  webServerId: z.number().int().optional().nullable(),
   mailServerId: z.number().int().optional().nullable(),
   mailSecurityId: z.number().int().optional().nullable(),
 });
@@ -32,6 +33,8 @@ mailPackages.get('/', salesAdminMiddleware, async (c) => {
     storageGb: schema.mailPackages.storageGb,
     price: schema.mailPackages.price,
     features: schema.mailPackages.features,
+    webServerId: schema.mailPackages.webServerId,
+    webServerName: schema.webServers.name,
     mailServerId: schema.mailPackages.mailServerId,
     mailServerName: schema.mailServers.name,
     mailSecurityId: schema.mailPackages.mailSecurityId,
@@ -40,6 +43,7 @@ mailPackages.get('/', salesAdminMiddleware, async (c) => {
     updatedAt: schema.mailPackages.updatedAt,
   })
     .from(schema.mailPackages)
+    .leftJoin(schema.webServers, eq(schema.mailPackages.webServerId, schema.webServers.id))
     .leftJoin(schema.mailServers, eq(schema.mailPackages.mailServerId, schema.mailServers.id))
     .leftJoin(schema.mailSecurity, eq(schema.mailPackages.mailSecurityId, schema.mailSecurity.id));
   return c.json({ packages });

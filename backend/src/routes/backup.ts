@@ -83,12 +83,14 @@ backup.get('/export', async (c) => {
       partial.mailHosting = mailHosting;
     }
     if (types.includes('packages')) {
-      const [mailPackages, mailServers, mailSecurity] = await Promise.all([
+      const [mailPackages, webServers, mailServers, mailSecurity] = await Promise.all([
         db.select().from(schema.mailPackages),
+        db.select().from(schema.webServers),
         db.select().from(schema.mailServers),
         db.select().from(schema.mailSecurity),
       ]);
       partial.packages = mailPackages;
+      partial.webServers = webServers;
       partial.mailServers = mailServers;
       partial.mailSecurity = mailSecurity;
     }
@@ -393,6 +395,7 @@ backup.post('/import', superAdminMiddleware, async (c) => {
         { key: 'domains', table: schema.domains },
         { key: 'packages', table: schema.mailPackages },
         { key: 'clients', table: schema.clients },
+        { key: 'webServers', table: schema.webServers },
         { key: 'mailServers', table: schema.mailServers },
         { key: 'mailSecurity', table: schema.mailSecurity },
         { key: 'templates', table: schema.emailTemplates },
@@ -411,6 +414,7 @@ backup.post('/import', superAdminMiddleware, async (c) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const insertOrder: { key: string; table: any }[] = [
         // Independent lookup tables first
+        { key: 'webServers', table: schema.webServers },
         { key: 'mailServers', table: schema.mailServers },
         { key: 'mailSecurity', table: schema.mailSecurity },
         { key: 'clients', table: schema.clients },
@@ -628,6 +632,24 @@ async function importItems(type: string, items: Record<string, unknown>[], extra
             }
           }
           await db.insert(schema.mailHosting).values(data as typeof schema.mailHosting.$inferInsert);
+          result.imported++;
+          break;
+        }
+        case 'webServers': {
+          const wsName = (data as { name?: string }).name;
+          if (wsName) {
+            const existing = await db.select().from(schema.webServers).where(eq(schema.webServers.name, wsName)).get();
+            if (existing) {
+              if (overwrite) {
+                await db.update(schema.webServers).set(data as typeof schema.webServers.$inferInsert).where(eq(schema.webServers.id, existing.id));
+                result.overwritten++;
+              } else {
+                result.skipped++;
+              }
+              break;
+            }
+          }
+          await db.insert(schema.webServers).values(data as typeof schema.webServers.$inferInsert);
           result.imported++;
           break;
         }

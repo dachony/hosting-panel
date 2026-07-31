@@ -6,7 +6,7 @@ import { api } from '../api/client';
 import { Client, Domain, Hosting, ExpiryStatus, ExtendPeriod, Package, MailServer, MailSecurity } from '../types';
 import Modal from '../components/common/Modal';
 import DateInput from '../components/common/DateInput';
-import { ArrowLeft, Globe, Server, Calendar, ChevronDown, ChevronRight, Lock, Unlock, Plus, Search, Pencil, Users, Shield, AlertTriangle, FileText, Upload, Download, Trash2 } from 'lucide-react';
+import { ArrowLeft, Globe, Server, HardDrive, Calendar, ChevronDown, ChevronRight, Lock, Unlock, Plus, Search, Pencil, Users, Shield, AlertTriangle, FileText, Upload, Download, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { formatDate } from '../utils/dateFormat';
@@ -16,6 +16,7 @@ interface HostingWithPackage extends Hosting {
   packageDescription?: string | null;
   packageMaxMailboxes?: number | null;
   packageStorageGb?: number | null;
+  webServerName?: string | null;
   mailServerName?: string | null;
   mailSecurityName?: string | null;
 }
@@ -976,6 +977,9 @@ export default function ClientDetailPage() {
                           <div className="text-gray-500 truncate">
                             {(domainHosting as HostingWithPackage).packageMaxMailboxes || 0} {t('common.mailboxes')} · {(domainHosting as HostingWithPackage).packageStorageGb || 0} GB
                           </div>
+                          <div className="text-gray-500 truncate">
+                            {t('common.webServer')} {(domainHosting as HostingWithPackage).webServerName || '—'}
+                          </div>
                         </>
                       ) : (
                         <div className="flex items-center gap-1.5">
@@ -1092,6 +1096,11 @@ export default function ClientDetailPage() {
                               </div>
                               <div className="flex items-center gap-1">
                                 <Server className="w-3 h-3 text-gray-400" />
+                                <span className="text-gray-500 font-medium">{t('common.webServer')}</span>
+                                <span>{(domainHosting as HostingWithPackage).webServerName || '-'}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <HardDrive className="w-3 h-3 text-gray-400" />
                                 <span className="text-gray-500 font-medium">{t('common.mailServer')}</span>
                                 <span>{(domainHosting as HostingWithPackage).mailServerName || '-'}</span>
                               </div>

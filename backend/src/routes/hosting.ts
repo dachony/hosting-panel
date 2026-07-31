@@ -51,6 +51,7 @@ hosting.get('/', async (c) => {
       packageMaxMailboxes: schema.mailPackages.maxMailboxes,
       packageStorageGb: schema.mailPackages.storageGb,
       packagePrice: schema.mailPackages.price,
+      webServerName: schema.webServers.name,
       mailServerName: schema.mailServers.name,
       mailSecurityName: schema.mailSecurity.name,
     })
@@ -58,6 +59,7 @@ hosting.get('/', async (c) => {
     .leftJoin(schema.clients, eq(schema.mailHosting.clientId, schema.clients.id))
     .leftJoin(schema.domains, eq(schema.mailHosting.domainId, schema.domains.id))
     .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
+    .leftJoin(schema.webServers, eq(schema.mailPackages.webServerId, schema.webServers.id))
     .leftJoin(schema.mailServers, eq(schema.mailPackages.mailServerId, schema.mailServers.id))
     .leftJoin(schema.mailSecurity, eq(schema.mailPackages.mailSecurityId, schema.mailSecurity.id));
 
@@ -124,6 +126,7 @@ hosting.get('/', async (c) => {
     packageMaxMailboxes: null,
     packageStorageGb: null,
     packagePrice: null,
+    webServerName: null,
     mailServerName: null,
     mailSecurityName: null,
     daysUntilExpiry: null as unknown as number,

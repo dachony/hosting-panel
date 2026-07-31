@@ -72,6 +72,7 @@ export const mailPackages = sqliteTable('mail_packages', {
   storageGb: real('storage_gb').notNull().default(5),
   price: real('price').notNull().default(0),
   features: text('features', { mode: 'json' }).$type<string[]>(),
+  webServerId: integer('web_server_id'),
   mailServerId: integer('mail_server_id'),
   mailSecurityId: integer('mail_security_id'),
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -216,6 +217,16 @@ export const appSettings = sqliteTable('app_settings', {
   updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const webServers = sqliteTable('web_servers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  hostname: text('hostname').notNull(),
+  description: text('description'),
+  isDefault: integer('is_default', { mode: 'boolean' }).default(false),
+  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const mailServers = sqliteTable('mail_servers', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
@@ -298,6 +309,8 @@ export type ReportSetting = typeof reportSettings.$inferSelect;
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type NewEmailTemplate = typeof emailTemplates.$inferInsert;
 export type AppSetting = typeof appSettings.$inferSelect;
+export type WebServer = typeof webServers.$inferSelect;
+export type NewWebServer = typeof webServers.$inferInsert;
 export type MailServer = typeof mailServers.$inferSelect;
 export type NewMailServer = typeof mailServers.$inferInsert;
 export type MailSecurity = typeof mailSecurity.$inferSelect;

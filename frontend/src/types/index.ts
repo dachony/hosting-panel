@@ -100,6 +100,8 @@ export interface Package {
   storageGb: number;
   price: number;
   features?: string[] | null;
+  webServerId?: number | null;
+  webServerName?: string | null;
   mailServerId?: number | null;
   mailServerName?: string | null;
   mailSecurityId?: number | null;
@@ -123,6 +125,15 @@ export interface Hosting {
   packageName?: string | null;
   daysUntilExpiry?: number | null;
   expiryStatus?: ExpiryStatus;
+}
+
+export interface WebServer {
+  id: number;
+  name: string;
+  hostname: string;
+  description?: string | null;
+  isDefault: boolean;
+  createdAt: string;
 }
 
 export interface MailServer {

@@ -91,11 +91,13 @@ clients.get('/:id', async (c) => {
       packageDescription: schema.mailPackages.description,
       packageMaxMailboxes: schema.mailPackages.maxMailboxes,
       packageStorageGb: schema.mailPackages.storageGb,
+      webServerName: schema.webServers.name,
       mailServerName: schema.mailServers.name,
       mailSecurityName: schema.mailSecurity.name,
     })
     .from(schema.mailHosting)
     .leftJoin(schema.mailPackages, eq(schema.mailHosting.mailPackageId, schema.mailPackages.id))
+    .leftJoin(schema.webServers, eq(schema.mailPackages.webServerId, schema.webServers.id))
     .leftJoin(schema.mailServers, eq(schema.mailPackages.mailServerId, schema.mailServers.id))
     .leftJoin(schema.mailSecurity, eq(schema.mailPackages.mailSecurityId, schema.mailSecurity.id))
     .where(eq(schema.mailHosting.clientId, id));

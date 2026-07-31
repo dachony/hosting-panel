@@ -6,7 +6,7 @@ import { api } from '../api/client';
 import { Domain, Hosting, Package, Client, ExpiryStatus, MailServer, MailSecurity, ExtendPeriod } from '../types';
 import DateInput from '../components/common/DateInput';
 import Modal from '../components/common/Modal';
-import { ArrowLeft, Globe, Package as PackageIcon, ChevronDown, ChevronRight, Pencil, Lock, Unlock, Server, Shield, FileText, Upload, Download, Trash2, AlertTriangle, Calendar } from 'lucide-react';
+import { ArrowLeft, Globe, Package as PackageIcon, ChevronDown, ChevronRight, Pencil, Lock, Unlock, Server, HardDrive, Shield, FileText, Upload, Download, Trash2, AlertTriangle, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { formatDate } from '../utils/dateFormat';
@@ -698,7 +698,7 @@ export default function DomainDetailPage() {
                         <option value="">{t('common.noPackage')}</option>
                         {packages.map((pkg) => (
                           <option key={pkg.id} value={pkg.id}>
-                            {pkg.name} {pkg.mailServerName ? `(${pkg.mailServerName})` : ''}
+                            {pkg.name} {[pkg.webServerName, pkg.mailServerName].filter(Boolean).length > 0 ? `(${[pkg.webServerName, pkg.mailServerName].filter(Boolean).join(' / ')})` : ''}
                           </option>
                         ))}
                       </select>
@@ -719,6 +719,11 @@ export default function DomainDetailPage() {
                     <span className="text-gray-600 dark:text-gray-400">{selectedPackage.storageGb} GB</span>
                     <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                       <Server className="w-3 h-3" />
+                      <span className="text-gray-500 font-medium">{t('common.webServer')}</span>
+                      <span>{selectedPackage.webServerName || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                      <HardDrive className="w-3 h-3" />
                       <span className="text-gray-500 font-medium">{t('common.mailServer')}</span>
                       <span>{selectedPackage.mailServerName || '-'}</span>
                     </div>

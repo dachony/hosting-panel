@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { NotificationSetting, User, MailServer, MailSecurity, CompanyInfo, BankAccount, EmailTemplate, Package, ReportConfig, DomainStatus, SystemConfig, TemplateRecipients, ImageSize, TemplateWidth } from '../types';
+import { NotificationSetting, User, WebServer, MailServer, MailSecurity, CompanyInfo, BankAccount, EmailTemplate, Package, ReportConfig, DomainStatus, SystemConfig, TemplateRecipients, ImageSize, TemplateWidth } from '../types';
 import Modal from '../components/common/Modal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import ColorPicker from '../components/common/ColorPicker';
@@ -46,11 +46,13 @@ import {
   RefreshCw,
   AlertTriangle,
   X,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createBackupZip, readBackupZip, isEncryptedBackup } from '../utils/zipCrypto';
 
-type TabType = 'system' | 'security' | 'owner' | 'smtp' | 'mail-servers' | 'mail-security' | 'packages' | 'notifications' | 'templates' | 'backup-restore' | 'users';
+type TabType = 'system' | 'security' | 'owner' | 'smtp' | 'web-servers' | 'mail-servers' | 'mail-security' | 'packages' | 'notifications' | 'templates' | 'backup-restore' | 'users';
 
 interface SystemSettings {
   systemName: string;
@@ -237,6 +239,11 @@ export default function SettingsPage() {
   const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
+  // Web server modal state
+  const [webServerModalOpen, setWebServerModalOpen] = useState(false);
+  const [deleteWebServerDialogOpen, setDeleteWebServerDialogOpen] = useState(false);
+  const [selectedWebServer, setSelectedWebServer] = useState<WebServer | null>(null);
+
   // Mail server modal state
   const [mailServerModalOpen, setMailServerModalOpen] = useState(false);
   const [deleteMailServerDialogOpen, setDeleteMailServerDialogOpen] = useState(false);
@@ -388,8 +395,16 @@ export default function SettingsPage() {
   const [packageModalOpen, setPackageModalOpen] = useState(false);
   const [deletePackageDialogOpen, setDeletePackageDialogOpen] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
+  const [selectedWebServerId, setSelectedWebServerId] = useState<number | null>(null);
   const [selectedMailServerId, setSelectedMailServerId] = useState<number | null>(null);
   const [selectedMailSecurityId, setSelectedMailSecurityId] = useState<number | null>(null);
+
+  // Packages list sorting and filtering
+  const [packageSortKey, setPackageSortKey] = useState<'name' | 'maxMailboxes' | 'storageGb' | 'price'>('name');
+  const [packageSortAsc, setPackageSortAsc] = useState(true);
+  const [packageWebServerFilter, setPackageWebServerFilter] = useState<string>('all');
+  const [packageMailServerFilter, setPackageMailServerFilter] = useState<string>('all');
+  const [packageMailSecurityFilter, setPackageMailSecurityFilter] = useState<string>('all');
 
   // Available variables for templates - organized in rows
   const variableRow1 = [
@@ -1056,6 +1071,11 @@ export default function SettingsPage() {
     enabled: isAdmin,
   });
 
+  const { data: webServersData, isLoading: webServersLoading } = useQuery({
+    queryKey: ['web-servers'],
+    queryFn: () => api.get<{ servers: WebServer[] }>('/api/web-servers'),
+  });
+
   const { data: mailServersData, isLoading: mailServersLoading } = useQuery({
     queryKey: ['mail-servers'],
     queryFn: () => api.get<{ servers: MailServer[] }>('/api/mail-servers'),
@@ -1404,6 +1424,45 @@ export default function SettingsPage() {
       toast.success(t('settings.invitationResent'));
     },
     onError: () => toast.error(t('settings.errorSendingInvitation')),
+  });
+
+  // Web server mutations
+  const saveWebServerMutation = useMutation({
+    mutationFn: (data: { name: string; hostname: string; description?: string; isDefault?: boolean }) => {
+      if (selectedWebServer) {
+        return api.put(`/api/web-servers/${selectedWebServer.id}`, data);
+      }
+      return api.post('/api/web-servers', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['web-servers'] });
+      queryClient.invalidateQueries({ queryKey: ['packages'] });
+      toast.success(selectedWebServer ? t('settings.webServerUpdated') : t('settings.webServerCreated'));
+      setWebServerModalOpen(false);
+      setSelectedWebServer(null);
+    },
+    onError: () => toast.error(t('settings.errorSaving')),
+  });
+
+  const deleteWebServerMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/api/web-servers/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['web-servers'] });
+      queryClient.invalidateQueries({ queryKey: ['packages'] });
+      toast.success(t('settings.webServerDeleted'));
+      setDeleteWebServerDialogOpen(false);
+      setSelectedWebServer(null);
+    },
+    onError: () => toast.error(t('settings.errorDeleting')),
+  });
+
+  const setDefaultWebServerMutation = useMutation({
+    mutationFn: (id: number) => api.post(`/api/web-servers/${id}/set-default`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['web-servers'] });
+      toast.success(t('settings.defaultWebServerSet'));
+    },
+    onError: () => toast.error(t('settings.errorSettingDefault')),
   });
 
   // Mail server mutations
@@ -2021,6 +2080,18 @@ export default function SettingsPage() {
     saveUserMutation.mutate(userData);
   };
 
+  const handleWebServerSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    saveWebServerMutation.mutate({
+      name: formData.get('name') as string,
+      hostname: formData.get('hostname') as string,
+      description: formData.get('description') as string || undefined,
+      isDefault: formData.get('isDefault') === 'on',
+    });
+  };
+
   const handleMailServerSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -2216,6 +2287,8 @@ export default function SettingsPage() {
     ...(canManageContent ? [{ id: 'owner' as const, label: t('settings.company'), icon: Building2 }] : []),
     // SuperAdmin only: Email settings (SMTP/IMAP)
     ...(canManageSystem ? [{ id: 'smtp' as const, label: t('settings.email'), icon: Mail }] : []),
+    // Admin+: Web servers
+    ...(canManageContent ? [{ id: 'web-servers' as const, label: t('settings.webServers'), icon: Server }] : []),
     // Admin+: Mail servers
     ...(canManageContent ? [{ id: 'mail-servers' as const, label: t('settings.servers'), icon: HardDrive }] : []),
     // Admin+: Mail security/filters
@@ -2233,6 +2306,18 @@ export default function SettingsPage() {
   ];
 
   // Filter functions
+  const filteredWebServers = (webServersData?.servers || []).filter((server) => {
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      return (
+        server.name?.toLowerCase().includes(search) ||
+        server.hostname?.toLowerCase().includes(search) ||
+        server.description?.toLowerCase().includes(search)
+      );
+    }
+    return true;
+  });
+
   const filteredMailServers = (mailServersData?.servers || []).filter((server) => {
     if (searchTerm.trim()) {
       const search = searchTerm.toLowerCase();
@@ -2309,16 +2394,34 @@ export default function SettingsPage() {
     return true;
   });
 
-  const filteredPackages = (packagesData?.packages || []).filter((pkg) => {
-    if (searchTerm.trim()) {
-      const search = searchTerm.toLowerCase();
+  // Matches a package against a server filter: 'all', 'none' (unassigned) or a server id
+  const matchesServerFilter = (filter: string, serverId?: number | null) => {
+    if (filter === 'all') return true;
+    if (filter === 'none') return !serverId;
+    return serverId === parseInt(filter);
+  };
+
+  const filteredPackages = (packagesData?.packages || [])
+    .filter((pkg) => {
+      if (searchTerm.trim()) {
+        const search = searchTerm.toLowerCase();
+        if (!(pkg.name?.toLowerCase().includes(search) || pkg.description?.toLowerCase().includes(search))) {
+          return false;
+        }
+      }
       return (
-        pkg.name?.toLowerCase().includes(search) ||
-        pkg.description?.toLowerCase().includes(search)
+        matchesServerFilter(packageWebServerFilter, pkg.webServerId) &&
+        matchesServerFilter(packageMailServerFilter, pkg.mailServerId) &&
+        matchesServerFilter(packageMailSecurityFilter, pkg.mailSecurityId)
       );
-    }
-    return true;
-  });
+    })
+    .sort((a, b) => {
+      const dir = packageSortAsc ? 1 : -1;
+      if (packageSortKey === 'name') {
+        return dir * (a.name || '').localeCompare(b.name || '', 'sr');
+      }
+      return dir * ((a[packageSortKey] || 0) - (b[packageSortKey] || 0));
+    });
 
   return (
     <div className="space-y-6">
@@ -3472,6 +3575,87 @@ export default function SettingsPage() {
       )}
 
       {/* Mail Servers Tab */}
+      {activeTab === 'web-servers' && (
+        <div className="space-y-4">
+          <div className="card card-flush overflow-hidden">
+            <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+              <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search..."
+                  className="input input-sm w-full pl-8"
+                />
+              </div>
+              <button
+                onClick={() => { setSelectedWebServer(null); setWebServerModalOpen(true); }}
+                className="btn btn-primary btn-sm flex items-center"
+              >
+                <Plus className="w-3 h-3 mr-1" /> Add
+              </button>
+            </div>
+            {webServersLoading ? (
+              <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-primary-600" /></div>
+            ) : filteredWebServers.length === 0 ? (
+              <div className="text-center py-6 text-sm text-gray-500">
+                {searchTerm ? 'No results' : 'No web servers'}
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredWebServers.map((server) => (
+                  <div
+                    key={server.id}
+                    onClick={() => { setSelectedWebServer(server); setWebServerModalOpen(true); }}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors gap-2"
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0 text-sm flex-wrap">
+                      <Server className="w-4 h-4 text-primary-600 flex-shrink-0" />
+                      <span className="font-medium">{server.name}</span>
+                      <span className="hidden sm:inline text-gray-400">|</span>
+                      <span className="text-gray-600 dark:text-gray-400 truncate">{server.hostname}</span>
+                      {server.description && (
+                        <span className="hidden sm:inline text-gray-500 truncate">{server.description}</span>
+                      )}
+                      {server.isDefault && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                          <Star className="w-2.5 h-2.5 mr-0.5" />Default
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {!server.isDefault && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDefaultWebServerMutation.mutate(server.id); }}
+                          className="p-1.5 text-gray-400 hover:text-yellow-600 rounded"
+                          title="Set as default"
+                        >
+                          <Star className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSelectedWebServer(server); setWebServerModalOpen(true); }}
+                        className="text-xs py-1 px-2 flex items-center gap-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400 active:bg-emerald-300 active:scale-[0.97] dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/50 dark:hover:bg-emerald-500/40 dark:hover:border-emerald-400/70 dark:active:bg-emerald-500/50 transition-all duration-150"
+                      >
+                        <Pencil className="w-3 h-3" />Edit
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSelectedWebServer(server); setDeleteWebServerDialogOpen(true); }}
+                        className="text-xs py-1 px-2 rounded bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-200 hover:border-rose-400 active:bg-rose-300 active:scale-[0.97] dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/50 dark:hover:bg-rose-500/40 dark:hover:border-rose-400/70 dark:active:bg-rose-500/50 transition-all duration-150"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Mail Servers Tab */}
       {activeTab === 'mail-servers' && (
         <div className="space-y-4">
           <div className="card card-flush overflow-hidden">
@@ -3636,8 +3820,8 @@ export default function SettingsPage() {
       {/* Packages Tab */}
       {activeTab === 'packages' && (
         <div className="card card-flush overflow-hidden">
-          <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-            <div className="relative flex-1 max-w-xs">
+          <div className="flex flex-wrap justify-between items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-xs">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input
                 type="text"
@@ -3647,11 +3831,69 @@ export default function SettingsPage() {
                 className="input input-sm w-full pl-8"
               />
             </div>
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <select
+                value={packageSortKey}
+                onChange={(e) => setPackageSortKey(e.target.value as typeof packageSortKey)}
+                className="input input-sm w-auto"
+                title="Sort by"
+              >
+                <option value="name">Sort: Name</option>
+                <option value="maxMailboxes">Sort: Mailboxes</option>
+                <option value="storageGb">Sort: Storage</option>
+                <option value="price">Sort: Price</option>
+              </select>
+              <button
+                onClick={() => setPackageSortAsc(!packageSortAsc)}
+                className="btn btn-secondary btn-sm px-2"
+                title={packageSortAsc ? 'Ascending' : 'Descending'}
+              >
+                {packageSortAsc ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+              </button>
+              <select
+                value={packageWebServerFilter}
+                onChange={(e) => setPackageWebServerFilter(e.target.value)}
+                className="input input-sm w-auto"
+                title="Filter by web server"
+              >
+                <option value="all">Web server: All</option>
+                <option value="none">Web server: Unassigned</option>
+                {webServersData?.servers?.map((server) => (
+                  <option key={server.id} value={String(server.id)}>{server.name}</option>
+                ))}
+              </select>
+              <select
+                value={packageMailServerFilter}
+                onChange={(e) => setPackageMailServerFilter(e.target.value)}
+                className="input input-sm w-auto"
+                title="Filter by mail server"
+              >
+                <option value="all">Mail server: All</option>
+                <option value="none">Mail server: Unassigned</option>
+                {mailServersData?.servers?.map((server) => (
+                  <option key={server.id} value={String(server.id)}>{server.name}</option>
+                ))}
+              </select>
+              <select
+                value={packageMailSecurityFilter}
+                onChange={(e) => setPackageMailSecurityFilter(e.target.value)}
+                className="input input-sm w-auto"
+                title="Filter by mail security"
+              >
+                <option value="all">Mail security: All</option>
+                <option value="none">Mail security: Unassigned</option>
+                {mailSecurityData?.services?.map((service) => (
+                  <option key={service.id} value={String(service.id)}>{service.name}</option>
+                ))}
+              </select>
+            </div>
             <button
               onClick={() => {
                 setSelectedPackage(null);
+                const defaultWebServer = webServersData?.servers?.find(s => s.isDefault);
                 const defaultServer = mailServersData?.servers?.find(s => s.isDefault);
                 const defaultSecurity = mailSecurityData?.services?.find(s => s.isDefault);
+                setSelectedWebServerId(defaultWebServer?.id || null);
                 setSelectedMailServerId(defaultServer?.id || null);
                 setSelectedMailSecurityId(defaultSecurity?.id || null);
                 setPackageModalOpen(true);
@@ -3675,6 +3917,7 @@ export default function SettingsPage() {
                   onClick={() => {
                     if (canEditPackages) {
                       setSelectedPackage(pkg);
+                      setSelectedWebServerId(pkg.webServerId || null);
                       setSelectedMailServerId(pkg.mailServerId || null);
                       setSelectedMailSecurityId(pkg.mailSecurityId || null);
                       setPackageModalOpen(true);
@@ -3697,21 +3940,32 @@ export default function SettingsPage() {
                     <span className="text-gray-600 dark:text-gray-400">{pkg.storageGb} GB</span>
                     <span className="text-gray-400">|</span>
                     <span className="text-gray-600 dark:text-gray-400">{pkg.price} RSD</span>
-                    {pkg.mailServerName && (
-                      <>
-                        <span className="text-gray-400">|</span>
-                        <span className="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                          <HardDrive className="w-2.5 h-2.5 mr-0.5" />{pkg.mailServerName}
-                        </span>
-                      </>
+                    <span className="text-gray-400">|</span>
+                    <span className="text-gray-500">Web Hosting -</span>
+                    {pkg.webServerName ? (
+                      <span className="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
+                        <Server className="w-2.5 h-2.5 mr-0.5" />{pkg.webServerName}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-xs">—</span>
                     )}
-                    {pkg.mailSecurityName && (
-                      <>
-                        <span className="text-gray-400">|</span>
-                        <span className="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                          <Shield className="w-2.5 h-2.5 mr-0.5" />{pkg.mailSecurityName}
-                        </span>
-                      </>
+                    <span className="text-gray-400">|</span>
+                    <span className="text-gray-500">Mail Hosting -</span>
+                    {pkg.mailServerName ? (
+                      <span className="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                        <HardDrive className="w-2.5 h-2.5 mr-0.5" />{pkg.mailServerName}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-xs">—</span>
+                    )}
+                    <span className="text-gray-400">|</span>
+                    <span className="text-gray-500">Mail Security -</span>
+                    {pkg.mailSecurityName ? (
+                      <span className="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                        <Shield className="w-2.5 h-2.5 mr-0.5" />{pkg.mailSecurityName}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-xs">—</span>
                     )}
                   </div>
                   {canEditPackages && (
@@ -3720,6 +3974,7 @@ export default function SettingsPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedPackage(pkg);
+                          setSelectedWebServerId(pkg.webServerId || null);
                           setSelectedMailServerId(pkg.mailServerId || null);
                           setSelectedMailSecurityId(pkg.mailSecurityId || null);
                           setPackageModalOpen(true);
@@ -4640,6 +4895,42 @@ export default function SettingsPage() {
             </button>
             <button type="submit" className="btn btn-primary" disabled={saveUserMutation.isPending}>
               {saveUserMutation.isPending ? t('common.saving') : t('common.save')}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Web Server Modal */}
+      <Modal
+        isOpen={webServerModalOpen}
+        onClose={() => { setWebServerModalOpen(false); setSelectedWebServer(null); }}
+        title={selectedWebServer ? 'Edit Web Server' : 'Add Web Server'}
+      >
+        <form onSubmit={handleWebServerSubmit} className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400">Name *</label>
+              <input name="name" defaultValue={selectedWebServer?.name} className="input input-sm" required placeholder="e.g. Web Server 1" />
+            </div>
+            <div>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400">Hostname *</label>
+              <input name="hostname" defaultValue={selectedWebServer?.hostname} className="input input-sm" required placeholder="web.example.com" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[11px] text-gray-500 dark:text-gray-400">Description</label>
+            <input name="description" defaultValue={selectedWebServer?.description || ''} className="input input-sm" placeholder="Optional description" />
+          </div>
+          <div className="flex items-center">
+            <input name="isDefault" type="checkbox" defaultChecked={selectedWebServer?.isDefault || false} className="checkbox mr-2" />
+            <label className="text-sm text-gray-700 dark:text-gray-300">Set as default</label>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setWebServerModalOpen(false)} className="btn btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={saveWebServerMutation.isPending}>
+              {saveWebServerMutation.isPending ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>
@@ -6445,6 +6736,15 @@ Your team"
       />
 
       <ConfirmDialog
+        isOpen={deleteWebServerDialogOpen}
+        onClose={() => { setDeleteWebServerDialogOpen(false); setSelectedWebServer(null); }}
+        onConfirm={() => selectedWebServer && deleteWebServerMutation.mutate(selectedWebServer.id)}
+        title="Delete Web Server"
+        message={`Are you sure you want to delete "${selectedWebServer?.name}"?`}
+        isLoading={deleteWebServerMutation.isPending}
+      />
+
+      <ConfirmDialog
         isOpen={deleteMailServerDialogOpen}
         onClose={() => { setDeleteMailServerDialogOpen(false); setSelectedMailServer(null); }}
         onConfirm={() => selectedMailServer && deleteMailServerMutation.mutate(selectedMailServer.id)}
@@ -6497,6 +6797,7 @@ Your team"
             storageGb: parseFloat(formData.get('storageGb') as string),
             price: parseFloat(formData.get('price') as string),
             features: featuresStr ? featuresStr.split(',').map(f => f.trim()).filter(Boolean) : null,
+            webServerId: selectedWebServerId,
             mailServerId: selectedMailServerId,
             mailSecurityId: selectedMailSecurityId,
           });
@@ -6523,7 +6824,22 @@ Your team"
               <input name="price" type="number" min="0" step="0.01" defaultValue={selectedPackage?.price || 0} className="input input-sm" required />
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-[11px] text-gray-500 dark:text-gray-400">Web Server</label>
+              <select
+                value={selectedWebServerId || ''}
+                onChange={(e) => setSelectedWebServerId(e.target.value ? parseInt(e.target.value) : null)}
+                className="input input-sm"
+              >
+                <option value="">-- None --</option>
+                {webServersData?.servers?.map((server) => (
+                  <option key={server.id} value={server.id}>
+                    {server.name} ({server.hostname}){server.isDefault ? ' - Default' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="text-[11px] text-gray-500 dark:text-gray-400">Mail Server</label>
               <select
