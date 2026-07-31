@@ -4,8 +4,19 @@ import { eq, and, lte, gte } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp, formatDate, addDaysToDate, daysUntilExpiry } from '../utils/dates.js';
+import { audit } from '../services/audit.js';
 
 const mailHosting = new Hono();
+
+// Mail hosting rows have no name of their own - audit entries are labelled by their domain
+async function mailHostingLabel(domainId?: number | null): Promise<string | undefined> {
+  if (!domainId) return undefined;
+  const domain = await db.select({ name: schema.domains.domainName })
+    .from(schema.domains)
+    .where(eq(schema.domains.id, domainId))
+    .get();
+  return domain?.name;
+}
 
 mailHosting.use('*', authMiddleware);
 
@@ -124,6 +135,8 @@ mailHosting.post('/', async (c) => {
 
     const [mailHostingItem] = await db.insert(schema.mailHosting).values(data).returning();
 
+    await audit.create(c, 'hosting', mailHostingItem.id, await mailHostingLabel(mailHostingItem.domainId), { expiryDate: mailHostingItem.expiryDate });
+
     return c.json({ mailHosting: mailHostingItem }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -149,6 +162,8 @@ mailHosting.put('/:id', async (c) => {
       .where(eq(schema.mailHosting.id, id))
       .returning();
 
+    await audit.update(c, 'hosting', mailHostingItem.id, await mailHostingLabel(mailHostingItem.domainId), { expiryDate: mailHostingItem.expiryDate });
+
     return c.json({ mailHosting: mailHostingItem });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -167,6 +182,8 @@ mailHosting.delete('/:id', async (c) => {
   }
 
   await db.delete(schema.mailHosting).where(eq(schema.mailHosting.id, id));
+
+  await audit.delete(c, 'hosting', id, await mailHostingLabel(existing.domainId));
 
   return c.json({ message: 'Mail hosting deleted' });
 });

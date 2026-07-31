@@ -5,6 +5,7 @@ import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { parseId } from '../utils/validation.js';
+import { audit } from '../services/audit.js';
 
 const mailSecurity = new Hono();
 
@@ -48,6 +49,8 @@ mailSecurity.post('/', adminMiddleware, async (c) => {
 
     const [service] = await db.insert(schema.mailSecurity).values(data).returning();
 
+    await audit.create(c, 'mailSecurity', service.id, service.name);
+
     return c.json({ service }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -81,6 +84,8 @@ mailSecurity.put('/:id', adminMiddleware, async (c) => {
       .where(eq(schema.mailSecurity.id, id))
       .returning();
 
+    await audit.update(c, 'mailSecurity', service.id, service.name);
+
     return c.json({ service });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -100,6 +105,8 @@ mailSecurity.delete('/:id', adminMiddleware, async (c) => {
   }
 
   await db.delete(schema.mailSecurity).where(eq(schema.mailSecurity.id, id));
+
+  await audit.delete(c, 'mailSecurity', id, existing.name);
 
   return c.json({ message: 'Mail security service deleted' });
 });
@@ -123,6 +130,8 @@ mailSecurity.post('/:id/set-default', adminMiddleware, async (c) => {
     .set({ isDefault: true, updatedAt: getCurrentTimestamp() })
     .where(eq(schema.mailSecurity.id, id))
     .returning();
+
+  await audit.custom(c, 'set_default', 'mailSecurity', service.id, service.name);
 
   return c.json({ service });
 });

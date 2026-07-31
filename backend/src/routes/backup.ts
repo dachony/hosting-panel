@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { getExportData, createServerBackup, getBackupFiles, cleanupOldBackups, BACKUP_DIR } from '../services/backupService.js';
+import { audit } from '../services/audit.js';
 
 const backup = new Hono();
 
@@ -444,6 +445,8 @@ backup.post('/import', superAdminMiddleware, async (c) => {
       }
     }
 
+    await audit.custom(c, 'import', 'backup', 0, undefined, { overwrite, results } as Record<string, unknown>);
+
     return c.json({
       message: 'Import completed',
       results,
@@ -832,6 +835,9 @@ backup.post('/create', async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const password = typeof body.password === 'string' && body.password.length > 0 ? body.password : undefined;
     const result = await createServerBackup(password);
+
+    await audit.custom(c, 'create', 'backup', 0, (result as { filename?: string }).filename);
+
     return c.json(result);
   } catch (error) {
     console.error('Backup creation error:', error);
@@ -889,6 +895,8 @@ backup.put('/settings', async (c) => {
       await db.insert(schema.appSettings).values({ key: 'backupSchedule', value: data });
     }
 
+    await audit.update(c, 'settings', 0, 'backupSchedule');
+
     return c.json({ settings: data });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -911,6 +919,9 @@ backup.delete('/files/cleanup', async (c) => {
       return c.json({ error: 'Days must be at least 1' }, 400);
     }
     const deleted = cleanupOldBackups(days);
+
+    await audit.custom(c, 'cleanup', 'backup', 0, undefined, { olderThanDays: days, deleted } as Record<string, unknown>);
+
     return c.json({ deleted });
   } catch (error) {
     console.error('Backup cleanup error:', error);
@@ -960,6 +971,9 @@ backup.delete('/files/:filename', async (c) => {
     }
 
     fs.unlinkSync(filePath);
+
+    await audit.delete(c, 'backup', 0, filename);
+
     return c.json({ message: 'Backup deleted' });
   } catch (error) {
     console.error('Backup delete error:', error);

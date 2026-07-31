@@ -5,6 +5,7 @@ import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { parseId } from '../utils/validation.js';
+import { audit } from '../services/audit.js';
 
 const company = new Hono();
 
@@ -63,11 +64,17 @@ company.put('/info', adminMiddleware, async (c) => {
         })
         .where(eq(schema.companyInfo.id, existing.id))
         .returning();
+
+      await audit.update(c, 'company', updated.id, updated.name);
+
       return c.json({ company: updated });
     } else {
       const [created] = await db.insert(schema.companyInfo)
         .values(data)
         .returning();
+
+      await audit.create(c, 'company', created.id, created.name);
+
       return c.json({ company: created }, 201);
     }
   } catch (error) {
@@ -103,6 +110,8 @@ company.post('/logo', adminMiddleware, async (c) => {
       await db.insert(schema.companyInfo).values({ name: 'Company', logo });
     }
 
+    await audit.custom(c, 'logo_upload', 'company', existing?.id ?? 0, existing?.name);
+
     return c.json({ message: 'Logo uploaded' });
   } catch (error) {
     throw error;
@@ -118,6 +127,8 @@ company.delete('/logo', adminMiddleware, async (c) => {
       .set({ logo: null, updatedAt: getCurrentTimestamp() })
       .where(eq(schema.companyInfo.id, existing.id));
   }
+
+  await audit.custom(c, 'logo_delete', 'company', existing?.id ?? 0, existing?.name);
 
   return c.json({ message: 'Logo deleted' });
 });
@@ -143,6 +154,8 @@ company.post('/bank-accounts', adminMiddleware, async (c) => {
     const [account] = await db.insert(schema.bankAccounts)
       .values(data)
       .returning();
+
+    await audit.create(c, 'bankAccount', account.id, account.bankName);
 
     return c.json({ account }, 201);
   } catch (error) {
@@ -182,6 +195,8 @@ company.put('/bank-accounts/:id', adminMiddleware, async (c) => {
       .where(eq(schema.bankAccounts.id, id))
       .returning();
 
+    await audit.update(c, 'bankAccount', account.id, account.bankName);
+
     return c.json({ account });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -204,6 +219,8 @@ company.delete('/bank-accounts/:id', adminMiddleware, async (c) => {
   }
 
   await db.delete(schema.bankAccounts).where(eq(schema.bankAccounts.id, id));
+
+  await audit.delete(c, 'bankAccount', id, existing.bankName);
 
   return c.json({ message: 'Bank account deleted' });
 });
@@ -228,6 +245,8 @@ company.post('/bank-accounts/:id/set-default', adminMiddleware, async (c) => {
   await db.update(schema.bankAccounts)
     .set({ isDefault: true, updatedAt: getCurrentTimestamp() })
     .where(eq(schema.bankAccounts.id, id));
+
+  await audit.custom(c, 'set_default', 'bankAccount', id, existing.bankName);
 
   return c.json({ message: 'Default bank account set' });
 });

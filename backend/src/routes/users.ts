@@ -9,6 +9,7 @@ import { notifySuperadminPasswordChange, notifyAdminPasswordChange } from '../se
 import { validatePassword, generateTemporaryPassword } from '../services/security.js';
 import { sendEmail } from '../services/email.js';
 import { parseId } from '../utils/validation.js';
+import { audit } from '../services/audit.js';
 
 const users = new Hono<AppEnv>();
 
@@ -165,6 +166,8 @@ users.post('/', async (c) => {
       }
     }
 
+    await audit.create(c, 'user', user.id, user.email, { role: user.role });
+
     return c.json({
       user: {
         id: user.id,
@@ -261,6 +264,8 @@ users.put('/:id', async (c) => {
       }
     }
 
+    await audit.update(c, 'user', user.id, user.email, { role: user.role, passwordChanged: !!data.password });
+
     return c.json({
       user: {
         id: user.id,
@@ -308,6 +313,8 @@ users.patch('/:id/toggle-active', async (c) => {
     })
     .where(eq(schema.users.id, id))
     .returning();
+
+  await audit.custom(c, user.isActive ? 'activate' : 'deactivate', 'user', user.id, user.email);
 
   return c.json({
     user: {
@@ -388,6 +395,8 @@ users.post('/:id/resend-invite', async (c) => {
       `,
     });
 
+    await audit.custom(c, 'resend_invite', 'user', id, existing.email);
+
     return c.json({ message: 'Invite sent successfully' });
   } catch (error) {
     return c.json({ error: 'Failed to send invite email' }, 500);
@@ -415,6 +424,8 @@ users.delete('/:id', async (c) => {
   }
 
   await db.delete(schema.users).where(eq(schema.users.id, id));
+
+  await audit.delete(c, 'user', id, existing.email, { role: existing.role });
 
   return c.json({ message: 'User deleted' });
 });

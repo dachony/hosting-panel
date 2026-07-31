@@ -5,6 +5,7 @@ import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { parseId } from '../utils/validation.js';
+import { audit } from '../services/audit.js';
 
 const webServers = new Hono();
 
@@ -43,6 +44,8 @@ webServers.post('/', adminMiddleware, async (c) => {
 
     const [server] = await db.insert(schema.webServers).values(data).returning();
 
+    await audit.create(c, 'webServer', server.id, server.name);
+
     return c.json({ server }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -76,6 +79,8 @@ webServers.put('/:id', adminMiddleware, async (c) => {
       .where(eq(schema.webServers.id, id))
       .returning();
 
+    await audit.update(c, 'webServer', server.id, server.name);
+
     return c.json({ server });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -96,6 +101,8 @@ webServers.delete('/:id', adminMiddleware, async (c) => {
   }
 
   await db.delete(schema.webServers).where(eq(schema.webServers.id, id));
+
+  await audit.delete(c, 'webServer', id, existing.name);
 
   return c.json({ message: 'Web server deleted' });
 });
@@ -119,6 +126,8 @@ webServers.post('/:id/set-default', adminMiddleware, async (c) => {
     .set({ isDefault: true, updatedAt: getCurrentTimestamp() })
     .where(eq(schema.webServers.id, id))
     .returning();
+
+  await audit.custom(c, 'set_default', 'webServer', server.id, server.name);
 
   return c.json({ server });
 });

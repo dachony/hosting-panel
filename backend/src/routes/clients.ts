@@ -215,6 +215,8 @@ clients.post('/:clientId/extend', async (c) => {
       .set({ expiryDate: newExpiryDate, updatedAt: getCurrentTimestamp() })
       .where(eq(schema.mailHosting.id, id));
 
+    await audit.custom(c, 'extend', 'hosting', id, undefined, { period, from: hosting.expiryDate, to: newExpiryDate });
+
     return c.json({ message: 'Hosting extended', newExpiryDate });
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -5,6 +5,7 @@ import { authMiddleware, adminMiddleware, salesAdminWriteMiddleware } from '../m
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { parseId } from '../utils/validation.js';
+import { audit } from '../services/audit.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -97,6 +98,8 @@ domains.post('/', salesAdminWriteMiddleware, async (c) => {
 
     const [domain] = await db.insert(schema.domains).values(data).returning();
 
+    await audit.create(c, 'domain', domain.id, domain.domainName);
+
     return c.json({ domain }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -129,6 +132,8 @@ domains.put('/:id', salesAdminWriteMiddleware, async (c) => {
       .set({ ...data, updatedAt: getCurrentTimestamp() })
       .where(eq(schema.domains.id, id))
       .returning();
+
+    await audit.update(c, 'domain', domain.id, domain.domainName);
 
     return c.json({ domain });
   } catch (error) {
@@ -218,6 +223,8 @@ domains.post('/:id/pdf', async (c) => {
     .set({ pdfFilename: filename, updatedAt: getCurrentTimestamp() })
     .where(eq(schema.domains.id, id));
 
+  await audit.custom(c, 'pdf_upload', 'domain', id, existing.domainName, { pdfFilename: filename });
+
   return c.json({ pdfFilename: filename });
 });
 
@@ -261,6 +268,8 @@ domains.delete('/:id/pdf', salesAdminWriteMiddleware, async (c) => {
     .set({ pdfFilename: null, updatedAt: getCurrentTimestamp() })
     .where(eq(schema.domains.id, id));
 
+  await audit.custom(c, 'pdf_delete', 'domain', id, domain.domainName, { pdfFilename: domain.pdfFilename });
+
   return c.json({ message: 'PDF deleted' });
 });
 
@@ -280,6 +289,8 @@ domains.post('/:id/toggle', salesAdminWriteMiddleware, async (c) => {
     })
     .where(eq(schema.domains.id, id))
     .returning();
+
+  await audit.custom(c, updated.isActive ? 'unlock' : 'lock', 'domain', updated.id, updated.domainName);
 
   return c.json({ domain: updated });
 });
@@ -301,6 +312,8 @@ domains.delete('/:id', adminMiddleware, async (c) => {
   await db.delete(schema.mailHosting).where(eq(schema.mailHosting.domainId, id));
 
   await db.delete(schema.domains).where(eq(schema.domains.id, id));
+
+  await audit.delete(c, 'domain', id, existing.domainName);
 
   return c.json({ message: 'Domain deleted' });
 });

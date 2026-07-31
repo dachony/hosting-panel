@@ -5,6 +5,7 @@ import { authMiddleware, salesAdminMiddleware, packageEditMiddleware } from '../
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { parseId } from '../utils/validation.js';
+import { audit } from '../services/audit.js';
 
 const mailPackages = new Hono();
 
@@ -71,6 +72,8 @@ mailPackages.post('/', salesAdminMiddleware, async (c) => {
 
     const [pkg] = await db.insert(schema.mailPackages).values(data).returning();
 
+    await audit.create(c, 'package', pkg.id, pkg.name);
+
     return c.json({ package: pkg }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -98,6 +101,8 @@ mailPackages.put('/:id', packageEditMiddleware, async (c) => {
       .where(eq(schema.mailPackages.id, id))
       .returning();
 
+    await audit.update(c, 'package', pkg.id, pkg.name);
+
     return c.json({ package: pkg });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -118,6 +123,8 @@ mailPackages.delete('/:id', packageEditMiddleware, async (c) => {
   }
 
   await db.delete(schema.mailPackages).where(eq(schema.mailPackages.id, id));
+
+  await audit.delete(c, 'package', id, existing.name);
 
   return c.json({ message: 'Package deleted' });
 });

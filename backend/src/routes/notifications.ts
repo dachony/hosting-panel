@@ -10,6 +10,7 @@ import { generateSystemInfoHtml, generateSystemInfoJson, generateSystemInfoPdf }
 import { triggerClientNotification } from '../services/scheduler.js';
 import type { ReportConfig, SystemConfig } from '../db/schema.js';
 import { parseId } from '../utils/validation.js';
+import { audit } from '../services/audit.js';
 
 const mailSettingsSchema = z.object({
   host: z.string().min(1),
@@ -83,6 +84,8 @@ notifications.post('/settings', adminMiddleware, async (c) => {
 
     const [setting] = await db.insert(schema.notificationSettings).values(data).returning();
 
+    await audit.create(c, 'notification', setting.id, setting.name);
+
     return c.json({ setting }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -109,6 +112,8 @@ notifications.put('/settings/:id', adminMiddleware, async (c) => {
       .where(eq(schema.notificationSettings.id, id))
       .returning();
 
+    await audit.update(c, 'notification', setting.id, setting.name);
+
     return c.json({ setting });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -129,6 +134,8 @@ notifications.delete('/settings/:id', adminMiddleware, async (c) => {
 
   await db.delete(schema.notificationSettings).where(eq(schema.notificationSettings.id, id));
 
+  await audit.delete(c, 'notification', id, existing.name);
+
   return c.json({ message: 'Notification setting deleted' });
 });
 
@@ -144,6 +151,8 @@ notifications.post('/reports', adminMiddleware, async (c) => {
     const data = reportSettingsSchema.parse(body);
 
     const [report] = await db.insert(schema.reportSettings).values(data).returning();
+
+    await audit.create(c, 'report', report.id, report.name);
 
     return c.json({ report }, 201);
   } catch (error) {
@@ -171,6 +180,8 @@ notifications.put('/reports/:id', adminMiddleware, async (c) => {
       .where(eq(schema.reportSettings.id, id))
       .returning();
 
+    await audit.update(c, 'report', report.id, report.name);
+
     return c.json({ report });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -190,6 +201,8 @@ notifications.delete('/reports/:id', adminMiddleware, async (c) => {
   }
 
   await db.delete(schema.reportSettings).where(eq(schema.reportSettings.id, id));
+
+  await audit.delete(c, 'report', id, existing.name);
 
   return c.json({ message: 'Report deleted' });
 });
@@ -255,6 +268,8 @@ notifications.put('/mail-settings', superAdminMiddleware, async (c) => {
       await db.insert(schema.appSettings).values({ key: 'mail-settings', value: finalData });
     }
 
+    await audit.update(c, 'settings', 0, 'mail-settings');
+
     return c.json({
       settings: {
         ...finalData,
@@ -291,6 +306,8 @@ notifications.post('/smtp/test', adminMiddleware, async (c) => {
     const { email } = z.object({ email: z.string().email() }).parse(body);
 
     await sendTestEmail(email);
+
+    await audit.custom(c, 'smtp_test', 'settings', 0, 'mail-settings');
 
     return c.json({ message: 'Test email sent successfully' });
   } catch (error) {
@@ -387,6 +404,8 @@ notifications.post('/settings/:id/test', adminMiddleware, async (c) => {
       subject,
       html: htmlContent,
     });
+
+    await audit.custom(c, 'test', 'notification', id, setting.name);
 
     return c.json({ message: 'Test notification sent' });
   } catch (error) {
@@ -539,6 +558,8 @@ notifications.post('/settings/:id/trigger', adminMiddleware, async (c) => {
     }
 
     await sendEmail({ to: recipient, subject, html, attachments: attachments.length > 0 ? attachments : undefined });
+
+    await audit.custom(c, 'trigger', 'notification', id, setting.name, { recipient });
 
     return c.json({ message: `Notification sent to ${recipient}` });
   } catch (error) {

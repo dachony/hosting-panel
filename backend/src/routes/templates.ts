@@ -8,6 +8,7 @@ import { sendEmail } from '../services/email.js';
 import { generateHostingListHtml } from '../services/reports.js';
 import { generateSystemInfoHtml, generateSystemInfoJson, generateSystemInfoPdf } from '../services/system.js';
 import { parseId } from '../utils/validation.js';
+import { audit } from '../services/audit.js';
 
 const templates = new Hono();
 
@@ -113,6 +114,8 @@ templates.post('/', adminMiddleware, async (c) => {
 
     const [template] = await db.insert(schema.emailTemplates).values(data).returning();
 
+    await audit.create(c, 'template', template.id, template.name);
+
     return c.json({ template }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -140,6 +143,8 @@ templates.put('/:id', adminMiddleware, async (c) => {
       .where(eq(schema.emailTemplates.id, id))
       .returning();
 
+    await audit.update(c, 'template', template.id, template.name);
+
     return c.json({ template });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -160,6 +165,8 @@ templates.delete('/:id', adminMiddleware, async (c) => {
   }
 
   await db.delete(schema.emailTemplates).where(eq(schema.emailTemplates.id, id));
+
+  await audit.delete(c, 'template', id, existing.name);
 
   return c.json({ message: 'Template deleted' });
 });
@@ -293,6 +300,8 @@ templates.post('/:id/test', adminMiddleware, async (c) => {
       html,
       attachments: attachments.length > 0 ? attachments : undefined,
     });
+
+    await audit.custom(c, 'test_email', 'template', id, template.name);
 
     return c.json({ message: 'Test email sent' });
   } catch (error) {

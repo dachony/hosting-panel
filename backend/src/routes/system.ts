@@ -6,6 +6,7 @@ import { safeParseInt, parseId, escapeLike } from '../utils/validation.js';
 import os from 'os';
 import fs from 'fs';
 import path from 'path';
+import { audit } from '../services/audit.js';
 
 const system = new Hono();
 
@@ -217,6 +218,9 @@ system.delete('/emails', async (c) => {
 
     if (days === 0) {
       await db.delete(schema.emailLogs);
+
+      await audit.custom(c, 'cleanup', 'emailLog', 0, undefined, { days: 0 });
+
       return c.json({ message: 'All email logs deleted' });
     }
 
@@ -224,6 +228,8 @@ system.delete('/emails', async (c) => {
     await db.delete(schema.emailLogs).where(
       sql`${schema.emailLogs.createdAt} < ${cutoffDate}`
     );
+
+    await audit.custom(c, 'cleanup', 'emailLog', 0, undefined, { days });
 
     return c.json({ message: `Deleted email logs older than ${days} days` });
   } catch (error) {
@@ -308,6 +314,8 @@ system.delete('/pdfs', async (c) => {
           .where(eq(schema.domains.id, domainId));
       }
     }
+
+    await audit.custom(c, 'cleanup', 'pdf', 0, undefined, { days, deleted: deletedCount });
 
     return c.json({ message: `Deleted ${deletedCount} PDF files`, deleted: deletedCount });
   } catch (error) {

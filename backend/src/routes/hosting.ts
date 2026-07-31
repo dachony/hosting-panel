@@ -5,8 +5,19 @@ import { authMiddleware, adminMiddleware, salesAdminWriteMiddleware } from '../m
 import { z } from 'zod';
 import { getCurrentTimestamp, formatDate, addDaysToDate, daysUntilExpiry } from '../utils/dates.js';
 import { parseId } from '../utils/validation.js';
+import { audit } from '../services/audit.js';
 
 const hosting = new Hono();
+
+// Hosting rows have no name of their own - audit entries are labelled by their domain
+async function hostingLabel(domainId?: number | null): Promise<string | undefined> {
+  if (!domainId) return undefined;
+  const domain = await db.select({ name: schema.domains.domainName })
+    .from(schema.domains)
+    .where(eq(schema.domains.id, domainId))
+    .get();
+  return domain?.name;
+}
 
 hosting.use('*', authMiddleware);
 
@@ -218,6 +229,8 @@ hosting.post('/', salesAdminWriteMiddleware, async (c) => {
       notes: data.notes,
     }).returning();
 
+    await audit.create(c, 'hosting', hostingItem.id, await hostingLabel(hostingItem.domainId), { expiryDate: hostingItem.expiryDate });
+
     return c.json({ hosting: hostingItem }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -252,6 +265,8 @@ hosting.put('/:id', salesAdminWriteMiddleware, async (c) => {
       .where(eq(schema.mailHosting.id, id))
       .returning();
 
+    await audit.update(c, 'hosting', hostingItem.id, await hostingLabel(hostingItem.domainId), { expiryDate: hostingItem.expiryDate });
+
     return c.json({ hosting: hostingItem });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -272,6 +287,8 @@ hosting.delete('/:id', adminMiddleware, async (c) => {
 
   await db.delete(schema.mailHosting).where(eq(schema.mailHosting.id, id));
 
+  await audit.delete(c, 'hosting', id, await hostingLabel(existing.domainId));
+
   return c.json({ message: 'Hosting deleted' });
 });
 
@@ -291,6 +308,8 @@ hosting.post('/:id/toggle', adminMiddleware, async (c) => {
     })
     .where(eq(schema.mailHosting.id, id))
     .returning();
+
+  await audit.custom(c, updated.isActive ? 'enable' : 'disable', 'hosting', updated.id, await hostingLabel(updated.domainId));
 
   return c.json({ hosting: updated });
 });
@@ -332,6 +351,8 @@ hosting.post('/:id/extend', async (c) => {
       .set({ expiryDate: newExpiryDate, updatedAt: getCurrentTimestamp() })
       .where(eq(schema.mailHosting.id, id));
 
+    await audit.custom(c, 'extend', 'hosting', id, await hostingLabel(existing.domainId), { period, from: existing.expiryDate, to: newExpiryDate });
+
     return c.json({ message: 'Hosting extended', newExpiryDate });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -356,6 +377,8 @@ hosting.post('/:id/expire-now', adminMiddleware, async (c) => {
   await db.update(schema.mailHosting)
     .set({ expiryDate: newExpiryDate, updatedAt: getCurrentTimestamp() })
     .where(eq(schema.mailHosting.id, id));
+
+  await audit.custom(c, 'expire_now', 'hosting', id, await hostingLabel(existing.domainId), { from: existing.expiryDate, to: newExpiryDate });
 
   return c.json({ message: 'Hosting expired', newExpiryDate });
 });

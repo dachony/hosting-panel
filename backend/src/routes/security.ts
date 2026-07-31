@@ -20,6 +20,7 @@ import {
 } from '../services/security.js';
 import { sendEmail } from '../services/email.js';
 import { parseId, safeParseInt } from '../utils/validation.js';
+import { audit } from '../services/audit.js';
 
 const security = new Hono<AppEnv>();
 
@@ -59,6 +60,8 @@ security.put('/settings', superAdminMiddleware, async (c) => {
       await db.insert(schema.appSettings).values({ key: 'security', value: data });
     }
 
+    await audit.update(c, 'settings', 0, 'security');
+
     return c.json({ settings: data });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -78,6 +81,9 @@ security.get('/blocked-ips', superAdminMiddleware, async (c) => {
 security.delete('/blocked-ips/:ip', superAdminMiddleware, async (c) => {
   const ip = c.req.param('ip');
   await unblockIp(ip);
+
+  await audit.custom(c, 'unblock_ip', 'security', 0, ip);
+
   return c.json({ message: 'IP unblocked' });
 });
 
@@ -121,6 +127,8 @@ security.post('/unlock-user/:id', superAdminMiddleware, async (c) => {
       updatedAt: getCurrentTimestamp()
     })
     .where(eq(schema.users.id, userId));
+
+  await audit.custom(c, 'unlock_user', 'user', userId);
 
   return c.json({ message: 'User unlocked' });
 });
@@ -199,6 +207,8 @@ security.post('/2fa/verify/email', async (c) => {
     })
     .where(eq(schema.users.id, user.id));
 
+  await audit.custom(c, '2fa_enable', 'user', user.id, undefined, { method: 'email' });
+
   return c.json({ message: '2FA enabled successfully', method: 'email' });
 });
 
@@ -261,6 +271,8 @@ security.post('/2fa/verify/totp', async (c) => {
     .where(eq(schema.users.id, user.id));
 
   const backupCodes = await generateBackupCodes(user.id);
+
+  await audit.custom(c, '2fa_enable', 'user', user.id, undefined, { method: 'totp' });
 
   return c.json({
     message: '2FA enabled successfully',
@@ -332,6 +344,8 @@ security.post('/2fa/disable', async (c) => {
     await db.delete(schema.backupCodes).where(eq(schema.backupCodes.userId, user.id));
   }
 
+  await audit.custom(c, '2fa_disable', 'user', user.id, undefined, { method });
+
   return c.json({ message: '2FA disabled' });
 });
 
@@ -355,6 +369,9 @@ security.post('/2fa/backup-codes/regenerate', async (c) => {
   }
 
   const backupCodes = await generateBackupCodes(user.id);
+
+  await audit.custom(c, 'backup_codes_regenerate', 'user', user.id);
+
   return c.json({ backupCodes });
 });
 

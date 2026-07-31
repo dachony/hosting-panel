@@ -5,6 +5,7 @@ import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 import { getCurrentTimestamp } from '../utils/dates.js';
 import { parseId } from '../utils/validation.js';
+import { audit } from '../services/audit.js';
 
 const mailServers = new Hono();
 
@@ -43,6 +44,8 @@ mailServers.post('/', adminMiddleware, async (c) => {
 
     const [server] = await db.insert(schema.mailServers).values(data).returning();
 
+    await audit.create(c, 'mailServer', server.id, server.name);
+
     return c.json({ server }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -76,6 +79,8 @@ mailServers.put('/:id', adminMiddleware, async (c) => {
       .where(eq(schema.mailServers.id, id))
       .returning();
 
+    await audit.update(c, 'mailServer', server.id, server.name);
+
     return c.json({ server });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -96,6 +101,8 @@ mailServers.delete('/:id', adminMiddleware, async (c) => {
   }
 
   await db.delete(schema.mailServers).where(eq(schema.mailServers.id, id));
+
+  await audit.delete(c, 'mailServer', id, existing.name);
 
   return c.json({ message: 'Mail server deleted' });
 });
@@ -119,6 +126,8 @@ mailServers.post('/:id/set-default', adminMiddleware, async (c) => {
     .set({ isDefault: true, updatedAt: getCurrentTimestamp() })
     .where(eq(schema.mailServers.id, id))
     .returning();
+
+  await audit.custom(c, 'set_default', 'mailServer', server.id, server.name);
 
   return c.json({ server });
 });
